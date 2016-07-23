@@ -118,5 +118,7 @@ namespace Axis.Luna.Extensions
             if (!op.Succeeded || !op.Result.Succeeded) return Operation.Run(() => func(op.Result));
             return op.Result;
         }
+
+        ///...
     }
 }
