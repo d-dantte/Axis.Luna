@@ -1,0 +1,36 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 14
+VisualStudioVersion = 14.0.23107.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Axis.Luna", "Axis.Luna\Axis.Luna.csproj", "{DC15DC69-5965-4769-9CFD-F7917FAC5DD9}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{1FC7E4CA-D079-43C0-9AC5-051F4B81A7AC}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Axis.Luna.Test", "Axis.Luna.Test\Axis.Luna.Test.csproj", "{1F75942B-5A2A-44A5-8439-6042E6D83035}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Core", "Core", "{4CD022A9-227B-4F32-88AB-91823664D15D}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{DC15DC69-5965-4769-9CFD-F7917FAC5DD9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DC15DC69-5965-4769-9CFD-F7917FAC5DD9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DC15DC69-5965-4769-9CFD-F7917FAC5DD9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DC15DC69-5965-4769-9CFD-F7917FAC5DD9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1F75942B-5A2A-44A5-8439-6042E6D83035}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1F75942B-5A2A-44A5-8439-6042E6D83035}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1F75942B-5A2A-44A5-8439-6042E6D83035}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1F75942B-5A2A-44A5-8439-6042E6D83035}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{DC15DC69-5965-4769-9CFD-F7917FAC5DD9} = {4CD022A9-227B-4F32-88AB-91823664D15D}
+		{1F75942B-5A2A-44A5-8439-6042E6D83035} = {1FC7E4CA-D079-43C0-9AC5-051F4B81A7AC}
+	EndGlobalSection
+EndGlobal
