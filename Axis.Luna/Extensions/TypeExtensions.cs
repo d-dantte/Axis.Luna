@@ -19,7 +19,6 @@ namespace Axis.Luna.Extensions
     {
         private static ConcurrentDictionary<Type, object> TypeDefaults = new ConcurrentDictionary<Type, object>();
         private static ConcurrentDictionary<Type, string> MinimalAQNames = new ConcurrentDictionary<Type, string>();
-        private static ConcurrentDictionary<string, DynamicMethodDelegate> PropertyAccessors = new ConcurrentDictionary<string, DynamicMethodDelegate>();
 
         #region Helpers
         private static string AccessorSignature(this PropertyInfo pinfo)
@@ -127,11 +126,13 @@ namespace Axis.Luna.Extensions
             if (prop == null) return false;
             else
             {
-                var del = PropertyAccessors.GetOrAdd(prop.AccessorSignature(), sig => prop.GetGetMethod()?.CreateDynamicDelegate());
-                val = del?.Invoke(obj, new object[0]);
+                //var del =  PropertyAccessors.GetOrAdd(prop.AccessorSignature(), sig => prop.GetGetMethod()?.CreateDynamicDelegate());
+                //val = del?.Invoke(obj, new object[0]);
 
-                if (del == null) return false;
-                else return true;
+                //if (del == null) return false;
+                //else return true;
+
+                throw new Exception("Not implemented");
             }
         }
         public static bool TryPropertyValue<V>(this object obj, string property, ref V val)

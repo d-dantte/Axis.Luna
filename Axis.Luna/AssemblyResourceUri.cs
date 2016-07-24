@@ -10,6 +10,7 @@ using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using System.Diagnostics;
 
 namespace Axis.Luna
 {
@@ -27,11 +28,19 @@ namespace Axis.Luna
         /// </summary>
         /// <param name="uri"></param>
         /// <returns></returns>
-        public static AssemblyResourceUri NewUri(string uri, string defaultAssembly = null)
-            => defaultAssembly.ValidateAssemblyName()
-                              .Pipe(da => ARUParser.SchemeFormat.IsMatch(uri) ?
-                                             uri : $"arx://{defaultAssembly.ThrowIfNull()}/{uri.TrimStart("/")}")
-                              .Pipe(auri => new AssemblyResourceUri(auri));
+        public static AssemblyResourceUri NewAbsoluteUri(string uri) => new AssemblyResourceUri(uri);
+
+        public static AssemblyResourceUri NewRelativeUri(string uri, string callerAssembly = null)
+        {
+            var assemblyName = callerAssembly ?? new StackFrame(1).GetMethod().DeclaringType.Assembly.GetName().Name;
+            uri = uri.Trim();
+            var isCompactRelative = uri.StartsWith(";/");
+            if (!isCompactRelative && !uri.StartsWith("/")) throw new Exception("invalid uri");
+
+            return assemblyName.ValidateAssemblyName()
+                               .Pipe(asn => $"arx://{asn}{uri}")
+                               .Pipe(_uri => new AssemblyResourceUri(_uri));
+        }
 
 
         private AssemblyResourceUri(string uri) : base(uri)
@@ -192,7 +201,7 @@ namespace Axis.Luna
 
         internal static string ValidateAssemblyName(this string defaultAssembly)
         {
-            if (defaultAssembly == null) return null;
+            if (defaultAssembly == null) throw new Exception("null assembly root");
 
             else if (string.Empty.Equals(defaultAssembly.Trim()))
                 throw new ArgumentException(nameof(defaultAssembly));
