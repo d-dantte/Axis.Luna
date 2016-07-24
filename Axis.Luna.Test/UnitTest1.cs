@@ -6,6 +6,9 @@ using Newtonsoft.Json;
 using Axis.Luna.Extensions;
 using Expressions;
 using static Axis.Luna.Void;
+using System.ComponentModel;
+using System.Threading;
+using System.Linq.Expressions;
 
 namespace Axis.Luna.Test
 {
@@ -18,8 +21,8 @@ namespace Axis.Luna.Test
             MetaTypes.@void t = @void;
             var x = @void;
             var r = new R { a = 6, b = 45 };
-            var bexp = new DynamicExpression("Abs(a) * Sqrt(b)", ExpressionLanguage.Csharp).Bind(r);
-            Console.WriteLine(bexp.Invoke(r));
+            //var bexp = new DynamicExpression("Abs(a) * Sqrt(b)", ExpressionLanguage.Csharp).Bind(r);
+            //Console.WriteLine(bexp.Invoke(r));
             
         }
 
@@ -57,6 +60,32 @@ namespace Axis.Luna.Test
             iar.PairWith(sar, true).ForAll((cnt, x) => Console.WriteLine($"[{x.Key}: {x.Value}]"));
         }
 
+        [TestMethod]
+        public void TestMethod6()
+        {
+            var tt = new Notifiable();
+            var method = typeof(Notifiable).GetMethod("abcd");
+
+            PropertyChangedEventHandler @delegate = tt.abcd;
+            var param = @delegate.Method.GetParameters().Last();
+
+            // (t, s, a) => ((Notifiable)t).SomeMethod(s, a); or Something(s, a);
+            var t = Expression.Parameter(typeof(object), "target");
+            var s = Expression.Parameter(typeof(object), "source");
+            var a = Expression.Parameter(typeof(object), "args");
+
+            var callExp = Expression.Call(Expression.Convert(t, @delegate.Target.GetType()), method, s, Expression.Convert(a, param.ParameterType));
+
+            var lambda = //handler.Method.IsStatic ? Expression.Lambda(callExp, s, a) :
+                         Expression.Lambda(callExp, t, s, a);
+
+            var x = (Action<object, object, object>)lambda.Compile();
+
+            var st = DateTime.Now;
+            x.Invoke(tt, null, null);
+            Console.WriteLine($"Called in : {DateTime.Now - st}");
+        }
+
         public static void Method(long x)
         {
 
@@ -87,6 +116,20 @@ namespace Axis.Luna.Test
                 return Operation.Fail<T>(e);
             }
         }
+    }
+
+    public class Notifiable
+    {
+        public void abcd(object x, PropertyChangedEventArgs e)
+        {
+            Console.WriteLine("called");
+        }
+
+        public static void efgh(object x, PropertyChangedEventArgs e)
+        {
+            Console.WriteLine("called static");
+        }
+        
     }
 
     [AttributeUsage(AttributeTargets.Method, Inherited = true)]
