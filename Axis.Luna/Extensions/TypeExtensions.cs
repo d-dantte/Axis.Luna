@@ -19,12 +19,16 @@ namespace Axis.Luna.Extensions
     {
         private static ConcurrentDictionary<Type, object> TypeDefaults = new ConcurrentDictionary<Type, object>();
         private static ConcurrentDictionary<Type, string> MinimalAQNames = new ConcurrentDictionary<Type, string>();
+        private static ConcurrentDictionary<string, Func<object, object>> AccessorCache = new ConcurrentDictionary<string, Func<object, object>>();
 
         #region Helpers
         private static string AccessorSignature(this PropertyInfo pinfo)
             => $"[{pinfo.DeclaringType.MinimalAQName()}].Get{pinfo.Name}";
         private static string MutatorSignature(this PropertyInfo pinfo)
             => $"[{pinfo.DeclaringType.MinimalAQName()}].Set{pinfo.Name}";
+
+        private static string AccessorSignature(this FieldInfo finfo)
+            => $"[{finfo.DeclaringType.MinimalAQName()}].@{finfo.Name}";
         #endregion
 
         public static bool HasAttribute(this Type type, Type attributeType)
@@ -78,18 +82,11 @@ namespace Axis.Luna.Extensions
         }
 
         #region Property access
-        public static PropertyInfo Property(Expression<Func<object>> expr)
-        {
-            return Member(expr).As<PropertyInfo>();
-        }
+        public static PropertyInfo Property(Expression<Func<object>> expr) => Member(expr).As<PropertyInfo>();
 
-        public static object PropertyValue(this object obj, Expression<Func<object>> expr)
-            => Property(expr).GetValue(obj);
+        public static object PropertyValue(this object obj, Expression<Func<object>> expr) => Property(expr).GetValue(obj);
 
-        public static PropertyInfo Property(this object obj, string property)
-        {
-            return obj?.GetType()?.GetProperty(property);
-        }
+        public static PropertyInfo Property(this object obj, string property) => obj?.GetType()?.GetProperty(property);
 
         public static object PropertyValue(this object obj, string property)
         {
@@ -98,10 +95,7 @@ namespace Axis.Luna.Extensions
             else return val;
         }
 
-        public static V PropertyValue<V>(this object obj, string property)
-        {
-            return (V)obj.PropertyValue(property);
-        }
+        public static V PropertyValue<V>(this object obj, string property) => (V)obj.PropertyValue(property);
 
         public static bool TryPropertyValue(this object obj, string property, ref object val)
         {
@@ -110,13 +104,22 @@ namespace Axis.Luna.Extensions
             if (prop == null) return false;
             else
             {
-
-                //Create 
-                // Expression<Func<ObjectType, ReturnType>> x = (obj) => obj.Property;
-                //dynamically, then compile it into a delegate and cache the delegate.
-                //access to the propety will be done via that delegate.
-
-                throw new Exception("Not implemented");
+                try
+                {
+                    val = AccessorCache.GetOrAdd(prop.AccessorSignature(), _sig =>
+                    {
+                        var objParam = Expression.Parameter(typeof(object), "obj");
+                        var exp = Expression.Convert(Expression.PropertyOrField(Expression.Convert(objParam, prop.DeclaringType), prop.Name), typeof(object));
+                        var lambda = Expression.Lambda(exp, objParam);
+                        return (Func<object, object>)lambda.Compile();
+                    })
+                    .Invoke(obj);
+                    return true;
+                }
+                catch
+                {
+                    return false;
+                }
             }
         }
         public static bool TryPropertyValue<V>(this object obj, string property, ref V val)
@@ -150,9 +153,22 @@ namespace Axis.Luna.Extensions
             if (f == null) return false;
             else
             {
-                //employ the same strategy used for Property access here: delegates.
-                val = f.GetValue(obj);
-                return true;
+                try
+                {
+                    val = AccessorCache.GetOrAdd(f.AccessorSignature(), _sig =>
+                    {
+                        var objParam = Expression.Parameter(typeof(object), "obj");
+                        var exp = Expression.Convert(Expression.PropertyOrField(Expression.Convert(objParam, f.DeclaringType), f.Name), typeof(object));
+                        var lambda = Expression.Lambda(exp, objParam);
+                        return (Func<object, object>)lambda.Compile();
+                    })
+                    .Invoke(obj);
+                    return true;
+                }
+                catch
+                {
+                    return false;
+                }
             }
         }
         public static bool TryFieldValue<V>(this object obj, string field, ref V val)

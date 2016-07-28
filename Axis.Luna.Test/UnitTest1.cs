@@ -103,6 +103,34 @@ namespace Axis.Luna.Test
             Console.WriteLine(pc.GetInvocationList().Length);
         }
 
+        [TestMethod]
+        public void fieldPropertyExpression()
+        {
+            var ob = new Notifiable { Flid = 3, Flud = "make me believe" };
+            Expression<Func<object, object>> fieldAccess = obj => ((Notifiable)obj).Flid;
+            Expression<Func<object, object>> propertyAccess = obj => ((Notifiable)obj).Flud;
+
+
+            var objParam = Expression.Parameter(typeof(object), "obj");
+            var exp = Expression.Convert(Expression.PropertyOrField(Expression.Convert(objParam, typeof(Notifiable)), "Flid"), typeof(object));
+            var lambda = Expression.Lambda(exp, objParam);
+            var compiled = (Func<object, object>)lambda.Compile();
+
+            var start = DateTime.Now;
+            Console.WriteLine(ob.PropertyValue("Flud"));
+            Console.WriteLine("Completed in: " + (DateTime.Now - start));
+            start = DateTime.Now;
+            Console.WriteLine(ob.PropertyValue("Flud"));
+            Console.WriteLine("Completed in: " + (DateTime.Now - start));
+
+            start = DateTime.Now;
+            Console.WriteLine(ob.FieldValue("Flid"));
+            Console.WriteLine("Completed in: " + (DateTime.Now - start));
+            start = DateTime.Now;
+            Console.WriteLine(ob.FieldValue("Flid"));
+            Console.WriteLine("Completed in: " + (DateTime.Now - start));
+        }
+
         public static Del Remove<Del>(Delegate source, PropertyChangedEventHandler target)
         {
             var t = source.GetInvocationList().FirstOrDefault(d => d.Target == target.Target && d.Method == target.Method);
@@ -178,6 +206,10 @@ namespace Axis.Luna.Test
         }
 
         public static bool operator !=(Notifiable a, Notifiable b) => !(a == b);
+
+        public int Flid = 0;
+
+        public string Flud { get; set; }
 
     }
 
