@@ -80,22 +80,6 @@ namespace Axis.Luna.Extensions
         #region Property access
         public static PropertyInfo Property(Expression<Func<object>> expr)
         {
-            //var lambda = expr as LambdaExpression;
-            //if (lambda == null) return null;
-            //else if (lambda.Body is UnaryExpression)
-            //{
-            //    var member = (lambda.Body as UnaryExpression).Operand as MemberExpression;
-            //    if (member == null) return null;
-            //    else return member.Member as PropertyInfo;
-            //}
-            //else if (lambda.Body is MemberExpression)
-            //{
-            //    var member = (lambda.Body as MemberExpression);
-            //    if (member == null) return null;
-            //    else return member.Member as PropertyInfo;
-            //}
-            //else return null;
-
             return Member(expr).As<PropertyInfo>();
         }
 
@@ -126,11 +110,11 @@ namespace Axis.Luna.Extensions
             if (prop == null) return false;
             else
             {
-                //var del =  PropertyAccessors.GetOrAdd(prop.AccessorSignature(), sig => prop.GetGetMethod()?.CreateDynamicDelegate());
-                //val = del?.Invoke(obj, new object[0]);
 
-                //if (del == null) return false;
-                //else return true;
+                //Create 
+                // Expression<Func<ObjectType, ReturnType>> x = (obj) => obj.Property;
+                //dynamically, then compile it into a delegate and cache the delegate.
+                //access to the propety will be done via that delegate.
 
                 throw new Exception("Not implemented");
             }
@@ -166,6 +150,7 @@ namespace Axis.Luna.Extensions
             if (f == null) return false;
             else
             {
+                //employ the same strategy used for Property access here: delegates.
                 val = f.GetValue(obj);
                 return true;
             }

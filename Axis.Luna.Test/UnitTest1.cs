@@ -86,6 +86,37 @@ namespace Axis.Luna.Test
             Console.WriteLine($"Called in : {DateTime.Now - st}");
         }
 
+        [TestMethod]
+        public void TestMethod7()
+        {
+            var n1 = new Notifiable();
+            var n2 = new Notifiable();
+
+            Console.WriteLine(n1 == n2);
+
+            PropertyChangedEventHandler pc = null;
+
+            pc += n1.abcd;
+            Console.WriteLine(pc.GetInvocationList().Length);
+
+            pc -= n2.abcd;
+            Console.WriteLine(pc.GetInvocationList().Length);
+        }
+
+        public static Del Remove<Del>(Delegate source, PropertyChangedEventHandler target)
+        {
+            var t = source.GetInvocationList().FirstOrDefault(d => d.Target == target.Target && d.Method == target.Method);
+            return Delegate.Remove(source, t).As<Del>();
+        }
+
+
+        public void OnPropertyChange(object sender, PropertyChangedEventArgs arg)
+        {
+        }
+        public void OnPropertyChange2(object sender, PropertyChangedEventArgs arg)
+        {
+        }
+
         public static void Method(long x)
         {
 
@@ -118,8 +149,10 @@ namespace Axis.Luna.Test
         }
     }
 
-    public class Notifiable
+    public class Notifiable: INotifyPropertyChanged
     {
+        public event PropertyChangedEventHandler PropertyChanged;
+
         public void abcd(object x, PropertyChangedEventArgs e)
         {
             Console.WriteLine("called");
@@ -129,7 +162,23 @@ namespace Axis.Luna.Test
         {
             Console.WriteLine("called static");
         }
-        
+
+        public override bool Equals(object obj)
+        {
+            if (obj is Notifiable) return true;
+            else return false;
+        }
+        public override int GetHashCode() => 1;
+
+        public static bool operator ==(Notifiable a, Notifiable b)
+        {
+            if (ReferenceEquals(a, null) && ReferenceEquals(b, null)) return true;
+
+            else return a?.Equals(b) ?? false;
+        }
+
+        public static bool operator !=(Notifiable a, Notifiable b) => !(a == b);
+
     }
 
     [AttributeUsage(AttributeTargets.Method, Inherited = true)]
