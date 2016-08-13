@@ -41,31 +41,49 @@ namespace Axis.Luna.Extensions
         {
             throw new Exception("See inner exception", e);
         }
+
         public static R ThrowIfNull<R>(this R value, string message = null)
         where R : class => value.ThrowIfNull(new Exception(message ?? "Null value"));
+
         public static R ThrowIfNull<R>(this R value, Exception ex)
         where R : class
         {
             if (value == null) throw ex ?? new Exception("Null value");
             else return value;
         }
+
+        public static T? ThrowIfNull<T>(this T? value, Exception ex)
+        where T: struct
+        {
+            if (value == null) throw ex ?? new Exception("null value");
+            else return value;
+        }
+
+        public static T? ThrowIfNull<T>(this T? value, string message)
+        where T : struct => value.ThrowIfNull(new Exception(message ?? "null value"));
+
         public static R ThrowIfDefault<R>(this R value, string message = null)
         where R : struct => value.ThrowIfDefault(new Exception(message ?? "Default value"));
+
         public static R ThrowIfDefault<R>(this R value, Exception ex)
         where R : struct
         {
             if (default(R).Equals(value)) throw ex ?? new Exception("Default Value");
             else return value;
         }
+
         public static R ThrowIf<R>(this R value, Func<R, bool> predicate, string exceptionMessage = null)
             => value.ThrowIf(predicate, new Exception(exceptionMessage));
+
         public static R ThrowIf<R>(this R value, Func<R, bool> predicate, Exception ex = null)
         {
             if (predicate(value)) throw ex ?? new Exception("Invalid internal state");
             else return value;
         }
+
         public static R ThrowIf<R>(this R value, Func<R, bool> predicate, Func<R, string> exceptionMessage = null)
             => value.ThrowIf(predicate, exceptionMessage?.Invoke(value));
+
         public static R ThrowIf<R>(this R value, Func<R, bool> predicate, Func<R, Exception> ex = null)
             => value.ThrowIf(predicate, ex?.Invoke(value));
 
