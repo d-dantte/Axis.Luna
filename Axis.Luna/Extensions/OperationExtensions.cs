@@ -7,10 +7,10 @@ namespace Axis.Luna.Extensions
 
     public static class OperationExtensions
     {
-        public static Operation<@void> Then(this Operation<@void> op, Action<Operation<@void>> action)
+        public static Operation Then(this Operation<@void> op, Action<Operation<@void>> action)
         {
             if (op.Succeeded) return Operation.Run(() => action(op));
-            else return Operation.Fail<@void>(op.Message);
+            else return Operation.Fail(op.Message);
         }
 
         public static Operation<Out> Then<In, Out>(this Operation<In> op, Func<Operation<In>, Out> func)
@@ -35,10 +35,10 @@ namespace Axis.Luna.Extensions
             else return Operation.Fail<Out>(op.Message);
         }
 
-        public static Operation<@void> Then<In>(this Operation<In> op, Action<Operation<In>> action)
+        public static Operation Then<In>(this Operation<In> op, Action<Operation<In>> action)
         {
             if (op.Succeeded) return Operation.Run(() => action(op));
-            else return Operation.Fail<@void>(op.Message);
+            else return Operation.Fail(op.Message);
         }
 
 

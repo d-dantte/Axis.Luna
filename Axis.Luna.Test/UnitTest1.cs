@@ -104,6 +104,13 @@ namespace Axis.Luna.Test
         }
 
         [TestMethod]
+        public void TestMethod8()
+        {
+            var opr = Operation.Try(() => { });
+            var vopr = Operation.Try(() => @void);
+        }
+
+        [TestMethod]
         public void fieldPropertyExpression()
         {
             var ob = new Notifiable { Flid = 3, Flud = "make me believe" };
