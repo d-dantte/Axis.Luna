@@ -42,7 +42,9 @@
   <ItemGroup>
     <Compile Include="AssemblyMonitor.cs" />
     <Compile Include="AssemblyResourceUri.cs" />
+    <Compile Include="DataAttribute.cs" />
     <Compile Include="Extensions\DateTimeExtensions.cs" />
+    <Compile Include="Extensions\XmlExtensions.cs" />
     <Compile Include="StructuredEnum.cs" />
     <Compile Include="Extensions\EnumerableExtensions.cs" />
     <Compile Include="Extensions\ExceptionExtensions.cs" />

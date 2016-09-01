@@ -130,7 +130,7 @@
         }
 
         public static int PropertyHash(this object @this, int prime1 = 19, int prime2 = 181)
-            => ValueHash(@this.GetType().GetProperties().Select(p => p.GetValue(@this)));
+            => ValueHash(@this.GetType().GetProperties().OrderBy(p => p.Name).Select(p => p.GetValue(@this)));
 
         public static int ValueHash(this object @this, IEnumerable<object> propertyValues, int prime1 = 19, int prime2 = 181)
             => ValueHash(prime1, prime2, propertyValues.ToArray());

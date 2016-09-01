@@ -83,6 +83,12 @@ namespace Axis.Luna.Extensions
             return op;
         }
 
+        public static Operation Instead(this Operation<@void> op, Action<Operation<@void>> action)
+        {
+            if (!op.Succeeded) return Operation.Try(() => action(op));
+            else return Operation.Fail(op.GetException());
+        }
+
         ///...
     }
 }

@@ -115,7 +115,7 @@ namespace Axis.Luna
         : this(null, null)
         { }
 
-        internal Tag(string name, string value)
+        public Tag(string name, string value)
         {
             if (string.IsNullOrWhiteSpace(name)) throw new Exception("invalid tag name");
 
@@ -131,6 +131,11 @@ namespace Axis.Luna
 
         public override string ToString() => $"{Name}:{Value};";
         //public override string ToString() => $"{TagCodec.Encode(Name)}:{TagCodec.Encode(Value)};";
+
+        public override bool Equals(object obj)
+            => obj.As<Tag>().Pipe(_t => _t?.Name == Name && _t?.Value == Value);
+
+        public override int GetHashCode() => this.PropertyHash();
     }
 
     public static class TagCodec
