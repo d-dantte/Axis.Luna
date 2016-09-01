@@ -8,7 +8,16 @@ using static Axis.Luna.Extensions.EnumerableExtensions;
 
 namespace Axis.Luna
 {
-    public class DataAttribute
+    public interface IDataAttribute
+    {
+        string Name { get; set; }
+
+        string Data { get; set; }
+
+        CommonDataType Type { get; set; }
+    }
+
+    public class DataAttribute: IDataAttribute
     {
         public string Name { get; set; }
 
