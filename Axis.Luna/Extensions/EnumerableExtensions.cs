@@ -4,6 +4,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 
 namespace Axis.Luna.Extensions
 {
@@ -67,6 +68,32 @@ namespace Axis.Luna.Extensions
         {
             for (long cnt = 0, limit = Math.Abs(repetitions); cnt < limit; cnt++)
                 repeatAction(cnt);
+        }
+
+        public static IEnumerable<V> GenerateSequence<V>(this long repetitions, Func<long, V> generator)
+        {
+            using (var entor = new CountdownEnumerator(repetitions))
+                while (entor.MoveNext()) yield return generator.Invoke(entor.Current);
+        }
+        public static IEnumerable<V> GenerateSequence<V>(this uint repetitions, Func<uint, V> generator)
+        {
+            using (var entor = new CountdownEnumerator(repetitions))
+                while (entor.MoveNext()) yield return generator.Invoke((uint)entor.Current);
+        }
+        public static IEnumerable<V> GenerateSequence<V>(this int repetitions, Func<int, V> generator)
+        {
+            using (var entor = new CountdownEnumerator(repetitions))
+                while (entor.MoveNext()) yield return generator.Invoke((int)entor.Current);
+        }
+        public static IEnumerable<V> GenerateSequence<V>(this ushort repetitions, Func<ushort, V> generator)
+        {
+            using (var entor = new CountdownEnumerator(repetitions))
+                while (entor.MoveNext()) yield return generator.Invoke((ushort)entor.Current);
+        }
+        public static IEnumerable<V> GenerateSequence<V>(this short repetitions, Func<short, V> generator)
+        {
+            using (var entor = new CountdownEnumerator(repetitions))
+                while (entor.MoveNext()) yield return generator.Invoke((short)entor.Current);
         }
 
         public static T AddAndGet<T>(this ICollection<T> collection, T item)
@@ -200,6 +227,71 @@ namespace Axis.Luna.Extensions
                                                             Func<In, Out> projection)
             => @this.AddExpression(new MatchExpression<In, Out> { Predicate = x => true, Projection = projection });
         #endregion
+
+        #region Sequence Page
+        public static SequencePage<Data> Paginate<Data>(this IEnumerable<Data> sequence, int pageIndex, int pageSize)
+            => new SequencePage<Data>(sequence.Skip(pageSize * pageIndex).Take(pageSize).ToArray(),
+                                      pageIndex,
+                                      pageSize,
+                                      sequence.Count());
+
+        public static SequencePage<Data> Paginate<Data, OrderKey>(this IOrderedQueryable<Data> sequence, int pageIndex, int pageSize)
+            => new SequencePage<Data>(sequence.Skip(pageSize * pageIndex).Take(pageSize).ToArray(),
+                                      pageIndex,
+                                      pageSize,
+                                      sequence.Count());
+        #endregion
+    }
+
+    /// <summary>
+    /// I believe something like this should already exist...
+    /// </summary>
+    public class CountdownEnumerator : IEnumerator<long>
+    {
+        /// <summary>
+        /// limit always resolves to a positive number
+        /// </summary>
+        /// <param name="count"></param>
+        public CountdownEnumerator(long count)
+        {
+            Count = Math.Abs(count);
+            _finalIndex = Count - 1;
+            Reset();
+        }
+
+        private long _finalIndex;
+        public long Count { get; private set; }
+
+        private long _current;
+        public long Current
+        {
+            get
+            {
+                if (_disposed) throw new Exception("Enumerator is disposed");
+                else if (_current < 0) throw new Exception("Enumeration has not started");
+                else return _current;
+            }
+        }
+        object IEnumerator.Current => this.Current;
+
+        private volatile bool _disposed = false;
+        public void Dispose() => _disposed = true;
+
+        public bool MoveNext()
+        {
+            if (_disposed) throw new Exception("Enumerator is disposed");
+            else if (_current == _finalIndex) return false;
+            //else
+
+            ++_current;
+            return true;
+        }
+
+        public void Reset()
+        {
+            if (_disposed) throw new Exception("Enumerator is disposed");
+            this._current = -1;
+        }
     }
 
 

@@ -25,12 +25,12 @@ namespace Axis.Luna
 
         public CommonDataType Type { get; set; }
 
-        public override string ToString() => $"[{Name}: {DisplayData()}]";
-
         public override int GetHashCode() => ValueHash(Name.Enumerate());
         public override bool Equals(object obj)
             => obj.As<DataAttribute>()
                   .Pipe(_da => _da.Name == Name && _da.Data == Data);
+
+        public override string ToString() => $"[{Name}: {DisplayData()}]";
 
 
         private string DisplayData()
@@ -42,6 +42,11 @@ namespace Axis.Luna
                 case CommonDataType.Integer:
                 case CommonDataType.String:
                 case CommonDataType.Url:
+                case CommonDataType.IPV4:
+                case CommonDataType.IPV6:
+                case CommonDataType.Phone:
+                case CommonDataType.Email:
+                case CommonDataType.Location:
                 case CommonDataType.TimeSpan:
                 case CommonDataType.JsonObject: return Data;
                 case CommonDataType.DateTime: return Eval(() => DateTime.Parse(Data).ToString(), ex => "");
@@ -69,6 +74,11 @@ namespace Axis.Luna
         TimeSpan,
 
         Url,
+        IPV4,
+        IPV6,
+        Phone,
+        Email,
+        Location,
 
         UnknownType
     }

@@ -1,5 +1,4 @@
-﻿using static Axis.Luna.Extensions.ObjectExtensions;
-
+﻿
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -7,11 +6,6 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Text;
-using System.Runtime.CompilerServices;
-using System.Collections;
-using System.Text.RegularExpressions;
-using Microsoft.CSharp.RuntimeBinder;
-using CSharpBinder = Microsoft.CSharp.RuntimeBinder.Binder;
 
 namespace Axis.Luna.Extensions
 {
@@ -142,10 +136,7 @@ namespace Axis.Luna.Extensions
             if (!obj.TryFieldValue(field, ref val)) throw new Exception();
             else return val;
         }
-        public static V FieldValue<V>(this object obj, string field)
-        {
-            return (V)obj.FieldValue(field);
-        }
+        public static V FieldValue<V>(this object obj, string field) => (V)obj.FieldValue(field);
         public static bool TryFieldValue(this object obj, string field, ref object val)
         {
             var t = obj.GetType();

@@ -22,17 +22,26 @@ namespace Axis.Luna.Extensions
                 {
                     var uexp = expr.Body as UnaryExpression;
                     var maccess = uexp.Operand as MemberExpression;
-                    (maccess.Member as FieldInfo).GetValue((maccess.Expression as ConstantExpression).Value)
-                                                 .ThrowIfNull(new ArgumentException(maccess.Member.Name));
+                    //(maccess.Member as FieldInfo).GetValue((maccess.Expression as ConstantExpression).Value)
+                    //                             .ThrowIfNull(new ArgumentException(maccess.Member.Name));
+                    maccess.CapturedValue().ThrowIfNull(new ArgumentException(maccess.Member.Name));
                 }
                 else if (expr.Body is MemberExpression)
                 {
                     var maccess = expr.Body as MemberExpression;
-                    (maccess.Member as FieldInfo).GetValue((maccess.Expression as ConstantExpression).Value)
-                                                 .ThrowIfNull(new ArgumentException(maccess.Member.Name));
+                    //(maccess.Member as FieldInfo).GetValue((maccess.Expression as ConstantExpression).Value)
+                    //                             .ThrowIfNull(new ArgumentException(maccess.Member.Name));
+                    maccess.CapturedValue().ThrowIfNull(new ArgumentException(maccess.Member.Name));
                 }
             }
         }
+
+        private static object CapturedValue(this MemberExpression memberAccess)
+            => memberAccess.Expression.Is<ConstantExpression>() ?
+               memberAccess.Member.As<FieldInfo>().GetValue(memberAccess.Expression.As<ConstantExpression>().Value) :
+               memberAccess.Expression.As<MemberExpression>().CapturedValue();
+
+
         public static void Throw(this Exception e)
         {
             throw new Exception("See inner exception", e);
