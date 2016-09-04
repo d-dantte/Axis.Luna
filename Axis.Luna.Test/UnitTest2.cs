@@ -38,5 +38,14 @@ namespace Axis.Luna.Test
             page.AdjacentIndexes(2)
                 .ForAll((x, y) => Console.Write($"[{y}] "));
         }
+
+        [TestMethod]
+        public void SpliceTest()
+        {
+            //Enumerable.Range(0, 10)
+            new int[] {0,1,2,3,4,4,5,6,7,8,9,0 }
+                .Splice(5)
+                .ForAll((x, y) => Console.WriteLine(y));
+        }
     }
 }

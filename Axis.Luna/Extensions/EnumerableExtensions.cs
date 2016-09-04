@@ -10,6 +10,9 @@ namespace Axis.Luna.Extensions
 {
     public static class EnumerableExtensions
     {
+        public static IEnumerable<V> Splice<V>(this IEnumerable<V> enumerable, int spliceIndex)
+            => enumerable.Skip(spliceIndex).Concat(enumerable.Take(spliceIndex));
+
         public static IEnumerable<V> AppendAt<V>(this IEnumerable<V> enumerable, int position, V value)
         {
             position.ThrowIf(p => p < 0, "invalid position");
