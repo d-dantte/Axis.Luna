@@ -10,8 +10,19 @@ namespace Axis.Luna.Extensions
 {
     public static class EnumerableExtensions
     {
+        /// <summary>
+        /// Splices the enumerable at the specified POSITIVE index, making it the head of the enumerable, joining the old head at the tail
+        /// e.g
+        /// <para>
+        ///  {1,2,3,4,5,6,7,8,9,0}, spliced at index 4, becomes {4,5,6,7,8,9,0,1,2,3}
+        /// </para>
+        /// </summary>
+        /// <typeparam name="V"></typeparam>
+        /// <param name="enumerable"></param>
+        /// <param name="spliceIndex"></param>
+        /// <returns></returns>
         public static IEnumerable<V> Splice<V>(this IEnumerable<V> enumerable, int spliceIndex)
-            => enumerable.Skip(spliceIndex).Concat(enumerable.Take(spliceIndex));
+            => enumerable.Skip(Math.Abs(spliceIndex)).Concat(enumerable.Take(Math.Abs(spliceIndex)));
 
         public static IEnumerable<V> AppendAt<V>(this IEnumerable<V> enumerable, int position, V value)
         {
@@ -123,6 +134,19 @@ namespace Axis.Luna.Extensions
             while (Eval(() => (opt = generator(prev)).Succeeded)) enm.Add(prev = opt.Result);
 
             return enm;
+        }
+
+        public static int PositionOf<T>(this IEnumerable<T> @enum, T item, IEqualityComparer<T> equalityComparer = null)
+        {
+            var eqc = equalityComparer ?? EqualityComparer<T>.Default;
+
+            int pos = 0;
+            foreach(var x in @enum)
+            {
+                if (eqc.Equals(x, item)) return pos;
+                else ++pos;
+            }
+            return -1;
         }
 
         public static T ItemAt<T>(this IEnumerable<T> enumerable, int index)

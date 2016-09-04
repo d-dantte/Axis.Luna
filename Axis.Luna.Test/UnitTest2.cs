@@ -43,9 +43,19 @@ namespace Axis.Luna.Test
         public void SpliceTest()
         {
             //Enumerable.Range(0, 10)
-            new int[] {0,1,2,3,4,4,5,6,7,8,9,0 }
+            new int[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0 }
                 .Splice(5)
                 .ForAll((x, y) => Console.WriteLine(y));
+        }
+
+
+        [TestMethod]
+        public void PositionOfTest()
+        {
+            //Enumerable.Range(0, 10)
+            new int[] { 0, 1, 2, 3, 4, 4, 5, 6, 7, 8, 9, 0 }
+                .PositionOf(6)
+                .Pipe(t => Console.WriteLine(t));
         }
     }
 }

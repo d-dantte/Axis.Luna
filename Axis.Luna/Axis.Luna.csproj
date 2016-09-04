@@ -42,9 +42,11 @@
   <ItemGroup>
     <Compile Include="AssemblyMonitor.cs" />
     <Compile Include="AssemblyResourceUri.cs" />
+    <Compile Include="BinaryDataObject.cs" />
     <Compile Include="DataAttribute.cs" />
     <Compile Include="Extensions\DateTimeExtensions.cs" />
     <Compile Include="Extensions\XmlExtensions.cs" />
+    <Compile Include="MimeMap.cs" />
     <Compile Include="SequencePage.cs" />
     <Compile Include="StructuredEnum.cs" />
     <Compile Include="Extensions\EnumerableExtensions.cs" />
