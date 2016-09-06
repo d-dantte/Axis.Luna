@@ -97,66 +97,26 @@ namespace Axis.Luna.Extensions
 
         #region Asynchronious AsyncOperation
 
-        public static AsyncOperation Then(this AsyncOperation<@void> op, Action<AsyncOperation<@void>> action)
-        {
-            if (op.Succeeded) return Operation.RunAsync(() => action(op));
-            else return Operation.FailAsync(op.GetException());
-        }
-        public static AsyncOperation Then(this AsyncOperation<@void> op, ContinuationInfo info, Action<AsyncOperation<@void>> action)
-        {
-            if (op.Succeeded) return Operation.RunAsync(info, () => action(op));
-            else return Operation.FailAsync(op.GetException());
-        }
+        public static AsyncOperation Then(this AsyncOperation<@void> op, Action<AsyncOperation<@void>> action) => new AsyncOperation(() => action(op), op.Task());
+        public static AsyncOperation Then(this AsyncOperation<@void> op, AsyncInfo info, Action<AsyncOperation<@void>> action) => new AsyncOperation(() => action(op), op.Task(), info);
 
-        public static AsyncOperation<Out> Then<In, Out>(this AsyncOperation<In> op, Func<AsyncOperation<In>, Out> func)
-        {
-            if (op.Succeeded) return Operation.RunAsync(() => func(op));
-            else return Operation.FailAsync<Out>(op.GetException());
-        }
-        public static AsyncOperation<Out> Then<In, Out>(this AsyncOperation<In> op, ContinuationInfo info, Func<AsyncOperation<In>, Out> func)
-        {
-            if (op.Succeeded) return Operation.RunAsync(info, () => func(op));
-            else return Operation.FailAsync<Out>(op.GetException());
-        }
+        public static AsyncOperation<Out> Then<In, Out>(this AsyncOperation<In> op, Func<AsyncOperation<In>, Out> func) => new AsyncOperation<Out>(() => func(op), op.Task());
+        public static AsyncOperation<Out> Then<In, Out>(this AsyncOperation<In> op, AsyncInfo info, Func<AsyncOperation<In>, Out> func) => new AsyncOperation<Out>(() => func(op), op.Task());
 
-        public static AsyncOperation<Out> Then<In, Out>(this AsyncOperation<In> op, Func<AsyncOperation<In>, AsyncOperation<Out>> func)
-        {
-            if (op.Succeeded) return func(op);
-            else return Operation.FailAsync<Out>(op.GetException());
-        }
+        public static AsyncOperation<Out> Then<In, Out>(this AsyncOperation<In> op, Func<AsyncOperation<In>, AsyncOperation<Out>> func) => func(op);
 
-        public static AsyncOperation<Out> Then<Out>(this AsyncOperation<@void> op, Func<AsyncOperation<@void>, Out> func)
-        {
-            if (op.Succeeded) return Operation.RunAsync(() => func(op));
-            else return Operation.FailAsync<Out>(op.GetException());
-        }
-        public static AsyncOperation<Out> Then<Out>(this AsyncOperation<@void> op, ContinuationInfo info, Func<AsyncOperation<@void>, Out> func)
-        {
-            if (op.Succeeded) return Operation.RunAsync(info, () => func(op));
-            else return Operation.FailAsync<Out>(op.GetException());
-        }
+        public static AsyncOperation<Out> Then<Out>(this AsyncOperation<@void> op, Func<AsyncOperation<@void>, Out> func) => new AsyncOperation<Out>(() => func(op), op.Task());
+        public static AsyncOperation<Out> Then<Out>(this AsyncOperation<@void> op, AsyncInfo info, Func<AsyncOperation<@void>, Out> func) => new AsyncOperation<Out>(() => func(op), op.Task(), info);
 
-        public static AsyncOperation<Out> Then<Out>(this AsyncOperation<@void> op, Func<AsyncOperation<@void>, AsyncOperation<Out>> func)
-        {
-            if (op.Succeeded) return func(op);
-            else return Operation.FailAsync<Out>(op.GetException());
-        }
+        public static AsyncOperation<Out> Then<Out>(this AsyncOperation<@void> op, Func<AsyncOperation<@void>, AsyncOperation<Out>> func) => func(op);
 
-        public static AsyncOperation Then<In>(this AsyncOperation<In> op, ContinuationInfo info, Action<AsyncOperation<In>> action)
-        {
-            if (op.Succeeded) return Operation.RunAsync(info, () => action(op));
-            else return Operation.FailAsync(op.GetException());
-        }
-        public static AsyncOperation Then<In>(this AsyncOperation<In> op, Action<AsyncOperation<In>> action)
-        {
-            if (op.Succeeded) return Operation.RunAsync(() => action(op));
-            else return Operation.FailAsync(op.GetException());
-        }
+        public static AsyncOperation Then<In>(this AsyncOperation<In> op, AsyncInfo info, Action<AsyncOperation<In>> action) => new AsyncOperation(() => action(op), op.Task(), info);
+        public static AsyncOperation Then<In>(this AsyncOperation<In> op, Action<AsyncOperation<In>> action) => new AsyncOperation(() => action(op), op.Task());
 
 
         public static AsyncOperation<Out> Error<Out>(this AsyncOperation<Out> op, Action action)
         {
-            if (!op.Succeeded)
+            if (op.Succeeded ?? false)
             {
                 try
                 {
@@ -178,12 +138,12 @@ namespace Axis.Luna.Extensions
         /// <returns></returns>
         public static AsyncOperation<Out> Instead<Out>(this AsyncOperation<Out> op, Func<AsyncOperation<Out>, Out> func)
         {
-            if (!op.Succeeded) return Operation.RunAsync(() => func(op));
+            if (!op.Succeeded == true) return new AsyncOperation<Out>(() => func(op));
             return op;
         }
-        public static AsyncOperation<Out> Instead<Out>(this AsyncOperation<Out> op, ContinuationInfo info, Func<AsyncOperation<Out>, Out> func)
+        public static AsyncOperation<Out> Instead<Out>(this AsyncOperation<Out> op, AsyncInfo info, Func<AsyncOperation<Out>, Out> func)
         {
-            if (!op.Succeeded) return Operation.RunAsync(info, () => func(op));
+            if (!op.Succeeded == true) return new AsyncOperation<Out>(() => func(op), info);
             return op;
         }
 
@@ -196,18 +156,18 @@ namespace Axis.Luna.Extensions
         /// <returns></returns>
         public static AsyncOperation<Out> Instead<Out>(this AsyncOperation<Out> op, Func<AsyncOperation<Out>, AsyncOperation<Out>> func)
         {
-            if (!op.Succeeded) return Operation.RunAsync(() => func(op));
+            if (!op.Succeeded == true) func(op);
             return op;
         }
 
         public static AsyncOperation Instead(this AsyncOperation<@void> op, Action<AsyncOperation<@void>> action)
         {
-            if (!op.Succeeded) return Operation.TryAsync(() => action(op));
+            if (!op.Succeeded == true) return new AsyncOperation(() => action(op));
             else return Operation.FailAsync(op.GetException());
         }
-        public static AsyncOperation Instead(this AsyncOperation<@void> op, ContinuationInfo info, Action<AsyncOperation<@void>> action)
+        public static AsyncOperation Instead(this AsyncOperation<@void> op, AsyncInfo info, Action<AsyncOperation<@void>> action)
         {
-            if (!op.Succeeded) return Operation.TryAsync(info, () => action(op));
+            if (!op.Succeeded == true) return new AsyncOperation(() => action(op), info);
             else return Operation.FailAsync(op.GetException());
         }
 

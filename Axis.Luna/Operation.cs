@@ -35,7 +35,7 @@
         private string _message;
 
         public virtual R Result { get; internal set; }
-        public bool Succeeded { get; set; }
+        public bool Succeeded { get; internal set; }
         public string Message
         {
             get { return Error?.GetRoot(e => e.InnerException)?.Message ?? _message; }
@@ -93,13 +93,13 @@
 
         public static AsyncOperation RunAsync(Action action) => new AsyncOperation(action);
         public static AsyncOperation TryAsync(Action action) => RunAsync(action);
-        public static AsyncOperation RunAsync(ContinuationInfo info, Action action) => new AsyncOperation(action, info);
-        public static AsyncOperation TryAsync(ContinuationInfo info, Action action) => RunAsync(info, action);
+        public static AsyncOperation RunAsync(AsyncInfo info, Action action) => new AsyncOperation(action, info);
+        public static AsyncOperation TryAsync(AsyncInfo info, Action action) => RunAsync(info, action);
 
         public static AsyncOperation<Result> RunAsync<Result>(Func<Result> func) => new AsyncOperation<Result>(func);
         public static AsyncOperation<Result> TryASync<Result>(Func<Result> func) => RunAsync(func);
-        public static AsyncOperation<Result> RunAsync<Result>(ContinuationInfo info, Func<Result> func) => new AsyncOperation<Result>(func, info);
-        public static AsyncOperation<Result> TryASync<Result>(ContinuationInfo info, Func<Result> func) => RunAsync(info, func);
+        public static AsyncOperation<Result> RunAsync<Result>(AsyncInfo info, Func<Result> func) => new AsyncOperation<Result>(func, info);
+        public static AsyncOperation<Result> TryASync<Result>(AsyncInfo info, Func<Result> func) => RunAsync(info, func);
 
         public static AsyncOperation RunAsync(Func<AsyncOperation> func) => Eval(func, ex => FailAsync(ex));
         public static AsyncOperation TryAsync(Func<AsyncOperation> func) => RunAsync(func);
@@ -108,7 +108,7 @@
         public static AsyncOperation<Result> TryAsync<Result>(Func<AsyncOperation<Result>> func) => RunAsync(func);
 
         public static AsyncOperation<R> NoOpAsync<R>() => new AsyncOperation<R>(default(R));
-        public static AsyncOperation NoOpAsync() => new AsyncOperation();
+        public static AsyncOperation NoOpAsync() => new AsyncOperation(()=> { });
 
         public static AsyncOperation<Value> FromValueAsync<Value>(Value v) => new AsyncOperation<Value>(v);
 
@@ -131,60 +131,95 @@
 
     public class AsyncOperation<R>
     {
-        internal AsyncOperation(Func<R> func, ContinuationInfo info = null)
+        internal AsyncOperation(Func<R> func, Task previousOperationTask) 
+        : this(func, previousOperationTask, null)
+        { }
+        internal AsyncOperation(Func<R> func, AsyncInfo info = null) 
+        : this(func, null, info)
+        { }
+        internal AsyncOperation(Func<R> func, Task previousOperationTask, AsyncInfo info = null)
         {
             ThrowNullArguments(() => func);
 
-            this._task = new Task<R>(func, Eval(() => info.CancellationToken), Eval(() => info.TaskCreationOptions));
+            if (previousOperationTask == null)
+            {
+                _task = info == null ? new Task<R>(func) :
+                        info.CancellationToken == default(CancellationToken) ? new Task<R>(func, info.TaskCreationOptions) :
+                        new Task<R>(func, info.CancellationToken, info.TaskCreationOptions);
+                _task.Start();
+            }
+            else if (NotAborted(previousOperationTask)) //if the previous task is true or null, meaning it succeeded, or it's not yet completed
+                _task = info == null ? previousOperationTask.ContinueWith(tsk => RunFunc(tsk, func)) : previousOperationTask.ContinueWith(tsk => RunFunc(tsk, func), info.TaskContinuationOptions);
+
+            else _task = new TaskCompletionSource<R>().UsingValue(_tcs => _tcs.SetException(previousOperationTask.Exception)).Task; //create a failed task
         }
         internal AsyncOperation(R value)
         {
             this._task = Task.FromResult(value);
         }
 
-        #region Properties
-
-        private string _message;
-        internal Task<R> _task;
-
-
-        public string Message
+        private R RunFunc(Task previoiusTask, Func<R> func)
         {
-            get { return Error?.GetRoot(e => e.InnerException)?.Message ?? _message; }
-            set { _message = value; }
+            if (previoiusTask.Status == TaskStatus.RanToCompletion) return func();
+            else throw previoiusTask.Exception.InnerException;
         }
 
-        internal Exception Error { get; set; }
+        private bool NotAborted(Task task)
+            => task.Status != TaskStatus.Faulted &&
+               task.Status != TaskStatus.Canceled;
 
-        public virtual R Result { get; internal set; }
+        #region Properties
+        
+        private Task<R> _task;
 
-        public bool Succeeded { get; set; }
+        public string Message => GetException()?.GetRoot(e => e.InnerException)?.Message ?? "";        
+
+        public virtual R Result => Eval(() => Resolve(), ex => default(R));
+
+        public bool? Succeeded => !_task.IsCompleted ? null : (bool?)(_task.Status == TaskStatus.RanToCompletion);
 
         #endregion
 
         #region Methods 
-        public R Resolve() => Result.ThrowIf(r => Error != null, new Exception("See inner exception", Error));
-        public Exception GetException() => Error;
+        internal Task Task() => _task;
+
+        public R Resolve()
+        {
+            try
+            {
+                return _task.Result;
+            }
+            catch(AggregateException ex)
+            {
+                throw ex.InnerException;
+            }
+            //rethrow any other kind of exception
+        }
+
+        public Exception GetException() => _task.Exception;
         #endregion
 
         public TaskAwaiter<R> GetAwaiter() => _task.GetAwaiter();
     }
 
-    public class AsyncOperation: AsyncOperation<@void>
+    public class AsyncOperation : AsyncOperation<@void>
     {
-        internal AsyncOperation(Action action, ContinuationInfo info = null)
-        : base(() => Void(action), info)
+        internal AsyncOperation(Action action, Task previousOperationTask)
+        : this(action, previousOperationTask, null)
         { }
-
-        internal AsyncOperation()
-        : base(Void())
+        internal AsyncOperation(Action action, AsyncInfo info = null)
+        : this(action, null, info)
+        { }
+        internal AsyncOperation(Action action, Task previousOperationTask, AsyncInfo info = null)
+        : base(() => Void(action), previousOperationTask, info)
         { }
     }
 
 
-    public class ContinuationInfo
+    public class AsyncInfo
     {
         public CancellationToken CancellationToken { get; set; }
         public TaskCreationOptions TaskCreationOptions { get; set; }
+        public TaskContinuationOptions TaskContinuationOptions { get; set; }
     }
 }
