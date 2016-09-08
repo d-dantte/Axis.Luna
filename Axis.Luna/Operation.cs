@@ -13,7 +13,6 @@
     {
         protected Operation() { }
 
-
         internal Operation(Func<R> func)
         {
             ThrowNullArguments(() => func);
@@ -155,18 +154,8 @@
         }
         internal AsyncOperation(R value)
         {
-            this._task = Task.FromResult(value);
+            this._task = System.Threading.Tasks.Task.FromResult(value);
         }
-
-        private R RunFunc(Task previoiusTask, Func<R> func)
-        {
-            if (previoiusTask.Status == TaskStatus.RanToCompletion) return func();
-            else throw previoiusTask.Exception.InnerException;
-        }
-
-        private bool NotAborted(Task task)
-            => task.Status != TaskStatus.Faulted &&
-               task.Status != TaskStatus.Canceled;
 
         #region Properties
         
@@ -197,9 +186,20 @@
         }
 
         public Exception GetException() => _task.Exception;
-        #endregion
+
+        private R RunFunc(Task previoiusTask, Func<R> func)
+        {
+            if (previoiusTask.Status == TaskStatus.RanToCompletion) return func();
+            else throw previoiusTask.Exception.InnerException;
+        }
+
+        private bool NotAborted(Task task)
+            => task.Status != TaskStatus.Faulted &&
+               task.Status != TaskStatus.Canceled;
 
         public TaskAwaiter<R> GetAwaiter() => _task.GetAwaiter();
+
+        #endregion
     }
 
     public class AsyncOperation : AsyncOperation<@void>

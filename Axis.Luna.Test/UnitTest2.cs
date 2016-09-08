@@ -71,20 +71,13 @@ namespace Axis.Luna.Test
         [TestMethod]
         public void AsyncOpTest()
         {
-            //Operation.TryAsync(() => { Thread.Sleep(100); Console.WriteLine("asynchronious 1"); })
-            //    .Then(op => Console.WriteLine("async 2"))
-            //    .Resolve();
-            //Console.WriteLine("Ending");
-
-            var t = Task.Run(() => { throw new Exception("initial exception"); });
-            Eval(() => t.Wait());
-
-            var t2 = t.ContinueWith((_t) => Console.WriteLine("stuff"));
-            Eval(() => t2.Wait());
-
-            Thread.Sleep(3000);
-            var ex1 = t.Exception;
-            var ex2 = t2.Exception;
+            var r = 
+            Operation.TryAsync(() => { Thread.Sleep(100); Console.WriteLine("asynchronious 1"); throw new Exception("exceptioned"); })
+                .Then(op => Console.WriteLine("async 2"))
+                //.Resolve();
+                .Result;
+                //;
+            Console.WriteLine("Ending");
 
         }
     }

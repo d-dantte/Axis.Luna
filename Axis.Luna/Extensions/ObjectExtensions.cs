@@ -20,6 +20,7 @@
         {
             using (disposable) action(disposable);
         }
+
         public static Out UsingValue<Out>(this Out @this, Action<Out> action)
         {
             action(@this);
