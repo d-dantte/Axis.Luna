@@ -8,7 +8,7 @@ using static Axis.Luna.Extensions.EnumerableExtensions;
 
 namespace Axis.Luna
 {
-    public interface IDataAttribute
+    public interface IDataItem
     {
         string Name { get; set; }
 
@@ -17,7 +17,7 @@ namespace Axis.Luna
         CommonDataType Type { get; set; }
     }
 
-    public class DataAttribute: IDataAttribute
+    public class DataItem: IDataItem
     {
         public string Name { get; set; }
 
@@ -27,7 +27,7 @@ namespace Axis.Luna
 
         public override int GetHashCode() => ValueHash(Name.Enumerate());
         public override bool Equals(object obj)
-            => obj.As<DataAttribute>()
+            => obj.As<DataItem>()
                   .Pipe(_da => _da.Name == Name && _da.Data == Data);
 
         public override string ToString() => $"[{Name}: {DisplayData()}]";
@@ -57,29 +57,5 @@ namespace Axis.Luna
                 default: return "Unknown-Type";
             }
         }
-    }
-
-
-    public enum CommonDataType
-    {
-        String,
-        Integer,
-        Real,
-        Boolean,
-        Binary,
-
-        JsonObject,
-
-        DateTime,
-        TimeSpan,
-
-        Url,
-        IPV4,
-        IPV6,
-        Phone,
-        Email,
-        Location,
-
-        UnknownType
     }
 }

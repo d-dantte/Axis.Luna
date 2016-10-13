@@ -42,7 +42,9 @@
   <ItemGroup>
     <Compile Include="AssemblyMonitor.cs" />
     <Compile Include="AssemblyResourceUri.cs" />
-    <Compile Include="DataAttribute.cs" />
+    <Compile Include="BinaryData.cs" />
+    <Compile Include="CommonDataTypes.cs" />
+    <Compile Include="DataItem.cs" />
     <Compile Include="Extensions\DateTimeExtensions.cs" />
     <Compile Include="Extensions\XmlExtensions.cs" />
     <Compile Include="MimeMap.cs" />

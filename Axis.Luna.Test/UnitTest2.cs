@@ -5,6 +5,9 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Threading;
 using static Axis.Luna.Extensions.ObjectExtensions;
+using System.Text;
+using System.Collections.Generic;
+using Newtonsoft.Json;
 
 namespace Axis.Luna.Test
 {
@@ -80,5 +83,36 @@ namespace Axis.Luna.Test
             Console.WriteLine("Ending");
 
         }
+
+        [TestMethod]
+        public void Base64Test()
+        {
+            var x = Convert.ToBase64String(Encoding.Unicode.GetBytes("1234567890"));
+            Console.WriteLine(x);
+
+        }
+
+        [TestMethod]
+        public void JsonConversionTest()
+        {
+            var obj = new SomeClass();
+            obj.Numbers.Add(4);
+            obj.Numbers.Add(5);
+            obj.Numbers.Add(1);
+
+            var json = JsonConvert.SerializeObject(obj);
+
+            Console.WriteLine(json);
+
+            var obj2 = JsonConvert.DeserializeObject<SomeClass>(json);
+
+
+        }
+    }
+
+    public class SomeClass
+    {
+        public TimeSpan Duration { get; set; } = TimeSpan.FromDays(3.53);
+        public List<int> Numbers { get; private set; } = new List<int>();
     }
 }
