@@ -10,11 +10,15 @@ namespace Axis.Luna.Extensions
 {
     public static class EnumerableExtensions
     {
+        public static IList<T> Append<T>(this IList<T> list, T value) => list.UsingValue(_l => _l.Add(value));
+
+        public static IList<T> AppendAll<T>(this IList<T> list, IEnumerable<T> values) => list.UsingValue(_l => _l.AddRange(values));
+
         /// <summary>
         /// Splices the enumerable at the specified POSITIVE index, making it the head of the enumerable, joining the old head at the tail
         /// e.g
         /// <para>
-        ///  {1,2,3,4,5,6,7,8,9,0}, spliced at index 4, becomes {4,5,6,7,8,9,0,1,2,3}
+        ///  {1,2,3,4,5,6,7,8,9,0}, spliced at index 4, becomes {5,6,7,8,9,0,1,2,3,4}
         /// </para>
         /// </summary>
         /// <typeparam name="V"></typeparam>
@@ -35,6 +39,8 @@ namespace Axis.Luna.Extensions
                 yield return v;
             }
         }
+
+        public static IEnumerable<V> Append<V>(this IEnumerable<V> enumerable, V value) => enumerable.Concat(value.Enumerate());
 
         public static IEnumerable<Out> Transform<In, Out>(this IQueryable<In> query, Func<In, Out> transformation)
         {
@@ -135,6 +141,8 @@ namespace Axis.Luna.Extensions
 
             return enm;
         }
+
+        public static IEnumerable<T> Enumerate<T>() => new T[0];
 
         public static int PositionOf<T>(this IEnumerable<T> @enum, T item, IEqualityComparer<T> equalityComparer = null)
         {

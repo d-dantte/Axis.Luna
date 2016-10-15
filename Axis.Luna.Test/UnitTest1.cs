@@ -111,6 +111,14 @@ namespace Axis.Luna.Test
         }
 
         [TestMethod]
+        public void TestMethod9()
+        {
+            var d = DateTime.Now;
+            var x = JsonConvert.SerializeObject(d);
+            Console.WriteLine(x);
+        }
+
+        [TestMethod]
         public void fieldPropertyExpression()
         {
             var ob = new Notifiable { Flid = 3, Flud = "make me believe" };
@@ -136,6 +144,14 @@ namespace Axis.Luna.Test
             start = DateTime.Now;
             Console.WriteLine(ob.FieldValue("Flid"));
             Console.WriteLine("Completed in: " + (DateTime.Now - start));
+        }
+
+        [TestMethod]
+        public void spliceTest()
+        {
+            new int[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 0 }
+                .Splice(4)
+                .ForAll((x, y) => Console.Write($"{y},"));
         }
 
         public static Del Remove<Del>(Delegate source, PropertyChangedEventHandler target)
