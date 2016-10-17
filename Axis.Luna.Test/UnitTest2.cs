@@ -106,6 +106,8 @@ namespace Axis.Luna.Test
 
             var obj2 = JsonConvert.DeserializeObject<SomeClass>(json);
 
+            var d = JsonConvert.SerializeObject(new BinaryData().ReferenceData("http://placehold.it/300", "profileImage.jpg"));
+
 
         }
     }
