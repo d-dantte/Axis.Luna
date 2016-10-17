@@ -32,7 +32,7 @@ namespace Axis.Luna
         public BinaryData EmbedData(string dataUri)
         {
             var parts = dataUri.TrimStart("data:").Split(';');
-            Name = $"data.{parts[0].ToExtension()}";
+            Name = $"data{parts[0].ToExtension()}";
             Data = parts[1].TrimStart("base64,");
             IsDataEmbeded = true;
             return this;
