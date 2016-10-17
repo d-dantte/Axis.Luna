@@ -585,6 +585,8 @@ namespace Axis.Luna
             if (!_mimeMap.ContainsKey(extension)) return new Mime { MimeCode = "application/octet-stream", Extension = extension }; //default to octet-stream
             else return new Mime { MimeCode = _mimeMap[extension], Extension = extension };
         }
+        public static string ToExtension(this string mimeCode)
+            => _mimeMap.FirstOrDefault(_kvp => _kvp.Value.ToLower().Equals(mimeCode?.Trim().ToLower())).Value;
 
         public static IEnumerable<Mime> Mimes
             => _mimeMap.Select(map => new Mime { Extension = map.Key, MimeCode = map.Value });

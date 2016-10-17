@@ -9,6 +9,7 @@ using static Axis.Luna.Void;
 using System.ComponentModel;
 using System.Threading;
 using System.Linq.Expressions;
+using static Axis.Luna.Extensions.EnumerableExtensions;
 
 namespace Axis.Luna.Test
 {
@@ -151,6 +152,18 @@ namespace Axis.Luna.Test
         {
             new int[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 0 }
                 .Splice(4)
+                .ForAll((x, y) => Console.Write($"{y},"));
+        }
+
+        [TestMethod]
+        public void enumerateTest()
+        {
+            Enumerate(1,2,3,4,5,6,7)
+                .ForAll((x, y) => Console.Write($"{y},"));
+
+            Console.WriteLine();
+
+            Enumerate<int>().Append(0)
                 .ForAll((x, y) => Console.Write($"{y},"));
         }
 

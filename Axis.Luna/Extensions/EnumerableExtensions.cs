@@ -142,7 +142,7 @@ namespace Axis.Luna.Extensions
             return enm;
         }
 
-        public static IEnumerable<T> Enumerate<T>() => new T[0];
+        public static IEnumerable<T> Enumerate<T>(params T[] values) => new List<T>(values ?? new T[0]);
 
         public static int PositionOf<T>(this IEnumerable<T> @enum, T item, IEqualityComparer<T> equalityComparer = null)
         {
