@@ -8,6 +8,7 @@ using static Axis.Luna.Extensions.ObjectExtensions;
 using System.Text;
 using System.Collections.Generic;
 using Newtonsoft.Json;
+using Axis.Luna.MetaTypes;
 
 namespace Axis.Luna.Test
 {
@@ -116,5 +117,16 @@ namespace Axis.Luna.Test
     {
         public TimeSpan Duration { get; set; } = TimeSpan.FromDays(3.53);
         public List<int> Numbers { get; private set; } = new List<int>();
+    }
+
+    public class ABCD
+    {
+        public Operation Op1() => Operation.Try(() => { });
+        public Operation<int> Op2() => Operation.FromValue(3);
+        public Operation<@void> Op3() => Operation.FromValue(Void.@void);
+
+        public ABCD()
+        {
+        }
     }
 }

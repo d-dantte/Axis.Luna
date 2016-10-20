@@ -54,6 +54,9 @@
         internal Operation(Action action)
         : base(() => Void(action))
         { }
+
+        internal Operation() : base()
+        { }
         #endregion
 
         #region Statics

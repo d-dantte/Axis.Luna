@@ -7,9 +7,21 @@ namespace Axis.Luna.Extensions
 
     public static class OperationExtensions
     {
+        internal static Operation Promote(this Operation<@void> generic) => new Operation
+        {
+            Error = generic.Error,
+            Message = generic.Message,
+            Succeeded = generic.Succeeded
+        };
+
         #region Synchronious Operation
 
         public static Operation Then(this Operation<@void> op, Action<Operation<@void>> action)
+        {
+            if (op.Succeeded) return Operation.Run(() => action(op));
+            else return Operation.Fail(op.GetException());
+        }
+        public static Operation Then<In>(this Operation<In> op, Action<Operation<In>> action)
         {
             if (op.Succeeded) return Operation.Run(() => action(op));
             else return Operation.Fail(op.GetException());
@@ -26,20 +38,19 @@ namespace Axis.Luna.Extensions
             else return Operation.Fail<Out>(op.GetException());
         }
 
-        public static Operation<Out> Then<Out>(this Operation<@void> op, Func<Operation<@void>, Out> func)
+        public static Operation Then<In>(this Operation<In> op, Func<Operation<In>, @void> func)
         {
-            if (op.Succeeded) return Operation.Run(() => func(op));
-            else return Operation.Fail<Out>(op.GetException());
+            if (op.Succeeded) return Operation.Run(() => { func(op); });
+            else return Operation.Fail(op.GetException());
         }
-        public static Operation<Out> Then<Out>(this Operation<@void> op, Func<Operation<@void>, Operation<Out>> func)
+        public static Operation Then<In>(this Operation<In> op, Func<Operation<In>, Operation<@void>> func)
+        {
+            if (op.Succeeded) return func(op).Promote();
+            else return Operation.Fail(op.GetException());
+        }
+        public static Operation Then<In>(this Operation<In> op, Func<Operation<In>, Operation> func)
         {
             if (op.Succeeded) return func(op);
-            else return Operation.Fail<Out>(op.GetException());
-        }
-
-        public static Operation Then<In>(this Operation<In> op, Action<Operation<In>> action)
-        {
-            if (op.Succeeded) return Operation.Run(() => action(op));
             else return Operation.Fail(op.GetException());
         }
 
@@ -83,6 +94,12 @@ namespace Axis.Luna.Extensions
         {
             if (!op.Succeeded) return Operation.Run(() => func(op));
             return op;
+        }
+
+        public static Operation Instead(this Operation<@void> op, Func<Operation<@void>, Operation> func)
+        {
+            if (!op.Succeeded) return Operation.Try(() => func(op));
+            else return Operation.Fail(op.GetException());
         }
 
         public static Operation Instead(this Operation<@void> op, Action<Operation<@void>> action)
