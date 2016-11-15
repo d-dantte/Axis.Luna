@@ -111,6 +111,57 @@ namespace Axis.Luna.Test
 
 
         }
+
+        [TestMethod]
+        public void TestNodeTraversal()
+        {
+            var node = new Node();
+
+            node.Left = new Node();
+            node.Right = new Node();
+
+            node.Right.Left = new Node();
+            node.Right.Right = new Node();
+
+            node.Right.Right.Left = new Node();
+            node.Right.Right.Right = new Node();
+
+            node.Right.Right.Right.Left = new Node();
+            node.Right.Right.Right.Right = new Node();
+
+
+            Console.WriteLine(BreathFirstCount(node));
+        }
+
+        public long BreathFirstCount(Node node)
+        {
+            if (node == null) return 0;
+            else
+            {
+                IEnumerable<Node> level = node == null ? new Node[0] : new Node[] { node };
+                var count = 0L;
+                var ccache = 0l;
+                while ((ccache = level.Count()) > 0)
+                {
+                    count += ccache;
+                    level = level.SelectMany(_x => _x.Nodes()); //<-- this line makes it possible!!
+                }
+
+                return count;
+            }
+        }
+
+        [TestMethod]
+        public void TestCopyTo()
+        {
+            var node = new Node();
+            node.Left = new Node();
+
+            var node2 = new Node();
+
+            node.CopyTo(node2, ObjectCopyMode.CopyModified);
+
+        }
     }
 
     public class SomeClass
@@ -127,6 +178,19 @@ namespace Axis.Luna.Test
 
         public ABCD()
         {
+        }
+    }
+
+    public class Node
+    {
+        public Node Left { get; set; }
+        public Node Right { get; set; }
+
+        public IEnumerable<Node> Nodes()
+        {
+            if (Left != null) yield return Left;
+            if (Right != null) yield return Right;
+            else yield break;
         }
     }
 }

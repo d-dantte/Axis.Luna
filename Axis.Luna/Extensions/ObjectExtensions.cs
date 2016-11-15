@@ -2,11 +2,13 @@
 {
     using Axis.Luna.MetaTypes;
     using System;
+    using System.Collections.Concurrent;
     using System.Collections.Generic;
     using System.ComponentModel;
     using System.Dynamic;
     using System.Linq;
     using System.Text;
+    using static Axis.Luna.Extensions.TypeExtensions;
 
     public static class ObjectExtensions
     {
@@ -81,7 +83,34 @@
             return expando as ExpandoObject;
         }
 
-        public enum ObjectCopyMode { Replace, IgnoreNulls, IgnoreNullsAndDefaults };
+        public enum ObjectCopyMode
+        {
+            /// <summary>
+            /// Replace everything
+            /// </summary>
+            Replace,
+
+            /// <summary>
+            /// Ignores null values for objects
+            /// </summary>
+            IgnoreNulls,
+
+            /// <summary>
+            /// Ignores null values for objects, and defaults for value-types
+            /// </summary>
+            IgnoreNullsAndDefaults,
+
+            /// <summary>
+            /// copies only modified values
+            /// </summary>
+            CopyModified
+        };
+
+        public static Obj CopyFrom<Obj>(this Obj dest, Obj source, params string[] ignoredProperties)
+            => dest.CopyFrom(source, ObjectCopyMode.Replace, ignoredProperties);
+
+        public static Obj CopyTo<Obj>(this Obj source, Obj dest, params string[] ignoredProperties)
+            => source.CopyTo(dest, ObjectCopyMode.Replace, ignoredProperties);
 
         /// <summary>
         /// Copy from source object to destination object, and return the destination object
@@ -91,8 +120,8 @@
         /// <param name="source"></param>
         /// <param name="mode"></param>
         /// <returns></returns>
-        public static Obj CopyFrom<Obj>(this Obj dest, Obj source, ObjectCopyMode mode = ObjectCopyMode.Replace)
-            => (source == null) ? dest : source.CopyTo(dest, mode).Pipe(x => dest);
+        public static Obj CopyFrom<Obj>(this Obj dest, Obj source, ObjectCopyMode mode, params string[] ignoredProperties)
+            => (source == null) ? dest : source.CopyTo(dest, mode, ignoredProperties).Pipe(x => dest);
 
         /// <summary>
         /// Copy from source object to destination object, and return the source object
@@ -102,16 +131,21 @@
         /// <param name="dest"></param>
         /// <param name="mode"></param>
         /// <returns></returns>
-        public static Obj CopyTo<Obj>(this Obj source, Obj dest, ObjectCopyMode mode = ObjectCopyMode.Replace)
+        public static Obj CopyTo<Obj>(this Obj source, Obj dest, ObjectCopyMode mode, params string[] ignoredProperties)
         {
             var tobj = typeof(Obj);
+            ignoredProperties = ignoredProperties ?? new string[0];
 
+            ///add support for ignoring the "ignored properties"
             foreach (var prop in tobj.GetProperties())
             {
+                if (ignoredProperties.Contains(prop.Name)) continue;
+
                 var svalue = prop.GetValue(source);
                 if (mode == ObjectCopyMode.Replace
                     || (mode == ObjectCopyMode.IgnoreNulls && svalue != null)
-                    || (mode == ObjectCopyMode.IgnoreNullsAndDefaults && svalue != prop.PropertyType.DefaultValue()))
+                    || (mode == ObjectCopyMode.IgnoreNullsAndDefaults && svalue != prop.PropertyType.DefaultValue())
+                    || (mode == ObjectCopyMode.CopyModified && !(svalue?.Equals(prop.GetValue(dest)) ?? false)))
                     prop.SetValue(dest, svalue);
             }
             return source;
@@ -213,6 +247,16 @@
             if (!EqualityComparer<In>.Default.Equals(default(In), @this)) action(@this);
         }
 
+
+        private static ConcurrentDictionary<Type, Delegate> _ComparerCache = new ConcurrentDictionary<Type, Delegate>();
+        public static Delegate ComparerFor(Type t)
+            => _ComparerCache.GetOrAdd(t, _t =>
+            {
+                var eqc__t = typeof(EqualityComparer<>).MakeGenericType(t);
+                var eqc__p = eqc__t.GetProperty(nameof(EqualityComparer<object>.Default)); //only need the name "Default"
+
+               return eqc__p.GetValue(null).Method(nameof(EqualityComparer<object>.Equals), t, t); //only need the name "Equals"
+            });
 
 
         public static Out SwitchDefault<Out>(this bool @switch, Out output) => @switch ? output : default(Out);

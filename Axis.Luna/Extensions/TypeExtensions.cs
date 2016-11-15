@@ -171,6 +171,18 @@ namespace Axis.Luna.Extensions
         }
         #endregion
 
+        #region Method access
+        public static Delegate Method(this object obj, Expression<Func<object>> expr) 
+            => Delegate.CreateDelegate(obj.GetType(), obj, Member(expr).As<MethodInfo>());
+
+        public static Delegate StaticMethod(this Type t, string method, params Type[] argTypes)
+            => Delegate.CreateDelegate(t, t.GetMethod(method, argTypes));
+
+        public static Delegate Method(this object obj, string method, params Type[] argTypes)
+            => Delegate.CreateDelegate(obj.GetType(), obj, obj.GetType().GetMethod(method, argTypes));
+
+        #endregion
+
         public static bool Implements(this Type type, Type firstInterface, params Type[] implementedInterfaces)
         {
             var interfaces = type.GetInterfaces();

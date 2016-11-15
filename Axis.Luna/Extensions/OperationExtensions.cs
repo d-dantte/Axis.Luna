@@ -69,6 +69,49 @@ namespace Axis.Luna.Extensions
 
             return op;
         }
+        public static Operation Error(this Operation<@void> op, Action action)
+        {
+            if (!op.Succeeded)
+            {
+                try
+                {
+                    action();
+                }
+                catch
+                { }
+            }
+
+            return op.Promote();
+        }
+
+        public static Operation<Out> Error<Out>(this Operation<Out> op, Action<Operation<Out>> func)
+        {
+            if (!op.Succeeded)
+            {
+                try
+                {
+                    func(op);
+                }
+                catch
+                { }
+            }
+
+            return op;
+        }
+        public static Operation Error(this Operation<@void> op, Action<Operation<@void>> func)
+        {
+            if (!op.Succeeded)
+            {
+                try
+                {
+                    func(op);
+                }
+                catch
+                { }
+            }
+
+            return op.Promote();
+        }
 
         /// <summary>
         /// Executes and transforms to a successfull operation instead of propagating a failed operation

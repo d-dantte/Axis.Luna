@@ -14,23 +14,23 @@ namespace Axis.Luna
         };
         #endregion
 
-        public static string RandomAlphaNumeric(int length)
+        public static string RandomAlphaNumeric(int length, Random r = null)
         {
-            var random = new Random(Guid.NewGuid().GetHashCode());
+            var random = r ?? new Random(Guid.NewGuid().GetHashCode());
             var sb = new StringBuilder();
             for (int cnt = 0; cnt < length; cnt++) sb.Append(CodeMap[random.Next(CodeMap.Length)]);
             return sb.ToString();
         }
-        public static string RandomAlpha(int length)
+        public static string RandomAlpha(int length, Random r = null)
         {
-            var random = new Random(Guid.NewGuid().GetHashCode());
+            var random = r ?? new Random(Guid.NewGuid().GetHashCode());
             var sb = new StringBuilder();
             for (int cnt = 0; cnt < length; cnt++) sb.Append(CodeMap[random.Next(52)]);
             return sb.ToString();
         }
-        public static string RandomNumeric(int length)
+        public static string RandomNumeric(int length, Random r = null)
         {
-            var random = new Random(Guid.NewGuid().GetHashCode());
+            var random = r ?? new Random(Guid.NewGuid().GetHashCode());
             var sb = new StringBuilder();
             for (int cnt = 0; cnt < length; cnt++) sb.Append(random.Next(10));
             return sb.ToString();
