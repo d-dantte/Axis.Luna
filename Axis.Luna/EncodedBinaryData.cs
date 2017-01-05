@@ -11,12 +11,11 @@ namespace Axis.Luna
         public string Name { get; set; }
         public string Mime => MimeObject().MimeCode;
 
-
         public string Extension() => Eval(() => Name.Substring(Name.LastIndexOf('.'))); //index should include the '.'
         public Mime MimeObject() => MimeMap.ToMimeObject(Extension());
 
         public byte[] ByteArray() => Convert.FromBase64String(Data);
         public Stream ByteStream() => new MemoryStream(ByteArray());
-        public string DataUri() => $"data:{MimeObject().MimeCode};base64,{Data}";
+        public string DataUri() => $"data:{Mime};base64,{Data}";
     }
 }
