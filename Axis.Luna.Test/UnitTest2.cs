@@ -9,6 +9,7 @@ using System.Text;
 using System.Collections.Generic;
 using Newtonsoft.Json;
 using Axis.Luna.MetaTypes;
+using System.Linq.Expressions;
 
 namespace Axis.Luna.Test
 {
@@ -154,13 +155,32 @@ namespace Axis.Luna.Test
         [TestMethod]
         public void TestCopyTo()
         {
-            var node = new Node();
-            node.Left = new Node();
+            Expression<Func<Node, bool>> expr = n => n.Left == null || n.Right == null || n.Left.GetHashCode() == 0;
 
-            var node2 = new Node();
+            var tokens = new string[] { "abcd", "efgh" };
+            var props = new string[] { "Name", "Title" };
+            Expression exp = null;
+            var param = Expression.Parameter(typeof(Node), "n");
+            foreach(var t in tokens)
+            {
+                foreach (var p in props)
+                {
+                    var propAccess = Expression.PropertyOrField(param, p);
+                    var callExp = Expression.Call(propAccess, typeof(string).GetMethod("Contains"), Expression.Constant(t));
+                    if (exp == null) exp = callExp;
+                    else exp = Expression.OrElse(exp, callExp);
+                }
+            }
 
-            node.CopyTo(node2, ObjectCopyMode.CopyModified);
+            var lambda = Expression.Lambda(exp, param);
+        }
 
+        [TestMethod]
+        public void SequencePageSerializationTest()
+        {
+            var sp = new SequencePage<System.IO.Stream>(new System.IO.Stream[0], 0, 30, 0);
+            var json = JsonConvert.SerializeObject(sp);
+            Console.WriteLine(json);
         }
     }
 
@@ -185,6 +205,8 @@ namespace Axis.Luna.Test
     {
         public Node Left { get; set; }
         public Node Right { get; set; }
+        public string Name { get; set; }
+        public string Title { get; set; }
 
         public IEnumerable<Node> Nodes()
         {
@@ -192,5 +214,82 @@ namespace Axis.Luna.Test
             if (Right != null) yield return Right;
             else yield break;
         }
+
+        public void SomeFunction(Source<int, Source<string, Source<long>>> p)
+        {
+
+        }
     }
+
+    public class Source
+    { }
+
+    public class Source<T>: Source
+    {
+        public T Value { get; set; }
+
+        public Source(T value)
+        {
+            this.Value = value;
+        }
+    }
+
+    public class Source<T, R>: Source<T>
+    where R: Source
+    {
+        public R InnerSources { get; private set; }
+
+        public IEnumerable<object> Values()
+        {
+            ///use some clever reflection or other techniques to bunch together this objects "Value", and subsequent inner-source's values
+
+            throw new NotImplementedException();
+        }
+
+        public Source(T value, R aggregate): base(value)
+        {
+            this.InnerSources = aggregate;
+        }
+    }
+
+    public interface IResolver<Source>
+    {
+
+    }
+    
+
+    public class Merger<TDestination>
+    {
+        public TDestination Merge(TDestination destination, Source source)
+        {
+            ///merging code here
+
+            throw new NotImplementedException();
+        }
+    }
+
+
+    public class BusinessObject1 { }
+    public class BusinessObject2 { }
+    public class BusinessObject3 { }
+    public class BusinessObject4 { }
+
+
+    public class SomeClassHavingMergingLogic
+    {
+        public void SomeMethod()
+        {
+            var merger = new Merger<BusinessObject4>();
+
+            //this may also be achieved with some fluent-api to make it more visually palatable
+            var sources = new Source<BusinessObject1, Source<BusinessObject2, Source<BusinessObject3>>>(new BusinessObject1(),
+                          new Source<BusinessObject2, Source<BusinessObject3>>(new BusinessObject2(),
+                          new Source<BusinessObject3>(new BusinessObject3())));
+
+            var merged = merger.Merge(new BusinessObject4(), sources);
+
+            //do with merged as you please
+        }
+    }
+
 }

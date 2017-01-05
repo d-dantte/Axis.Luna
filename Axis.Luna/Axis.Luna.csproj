@@ -45,6 +45,7 @@
     <Compile Include="BinaryData.cs" />
     <Compile Include="CommonDataTypes.cs" />
     <Compile Include="DataItem.cs" />
+    <Compile Include="EncodedBinaryData.cs" />
     <Compile Include="Extensions\DateTimeExtensions.cs" />
     <Compile Include="Extensions\XmlExtensions.cs" />
     <Compile Include="MimeMap.cs" />

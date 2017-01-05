@@ -266,15 +266,15 @@ namespace Axis.Luna.Extensions
         #region Sequence Page
         public static SequencePage<Data> Paginate<Data>(this IEnumerable<Data> sequence, int pageIndex, int pageSize)
             => new SequencePage<Data>(sequence.Skip(pageSize * pageIndex).Take(pageSize).ToArray(),
-                                      pageIndex,
+                                      sequence.Count(),
                                       pageSize,
-                                      sequence.Count());
+                                      pageIndex);
 
         public static SequencePage<Data> Paginate<Data, OrderKey>(this IOrderedQueryable<Data> sequence, int pageIndex, int pageSize)
             => new SequencePage<Data>(sequence.Skip(pageSize * pageIndex).Take(pageSize).ToArray(),
-                                      pageIndex,
+                                      sequence.Count(),
                                       pageSize,
-                                      sequence.Count());
+                                      pageIndex);
         #endregion
     }
 

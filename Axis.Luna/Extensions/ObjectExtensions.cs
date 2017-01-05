@@ -313,7 +313,7 @@
         public static bool ContainsAny(this string source, params string[] substrings) => substrings.Any(s => source.Contains(s));
         public static bool ContainsAll(this string source, params string[] substrings) => substrings.All(s => source.Contains(s));
 
-        public static string SplitWords(this string source, string separator = " ")
+        public static string SplitCamelCase(this string source, string separator = " ")
             => source.Aggregate(new StringBuilder(), (acc, ch) => acc.Append(char.IsUpper(ch) ? separator : "").Append(ch)).ToString().Trim();
         #endregion
     }

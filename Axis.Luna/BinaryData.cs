@@ -7,6 +7,7 @@ namespace Axis.Luna
     /// <summary>
     /// Represents data than may be embeded locally in this object, or may be referenced from some external source via a uri (file system uri, url, etc)
     /// </summary>
+    [Obsolete]
     public class BinaryData
     {
         public string Data { get; set; }

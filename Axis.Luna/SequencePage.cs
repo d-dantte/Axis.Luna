@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace Axis.Luna
 {
-    public class SequencePage<Data> : IEnumerable<Data>
+    public class SequencePage<Data>
     {
         public long PageIndex { get; private set; }
         public long SequenceLength { get; private set; }
@@ -16,18 +16,15 @@ namespace Axis.Luna
         public long PageCount { get; private set; }
         public long PageSize { get; private set; }
 
-        public SequencePage(Data[] page, long pageIndex, long pageSize, long sequenceLength)
+        public SequencePage(Data[] page, long sequenceLength, long pageSize = -1, long pageIndex = 0)
         {
-            if (page == null || pageIndex < 0 || sequenceLength < 0) throw new Exception("invalid page");
+            if (page == null || pageIndex < 0 || sequenceLength < 0 || pageSize < -1) throw new Exception("invalid page");
             PageIndex = pageIndex;
             SequenceLength = sequenceLength;
             Page = page;
-            PageSize = pageSize;
+            PageSize = pageSize < 0 ? page.Length : pageSize;
             PageCount = SequenceLength / PageSize + (SequenceLength % PageSize > 0 ? 1 : 0);
         }
-
-        public IEnumerator<Data> GetEnumerator() => Page.GetEnumerator() as IEnumerator<Data>;
-        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
         /// <summary>
         /// Returns an array containing page indexes for pages immediately adjecent to the current page.
