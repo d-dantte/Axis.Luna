@@ -4,6 +4,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
+using static Axis.Luna.Extensions.ObjectExtensions;
+
 namespace Axis.Luna
 {
     public static class MimeMap
@@ -573,16 +575,18 @@ namespace Axis.Luna
         };
         #endregion
 
+
+        public static Mime DefaultMime(string extension) => new Mime { MimeCode = "application/octet-stream", Extension = extension };
         public static string ToMime(this string extension) => extension.ToMimeObject().MimeCode;
         public static Mime ToMimeObject(this string extension)
         {
-            if (extension == null) return null;
+            if (extension == null) return DefaultMime(".");
 
             extension = extension.Trim()
                                  .ToLower(); //<-- not an issue i hope
             if (!extension.StartsWith(".")) extension = "." + extension;
 
-            if (!_mimeMap.ContainsKey(extension)) return new Mime { MimeCode = "application/octet-stream", Extension = extension }; //default to octet-stream
+            if (!_mimeMap.ContainsKey(extension)) return DefaultMime(extension); //default to octet-stream
             else return new Mime { MimeCode = _mimeMap[extension], Extension = extension };
         }
         public static string ToExtension(this string mimeCode)
@@ -596,5 +600,18 @@ namespace Axis.Luna
     {
         public string MimeCode { get; internal set; }
         public string Extension { get; internal set; }
+
+        public override bool Equals(object obj)
+        {
+            var _mime = obj as Mime;
+            return _mime != null &&
+                   _mime?.MimeCode == MimeCode &&
+                   _mime?.Extension == Extension;
+        }
+        public override int GetHashCode() 
+            => ValueHash(new string[] { MimeCode?.ToLower(), Extension?.ToLower() });
+
+        public override string ToString()
+            => $"[{MimeCode} | {Extension}]";
     }
 }

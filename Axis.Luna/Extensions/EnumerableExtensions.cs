@@ -192,6 +192,27 @@ namespace Axis.Luna.Extensions
         }
 
 
+        /// <summary>
+        ///  Fisher-Yates-Durstenfeld shuffle http://en.wikipedia.org/wiki/Fisher%E2%80%93Yates_shuffle#The_modern_algorithm
+        /// </summary>
+        /// <typeparam name="V"></typeparam>
+        /// <param name="source"></param>
+        /// <param name="rng"></param>
+        /// <returns></returns>
+        public static IEnumerable<V> Shuffle<V>(this IEnumerable<V> source, Random rng = null)
+        {
+            rng = rng ?? new Random(Guid.NewGuid().GetHashCode());
+            var buffer = source.ToArray();
+            for (int i = 0; i < buffer.Length; i++)
+            {
+                int j = rng.Next(i, buffer.Length);
+                yield return buffer[j];
+
+                buffer[j] = buffer[i];
+            }
+        }
+
+
         #region Batch
         public static IEnumerable<IEnumerable<T>> Batch<T>(this IEnumerable<T> source, int batchSize, int skipBatches = 0)
             => BatchGroup(source, batchSize, skipBatches).Select(g => g.Value);

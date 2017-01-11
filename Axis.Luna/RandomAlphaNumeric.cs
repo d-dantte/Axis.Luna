@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Security.Cryptography;
 using System.Text;
 
 namespace Axis.Luna
@@ -8,32 +9,52 @@ namespace Axis.Luna
         #region code map
         public static readonly char[] CodeMap = new char[]
         {
-            'a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z',
-            'A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z',
-            '0','1','2','3','4','5','6','7','8','9'
+            'Q','w','D','c','s','K','Y','k','h','t','W','I','N','T','E','o','B','V','F','M','a','e','n','J','v','H',
+            'L','b','C','P','x','i','d','y','u','U','S','f','m','R','q','G','j','z','O','X','g','Z','p','r','l','A',
+            '8','6','3','9','4','2','0','1','7','5'
         };
         #endregion
 
-        public static string RandomAlphaNumeric(int length, Random r = null)
+        public static string RandomAlphaNumeric(int length)
         {
-            var random = r ?? new Random(Guid.NewGuid().GetHashCode());
-            var sb = new StringBuilder();
-            for (int cnt = 0; cnt < length; cnt++) sb.Append(CodeMap[random.Next(CodeMap.Length)]);
-            return sb.ToString();
+            using (var rng = new RNGCryptoServiceProvider())
+            {
+                var sb = new StringBuilder();
+                for (int cnt = 0; cnt < length; cnt++)
+                {
+                    var randIndex = NextInt(rng, CodeMap.Length);
+                    sb.Append(CodeMap[randIndex]);
+                }
+                return sb.ToString();
+            }
         }
-        public static string RandomAlpha(int length, Random r = null)
+        public static string RandomAlpha(int length)
         {
-            var random = r ?? new Random(Guid.NewGuid().GetHashCode());
-            var sb = new StringBuilder();
-            for (int cnt = 0; cnt < length; cnt++) sb.Append(CodeMap[random.Next(52)]);
-            return sb.ToString();
+            using (var rng = new RNGCryptoServiceProvider())
+            {
+                var sb = new StringBuilder();
+                for (int cnt = 0; cnt < length; cnt++) sb.Append(CodeMap[NextInt(rng, 52)]);
+                return sb.ToString();
+            }
         }
-        public static string RandomNumeric(int length, Random r = null)
+        public static string RandomNumeric(int length)
         {
-            var random = r ?? new Random(Guid.NewGuid().GetHashCode());
-            var sb = new StringBuilder();
-            for (int cnt = 0; cnt < length; cnt++) sb.Append(random.Next(10));
-            return sb.ToString();
+            using (var rng = new RNGCryptoServiceProvider())
+            {
+                var sb = new StringBuilder();
+                for (int cnt = 0; cnt < length; cnt++) sb.Append(NextInt(rng, 10));
+                return sb.ToString();
+            }
+        }
+
+        private static int NextInt(RNGCryptoServiceProvider rng, int maxExclusive = int.MaxValue)
+        {
+            var intByte = new byte[4];
+            rng.GetBytes(intByte);
+            var value = Math.Abs(BitConverter.ToInt32(intByte, 0));
+
+            if (value >= maxExclusive) return value % maxExclusive;
+            else return value;
         }
     }
 }
