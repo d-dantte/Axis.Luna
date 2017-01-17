@@ -13,14 +13,14 @@ namespace Axis.Luna.Test
         public void TestMethod1()
         {
             var r = new Random(Guid.NewGuid().GetHashCode());
-            var randomString = RandomAlphaNumericGenerator.RandomAlpha(4, r);
+            var randomString = RandomAlphaNumericGenerator.RandomAlpha(4);
             Console.WriteLine("Random string: " + randomString);
 
             var collisions = 0;
             var iterations = 8000000;
             for (int cnt = 0; cnt < iterations; cnt++)
             {
-                var sample = RandomAlphaNumericGenerator.RandomAlpha(4, r);
+                var sample = RandomAlphaNumericGenerator.RandomAlpha(4);
                 if (sample.Any(_char => char.IsDigit(_char)))
                 {
                     Console.WriteLine($"bad random-alpha detected: {sample}");
@@ -38,11 +38,11 @@ namespace Axis.Luna.Test
         {
             var r = new Random(Guid.NewGuid().GetHashCode());
             
-            var iterations = 8000000;
+            var iterations = 4000000;
             var buffer = new Dictionary<string,int>();
             for (int cnt = 0; cnt < iterations; cnt++)
             {
-                var value = RandomAlphaNumericGenerator.RandomAlpha(50, r);
+                var value = RandomAlphaNumericGenerator.RandomAlpha(50);
 
                 var occurence = buffer.GetOrAdd(value, _v => 0);
                 buffer[value] = occurence + 1;

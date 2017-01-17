@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Axis.Luna.Extensions;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -61,24 +62,38 @@ namespace Axis.Luna
 
     public class TagBuilder
     {
-        private List<Tag> tags = new List<Tag>();
-        public IEnumerable<Tag> Tags => tags.ToArray();
+        private Dictionary<string,Tag> tags = new Dictionary<string, Tag>();
+        public IEnumerable<Tag> Tags => tags.Select(_kvp => _kvp.Value).ToArray();
 
 
         public static TagBuilder Create() => new TagBuilder();
+
+        public static TagBuilder Create(string tags) => 
+            Parse(tags).Aggregate(new TagBuilder(), (x, y) => x.Add(y.Name, y.Value));
+
+        public bool ContainsTag(string name) => tags.ContainsKey(name);
+
         public TagBuilder Add(string tname, string tvalue)
         {
-            this.tags.Add(new Tag(tname, tvalue));
+            tags.Add(tname, new Tag(tname, tvalue));
             return this;
         }
+        public TagBuilder Remove(string name)
+        {
+            tags.Remove(name);
+            return this;
+        }
+
+        public Tag GetOrAdd(string name, string value)
+            => tags.GetOrAdd(name, _k => new Tag(name, value));
+
+
         public override string ToString()
             => tags.Aggregate(new StringBuilder(),
                               (sb, next) => sb.Append(sb.Length == 0 ? "" : " ")
-                                              .Append(TagCodec.Encode(next.Name)).Append(":")
-                                              .Append(TagCodec.Encode(next.Value)).Append(";"))
+                                              .Append(TagCodec.Encode(next.Key)).Append(":")
+                                              .Append(TagCodec.Encode(next.Value.Value)).Append(";"))
                    .ToString();
-        //=> tags.Select(t => t.ToString())
-        //       .Project(s => string.Join(" ", s.ToArray()));
 
 
         public static Tag[] Parse(string tpairs)

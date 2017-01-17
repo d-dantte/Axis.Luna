@@ -1,6 +1,8 @@
-﻿using System;
+﻿using Axis.Luna;
+using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using static Axis.Luna.Extensions.ObjectExtensions;
 
 namespace Axis.Luna
@@ -8,10 +10,31 @@ namespace Axis.Luna
     public class EncodedBinaryData
     {
         private string _mime = null;
+        private TagBuilder _metadata = TagBuilder.Create();
 
-        public string Data { get; set; }
-        public string Name { get; set; }
-        public string Metadata { get; set; }
+        public byte[] Data { get; set; }
+
+        /// <summary>
+        /// Case insensitive, css-formatted list of name-value pairs
+        /// </summary>
+        public string Metadata
+        {
+            get { return _metadata.ToString(); }
+            set
+            {
+                var name = Name;
+                _metadata = TagBuilder.Create(value);
+                if (!string.IsNullOrWhiteSpace(name)) _metadata.Add("name", name);
+            }
+        }
+        public string Name
+        {
+            get
+            {
+                return _metadata.Tags.FirstOrDefault(_t => _t.Name.ToLower() == "name")?.Value;
+            }
+            set { _metadata.Remove("name").Add("name", value); }
+        }
         public string Mime
         {
             get { return _mime ?? MimeObject().MimeCode; }
@@ -26,9 +49,9 @@ namespace Axis.Luna
                MimeMap.ToMimeObject(Extension()) :
                new Mime { MimeCode = _mime, Extension = Extension() ?? "." };
 
-        public byte[] ByteArray() => Convert.FromBase64String(Data);
-        public Stream ByteStream() => new MemoryStream(ByteArray());
-        public string DataUri() => $"data:{Mime};base64,{Data}";
+        public string Base64() => Convert.ToBase64String(Data);
+        public Stream ByteStream() => new MemoryStream(Data);
+        public string DataUri() => $"data:{Mime};base64,{Base64()}";
 
         public IEnumerable<Tag> MetadataTags() => TagBuilder.Parse(Metadata);
 
@@ -36,16 +59,16 @@ namespace Axis.Luna
         public EncodedBinaryData()
         { }
 
-        public EncodedBinaryData(byte[] data, string name, string mime = null, string metadata = null)
+        public EncodedBinaryData(byte[] data, string mime, string name = null, string metadata = null)
         {
-            Data = Convert.ToBase64String(data);
-            Name = name;
+            Data = data;
             Mime = mime;
+            Name = name;
             Metadata = metadata;
         }
 
-        public EncodedBinaryData(Stream data, string name, string mime = null, string metadata = null)
-        : this(new MemoryStream().UsingValue(_ms => data.CopyTo(_ms)).ToArray(), name, mime, metadata)
+        public EncodedBinaryData(Stream data, string mime, string name = null, string metadata = null)
+        : this(new MemoryStream().UsingValue(_ms => data.CopyTo(_ms)).ToArray(), mime, name, metadata)
         { }
         #endregion
     }

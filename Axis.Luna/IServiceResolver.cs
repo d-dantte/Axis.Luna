@@ -3,6 +3,21 @@ using System.Collections.Generic;
 
 namespace Axis.Luna
 {
+    public interface IResolutionScopeProvider: IDisposable
+    {
+        /// <summary>
+        /// Creates a new IServiceResolver that should be scopped to a "context" possibly specified via the parameter
+        /// </summary>
+        /// <returns></returns>
+        IServiceResolver ResolutionScope(object parameter);
+
+        /// <summary>
+        /// Creates a new IServiceResolver that should be scopped to a default "context"
+        /// </summary>
+        /// <returns></returns>
+        IServiceResolver ResolutionScope();
+    }
+
     public interface IServiceResolver : IDisposable
     {
         object Resolve(Type serviceType, params object[] args);
@@ -12,17 +27,5 @@ namespace Axis.Luna
         IEnumerable<object> ResolveAll(Type serviceType, params object[] args);
 
         IEnumerable<Service> ResolveAll<Service>(params object[] args);
-
-        /// <summary>
-        /// Creates a new IServiceResolver that should be scopped to a transaction possibly specified via the parameter
-        /// </summary>
-        /// <returns></returns>
-        IServiceResolver ManagedScope(object parameter);
-
-        /// <summary>
-        /// Creates a new IServiceResolver that should be scopped to a default transaction
-        /// </summary>
-        /// <returns></returns>
-        IServiceResolver ManagedScope();
     }
 }
