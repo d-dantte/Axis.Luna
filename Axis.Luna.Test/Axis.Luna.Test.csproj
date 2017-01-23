@@ -68,6 +68,7 @@
     <Compile Include="RandomAlphanumTest.cs" />
     <Compile Include="ExceptionExtensionsUnitTest.cs" />
     <Compile Include="DynamicObjectTest.cs" />
+    <Compile Include="WeakCacheTest.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Axis.Luna\Axis.Luna.csproj">
