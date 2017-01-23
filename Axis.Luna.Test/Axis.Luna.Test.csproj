@@ -67,6 +67,7 @@
     <Compile Include="EncodedBinaryDataTests.cs" />
     <Compile Include="RandomAlphanumTest.cs" />
     <Compile Include="ExceptionExtensionsUnitTest.cs" />
+    <Compile Include="DynamicObjectTest.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Axis.Luna\Axis.Luna.csproj">
