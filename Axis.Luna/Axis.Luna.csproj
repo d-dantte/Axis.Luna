@@ -43,6 +43,7 @@
     <Compile Include="AssemblyMonitor.cs" />
     <Compile Include="AssemblyResourceUri.cs" />
     <Compile Include="BinaryData.cs" />
+    <Compile Include="DomainConverter.cs" />
     <Compile Include="WeakCache.cs" />
     <Compile Include="CommonDataTypes.cs" />
     <Compile Include="DataItem.cs" />
