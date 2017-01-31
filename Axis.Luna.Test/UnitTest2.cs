@@ -139,7 +139,7 @@ namespace Axis.Luna.Test
             if (node == null) return 0;
             else
             {
-                IEnumerable<Node> level = node == null ? new Node[0] : new Node[] { node };
+                IEnumerable<Node> level = node == null ? new Node[0] : new[] { node };
                 var count = 0L;
                 var ccache = 0l;
                 while ((ccache = level.Count()) > 0)

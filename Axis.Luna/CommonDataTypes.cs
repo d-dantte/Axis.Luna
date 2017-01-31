@@ -6,6 +6,7 @@
         String,
         Integer,
         Real,
+        Decimal, //different from real because it holds exact figures, whereas reals hold approximations
         Boolean,
         Binary,
 

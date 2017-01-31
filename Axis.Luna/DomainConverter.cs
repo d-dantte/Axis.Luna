@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using static Axis.Luna.Extensions.ObjectExtensions;
 
 namespace Axis.Luna
 {

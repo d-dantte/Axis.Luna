@@ -1,6 +1,7 @@
 ﻿using Axis.Luna.Extensions;
 using System;
 using System.Collections.Concurrent;
+using System.Linq;
 
 namespace Axis.Luna
 {
@@ -16,6 +17,23 @@ namespace Axis.Luna
             Data _data;
             if (payload.Ref.TryGetTarget(out _data)) return _data;
             else return payload.Refresh();
+        }
+
+        public WeakCache Invalidate(string cacheKey)
+        {
+            CachePayload cp;
+            if(_cache.TryGetValue(cacheKey, out cp)) cp.AsDynamic().SetTarget(null);
+
+            return this;
+        }
+        
+        public WeakCache InvalidateAll()
+        {
+            _cache.Keys
+                  .ToArray()
+                  .ForAll((_cnt, _next) => Invalidate(_next));
+
+            return this;
         }
     }
 
