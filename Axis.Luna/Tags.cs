@@ -126,10 +126,6 @@ namespace Axis.Luna
         public string Name { get; private set; }
         public string Value { get; private set; }
 
-        internal Tag()
-        : this(null, null)
-        { }
-
         public Tag(string name, string value)
         {
             if (string.IsNullOrWhiteSpace(name)) throw new Exception("invalid tag name");
@@ -138,11 +134,7 @@ namespace Axis.Luna
             this.Value = ("" + value).Trim();
         }
 
-        public Tag Clone() => new Tag
-        {
-            Name = this.Name,
-            Value = this.Value
-        };
+        public Tag Clone() => new Tag(Name, Value);
 
         public override string ToString() => $"{Name}:{Value};";
         //public override string ToString() => $"{TagCodec.Encode(Name)}:{TagCodec.Encode(Value)};";
