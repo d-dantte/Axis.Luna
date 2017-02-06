@@ -68,8 +68,11 @@ namespace Axis.Luna
 
         public static TagBuilder Create() => new TagBuilder();
 
-        public static TagBuilder Create(string tags) => 
-            Parse(tags).Aggregate(new TagBuilder(), (x, y) => x.Add(y.Name, y.Value));
+        public static TagBuilder Create(string tags) 
+        => Parse(tags).Aggregate(new TagBuilder(), (builder, tag) => builder.Add(tag.Name, tag.Value));
+
+        public static TagBuilder Create(IEnumerable<KeyValuePair<string, string>> pairs)
+        => pairs.Aggregate(new TagBuilder(), (builder, pair) => builder.Add(pair.Key, pair.Value));
 
         public bool ContainsTag(string name) => tags.ContainsKey(name);
 
@@ -89,11 +92,11 @@ namespace Axis.Luna
 
 
         public override string ToString()
-            => tags.Aggregate(new StringBuilder(),
-                              (sb, next) => sb.Append(sb.Length == 0 ? "" : " ")
-                                              .Append(TagCodec.Encode(next.Key)).Append(":")
-                                              .Append(TagCodec.Encode(next.Value.Value)).Append(";"))
-                   .ToString();
+        => tags.Aggregate(new StringBuilder(),
+                          (sb, next) => sb.Append(sb.Length == 0 ? "" : " ")
+                                          .Append(TagCodec.Encode(next.Key)).Append(":")
+                                          .Append(TagCodec.Encode(next.Value.Value)).Append(";"))
+               .ToString();
 
 
         public static Tag[] Parse(string tpairs)
