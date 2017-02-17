@@ -52,6 +52,15 @@ namespace Axis.Luna.Extensions
                 return sb.Append($", {t.Assembly.GetName().Name}").ToString();
             });
 
+        public static bool HasGenericAncestor(this Type type, Type genericDefinitionAncestorType)
+        {
+            if (!genericDefinitionAncestorType.IsGenericTypeDefinition) throw new Exception("ancestor is not a generic type definition");
+            return type.BaseTypes()
+                       .Where(_bt => _bt.IsGenericType)
+                       .Where(_bt => _bt.GetGenericTypeDefinition() == genericDefinitionAncestorType)
+                       .Any();
+        }
+
         public static IEnumerable<Type> TypeLineage(this Type type) => type.GetInterfaces().Concat(type.BaseTypes());
 
         public static IEnumerable<Type> BaseTypes(this Type type) => type.Enumerate(t => Operation.Run(() => t.BaseType.ThrowIfNull()));

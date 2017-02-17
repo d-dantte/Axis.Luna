@@ -96,6 +96,32 @@ namespace Axis.Luna.Extensions
         public static R ThrowIf<R>(this R value, Func<R, bool> predicate, Func<R, Exception> ex = null)
             => value.ThrowIf(predicate, ex?.Invoke(value));
 
+        public static R ThrowIfFail<R>(Func<R> func, Func<Exception, Exception> exception)
+        {
+            try
+            {
+                return func.Invoke();
+            }
+            catch(Exception e)
+            {
+                if (exception != null) throw exception(e);
+                else throw e;
+            }
+        }
+
+        public static void ThrowIfFail(Action action, Func<Exception, Exception> exception)
+        {
+            try
+            {
+                action();
+            }
+            catch(Exception e)
+            {
+                if (exception != null) throw exception(e);
+                else throw e;
+            }
+        }
+
         public static string FlattenMessage(this Exception e, string separator)
             => e.Enumerate(ex => Operation.Run(() => ex.InnerException.ThrowIfNull()))
                 .Aggregate(new StringBuilder(), (sb, next) => sb.Append(next.Message).Append(separator))
