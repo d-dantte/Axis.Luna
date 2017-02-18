@@ -2,83 +2,111 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.Remoting.Messaging;
 using static Axis.Luna.Extensions.ObjectExtensions;
 
 namespace Axis.Luna
 {
-
     public class DomainConverter
     {
-        private Registry _registry = new Registry();
+        private static readonly string CallContextKey = "Axis.Luna.CallContext.Key";
+        public readonly ConversionRegistry Converters = new ConversionRegistry();
 
-        public DomainConverter(Action<Registry> conversionRegistration)
+
+        public void LoadConverters(Action<ConversionRegistry> conversionRegistrations)
         {
-            conversionRegistration.Invoke(_registry);
+            conversionRegistrations?.Invoke(Converters);
+        }               
+
+        public To Convert<From, To>(From obj)
+        {
+            var isEntry = !ContextExists();
+            try
+            {
+                var context = AcquireContext();
+
+                if (context.IsCached(obj))
+                    return (To)context.GetCachedValue(obj);
+                else
+                {
+                    var operations = FindConversionOperation(new ConversionVector { From = typeof(From), To = typeof(To) });
+
+                    //generate the value
+                    var value = operations.Generator == null ?
+                                Activator.CreateInstance<To>() :
+                                ((Func<From, To>)operations.Generator).Invoke(obj);
+
+                    //cache the value
+                    context.CacheValue(obj, value);
+
+                    //map the value
+                    ((Action<From, To>)operations.Converter).Invoke(obj, value);
+
+                    return value;
+                }
+            }
+            finally
+            {
+                if (isEntry) DestroyContext();
+            }
         }
 
-        public Y Convert<X, Y>(X obj, ConversionContext context = null)
-            => (Y)(context ?? (context = new ConversionContext(this))).GetOrAdd(obj, _obj =>
-            {
-                var _dynamic = _registry.TypeRegistry[new ConversionVector { From = typeof(X), To = typeof(Y) }];
-                var converter = (Func<X, ConversionContext, Y>)_dynamic;
-                return converter.Invoke(obj, context);
-            });
+        private bool ContextExists() => CallContext.LogicalGetData(CallContextKey) != null;
 
-
-        /// <summary>
-        /// Converts using the first conversion function it finds with <c>X</c> as the source-type, returning the result as an object
-        /// </summary>
-        /// <typeparam name="X"></typeparam>
-        /// <param name="obj"></param>
-        /// <param name="context"></param>
-        /// <returns></returns>
-        public object Convert<X>(X obj, ConversionContext context = null)
-            => (context ?? (context = new ConversionContext(this))).GetOrAdd(obj, _obj =>
-            {
-                var tx = typeof(X);
-                var _dynamic = _registry.TypeRegistry.First(_kvp => _kvp.Key.From == tx).Value;
-                return _dynamic.Invoke(obj, context);
-            });
-
-        /// <summary>
-        /// Converts using the first conversion function it finds with <c>X</c> as the source-type, returning the result as a <c>dynamic</c>
-        /// </summary>
-        /// <typeparam name="X"></typeparam>
-        /// <param name="obj"></param>
-        /// <param name="context"></param>
-        /// <returns></returns>
-        public dynamic ConvertDynamic<X>(X obj, ConversionContext context = null)
-            => (context ?? (context = new ConversionContext(this))).GetOrAdd(obj, _obj =>
-            {
-                var tx = typeof(X);
-                var _dynamic = _registry.TypeRegistry.First(_kvp => _kvp.Key.From == tx).Value;
-                return _dynamic.Invoke(obj, context);
-            });
-
-
-
-
-        public class Registry
+        private ConversionContext AcquireContext()
         {
-            internal readonly Dictionary<ConversionVector, dynamic> TypeRegistry = new Dictionary<ConversionVector, dynamic>();
+            var context = CallContext.LogicalGetData(CallContextKey) as ConversionContext;
+            if (context == null) CallContext.LogicalSetData(CallContextKey, context = new ConversionContext());
 
-            public Registry Register<Domain, Entity>(Func<Domain, ConversionContext, Entity> toEntity,
-                                                     Func<Entity, ConversionContext, Domain> toDomain)
+            return context;
+        }
+
+        private void DestroyContext() => CallContext.FreeNamedDataSlot(CallContextKey);
+
+        private ConversionOperations FindConversionOperation(ConversionVector vector)
+        {
+            if (Converters.TypeRegistry.ContainsKey(vector)) return Converters.TypeRegistry[vector];
+
+            try
             {
-                var etype = typeof(Entity);
-                var dtype = typeof(Domain);
+                //find in the registry, the vector who's "From" type is the closest ancestor to the arguments vector's "From" type
+                var ancestors = vector.From.BaseTypes().ToList();
+                var childVector = Converters.TypeRegistry.Keys
+                    .Select(_vector => new { Delta = ancestors.IndexOf(_vector.From), Vector = _vector })
+                    .Where(__vector => __vector.Delta >= 0)
+                    .Where(__vector => __vector.Vector.To == vector.To)
+                    .Aggregate((_current, _next) => _next.Delta < _current.Delta ? _next : _current); //will throw an exception if nothing is found, which is fine
 
-                if (toEntity == null ||
-                    toDomain == null)
+                return Converters.TypeRegistry[childVector.Vector];
+            }
+            catch (Exception e)
+            {
+                throw new Exception("Conversion not found", e);
+            }
+        }
+
+
+        public class ConversionRegistry
+        {
+            internal readonly Dictionary<ConversionVector, ConversionOperations> TypeRegistry = new Dictionary<ConversionVector, ConversionOperations>();
+
+            public int Count => TypeRegistry.Count;
+
+            public ConversionRegistry Add<From, To>(Action<From, To, DomainConverter> conversion) => Add(null, conversion);
+            public ConversionRegistry Add<From, To>(Func<From, To> generator, Action<From, To, DomainConverter> conversion)
+            {
+                var etype = typeof(To);
+                var mtype = typeof(From);
+
+                if (conversion == null)
                     throw new Exception("invalid conversion");
 
-                TypeRegistry.Add(new ConversionVector { From = etype, To = dtype }, toDomain);
-                TypeRegistry.Add(new ConversionVector { From = dtype, To = etype }, toEntity);
+                TypeRegistry.Add(new ConversionVector { From = mtype, To = etype }, new ConversionOperations { Generator = generator, Converter = conversion });
 
                 return this;
             }
 
-            internal Registry()
+            internal ConversionRegistry()
             { }
         }
 
@@ -87,15 +115,27 @@ namespace Axis.Luna
             internal Type From { get; set; }
             internal Type To { get; set; }
 
-            public override int GetHashCode() => ValueHash(new object[] { From.ThrowIfNull(), To.ThrowIfNull() });
+            public override int GetHashCode() => ValueHash(new object[] { ThrowIfNull(From), ThrowIfNull(To) });
             public override bool Equals(object obj)
             {
-                var other = obj.As<ConversionVector>();
+                var other = (ConversionVector)obj;
                 return other != null &&
                        other.From == From &&
                        other.To == To &&
                        other.GetHashCode() == GetHashCode();
             }
+
+            public Type ThrowIfNull(Type t)
+            {
+                if (t == null) throw new NullReferenceException();
+                else return t;
+            }
+        }
+
+        internal class ConversionOperations
+        {
+            internal Delegate Generator { get; set; }
+            internal Delegate Converter { get; set; }
         }
     }
 
@@ -103,20 +143,15 @@ namespace Axis.Luna
     {
         private Dictionary<object, object> _cache = new Dictionary<object, object>();
 
-        public DomainConverter Converter { get; private set; }
-
 
         public bool IsCached(object from) => _cache.ContainsKey(from);
 
-        internal ConversionContext CacheValue(object from, object to) => this.UsingValue(@this => _cache[from] = to);
+        internal ConversionContext CacheValue(object from, object to)
+        {
+            _cache[from] = to;
+            return this;
+        }
 
         internal object GetCachedValue(object from) => _cache[from];
-
-        internal object GetOrAdd(object from, Func<object, object> valueGenerator) => _cache.GetOrAdd(from, _from => valueGenerator(_from));
-
-        internal ConversionContext(DomainConverter converter)
-        {
-            Converter = converter;
-        }
     }
 }
