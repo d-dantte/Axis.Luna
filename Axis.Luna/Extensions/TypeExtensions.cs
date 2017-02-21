@@ -56,6 +56,7 @@ namespace Axis.Luna.Extensions
         {
             if (!genericDefinitionAncestorType.IsGenericTypeDefinition) throw new Exception("ancestor is not a generic type definition");
             return type.BaseTypes()
+                       .Where(_bt => _bt != type)
                        .Where(_bt => _bt.IsGenericType)
                        .Where(_bt => _bt.GetGenericTypeDefinition() == genericDefinitionAncestorType)
                        .Any();
@@ -83,6 +84,10 @@ namespace Axis.Luna.Extensions
             }
             else return null;
         }
+
+        public static bool IsPropertyAccessor(this MethodInfo method)
+        => method.DeclaringType.GetProperties().Any(prop => prop.GetSetMethod() == method);
+
 
         #region Property access
         public static PropertyInfo Property(Expression<Func<object>> expr) => Member(expr).As<PropertyInfo>();

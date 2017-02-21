@@ -99,9 +99,9 @@
         public static AsyncOperation TryAsync(AsyncInfo info, Action action) => RunAsync(info, action);
 
         public static AsyncOperation<Result> RunAsync<Result>(Func<Result> func) => new AsyncOperation<Result>(func);
-        public static AsyncOperation<Result> TryASync<Result>(Func<Result> func) => RunAsync(func);
+        public static AsyncOperation<Result> TryAsync<Result>(Func<Result> func) => RunAsync(func);
         public static AsyncOperation<Result> RunAsync<Result>(AsyncInfo info, Func<Result> func) => new AsyncOperation<Result>(func, info);
-        public static AsyncOperation<Result> TryASync<Result>(AsyncInfo info, Func<Result> func) => RunAsync(info, func);
+        public static AsyncOperation<Result> TryAsync<Result>(AsyncInfo info, Func<Result> func) => RunAsync(info, func);
 
         public static AsyncOperation RunAsync(Func<AsyncOperation> func) => Eval(func, ex => FailAsync(ex));
         public static AsyncOperation TryAsync(Func<AsyncOperation> func) => RunAsync(func);
