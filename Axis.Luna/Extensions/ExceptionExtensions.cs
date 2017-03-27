@@ -51,6 +51,12 @@ namespace Axis.Luna.Extensions
             throw new Exception("See inner exception", e);
         }
 
+        public static R ThrowIfNotNull<R>(this R value, string exceptionMessage)
+        where R : class => value.ThrowIf(r => r != null, exceptionMessage);
+
+        public static R ThrowIfNotNull<R>(this R value, Exception ex)
+        where R : class => value.ThrowIf(r => r != null, ex);
+
         public static R ThrowIfNull<R>(this R value, string message = null)
         where R : class => value.ThrowIfNull(new Exception(message ?? "Null value"));
 

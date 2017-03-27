@@ -8,6 +8,7 @@
     using static Extensions.ExceptionExtensions;
     using System.Runtime.CompilerServices;
     using System.Threading;
+    using System.Diagnostics;
 
     public class Operation<R>
     {
@@ -62,66 +63,66 @@
         #region Statics
 
         #region Operation
-        public static Operation Run(Action action) => new Operation(action);
-        public static Operation Try(Action action) => Run(action);
+        [DebuggerHidden] public static Operation Run(Action action) => new Operation(action);
+        [DebuggerHidden] public static Operation Try(Action action) => Run(action);
 
-        public static Operation<Result> Run<Result>(Func<Result> func) => new Operation<Result>(func);
-        public static Operation<Result> Try<Result>(Func<Result> func) => Run(func);
+        [DebuggerHidden] public static Operation<Result> Run<Result>(Func<Result> func) => new Operation<Result>(func);
+        [DebuggerHidden] public static Operation<Result> Try<Result>(Func<Result> func) => Run(func);
 
-        public static Operation Run(Func<Operation> func) => Eval(() => func(), ex => Fail(ex));
-        public static Operation Try(Func<Operation> func) => Run(func);
+        [DebuggerHidden] public static Operation Run(Func<Operation> func) => Eval(() => func(), ex => Fail(ex));
+        [DebuggerHidden] public static Operation Try(Func<Operation> func) => Run(func);
 
-        public static Operation<Result> Run<Result>(Func<Operation<Result>> func) => Eval(func, ex => Fail<Result>(ex));
-        public static Operation<Result> Try<Result>(Func<Operation<Result>> func) => Run(func);
+        [DebuggerHidden] public static Operation<Result> Run<Result>(Func<Operation<Result>> func) => Eval(func, ex => Fail<Result>(ex));
+        [DebuggerHidden] public static Operation<Result> Try<Result>(Func<Operation<Result>> func) => Run(func);
 
-        public static Operation<R> NoOp<R>() => Run(() => { return default(R); });
-        public static Operation NoOp() =>  Run(() => { });
+        [DebuggerHidden] public static Operation<R> NoOp<R>() => Run(() => { return default(R); });
+        [DebuggerHidden] public static Operation NoOp() =>  Run(() => { });
 
-        public static Operation<Value> FromValue<Value>(Value v) => Run(() => { return v; });
+        [DebuggerHidden] public static Operation<Value> FromValue<Value>(Value v) => Run(() => { return v; });
 
-        public static Operation<R> Fail<R>(Exception ex = null)
+        [DebuggerHidden] public static Operation<R> Fail<R>(Exception ex = null)
             => Run(() => (ex ?? new Exception("Operation Failed")).Throw<R>());
-        public static Operation<R> Fail<R>(string message = null)
+        [DebuggerHidden] public static Operation<R> Fail<R>(string message = null)
             => Run(() => new Exception(message ?? "Operation Failed").Throw<R>());
 
-        public static Operation Fail(string message = null)
+        [DebuggerHidden] public static Operation Fail(string message = null)
             => Run(() => new Exception(message ?? "Operation Failed").Throw());
-        public static Operation Fail(Exception ex = null)
+        [DebuggerHidden] public static Operation Fail(Exception ex = null)
             => Run(() => (ex ?? new Exception("Operation Failed")).Throw());
 
         #endregion
 
         #region async operation
 
-        public static AsyncOperation RunAsync(Action action) => new AsyncOperation(action);
-        public static AsyncOperation TryAsync(Action action) => RunAsync(action);
-        public static AsyncOperation RunAsync(AsyncInfo info, Action action) => new AsyncOperation(action, info);
-        public static AsyncOperation TryAsync(AsyncInfo info, Action action) => RunAsync(info, action);
+        [DebuggerHidden] public static AsyncOperation RunAsync(Action action) => new AsyncOperation(action);
+        [DebuggerHidden] public static AsyncOperation TryAsync(Action action) => RunAsync(action);
+        [DebuggerHidden] public static AsyncOperation RunAsync(AsyncInfo info, Action action) => new AsyncOperation(action, info);
+        [DebuggerHidden] public static AsyncOperation TryAsync(AsyncInfo info, Action action) => RunAsync(info, action);
 
-        public static AsyncOperation<Result> RunAsync<Result>(Func<Result> func) => new AsyncOperation<Result>(func);
-        public static AsyncOperation<Result> TryAsync<Result>(Func<Result> func) => RunAsync(func);
-        public static AsyncOperation<Result> RunAsync<Result>(AsyncInfo info, Func<Result> func) => new AsyncOperation<Result>(func, info);
-        public static AsyncOperation<Result> TryAsync<Result>(AsyncInfo info, Func<Result> func) => RunAsync(info, func);
+        [DebuggerHidden] public static AsyncOperation<Result> RunAsync<Result>(Func<Result> func) => new AsyncOperation<Result>(func);
+        [DebuggerHidden] public static AsyncOperation<Result> TryAsync<Result>(Func<Result> func) => RunAsync(func);
+        [DebuggerHidden] public static AsyncOperation<Result> RunAsync<Result>(AsyncInfo info, Func<Result> func) => new AsyncOperation<Result>(func, info);
+        [DebuggerHidden] public static AsyncOperation<Result> TryAsync<Result>(AsyncInfo info, Func<Result> func) => RunAsync(info, func);
 
-        public static AsyncOperation RunAsync(Func<AsyncOperation> func) => Eval(func, ex => FailAsync(ex));
-        public static AsyncOperation TryAsync(Func<AsyncOperation> func) => RunAsync(func);
+        [DebuggerHidden] public static AsyncOperation RunAsync(Func<AsyncOperation> func) => Eval(func, ex => FailAsync(ex));
+        [DebuggerHidden] public static AsyncOperation TryAsync(Func<AsyncOperation> func) => RunAsync(func);
 
-        public static AsyncOperation<Result> RunAsync<Result>(Func<AsyncOperation<Result>> func) => Eval(func, ex => FailAsync<Result>(ex));
-        public static AsyncOperation<Result> TryAsync<Result>(Func<AsyncOperation<Result>> func) => RunAsync(func);
+        [DebuggerHidden] public static AsyncOperation<Result> RunAsync<Result>(Func<AsyncOperation<Result>> func) => Eval(func, ex => FailAsync<Result>(ex));
+        [DebuggerHidden] public static AsyncOperation<Result> TryAsync<Result>(Func<AsyncOperation<Result>> func) => RunAsync(func);
 
-        public static AsyncOperation<R> NoOpAsync<R>() => new AsyncOperation<R>(default(R));
-        public static AsyncOperation NoOpAsync() => new AsyncOperation(()=> { });
+        [DebuggerHidden] public static AsyncOperation<R> NoOpAsync<R>() => new AsyncOperation<R>(default(R));
+        [DebuggerHidden] public static AsyncOperation NoOpAsync() => new AsyncOperation(()=> { });
 
-        public static AsyncOperation<Value> FromValueAsync<Value>(Value v) => new AsyncOperation<Value>(v);
+        [DebuggerHidden] public static AsyncOperation<Value> FromValueAsync<Value>(Value v) => new AsyncOperation<Value>(v);
 
-        public static AsyncOperation<R> FailAsync<R>(Exception ex = null)
+        [DebuggerHidden] public static AsyncOperation<R> FailAsync<R>(Exception ex = null)
             => RunAsync(() => (ex ?? new Exception("Operation Failed")).Throw<R>());
-        public static AsyncOperation<R> FailAsync<R>(string message = null)
+        [DebuggerHidden] public static AsyncOperation<R> FailAsync<R>(string message = null)
             => RunAsync(() => new Exception(message ?? "Operation Failed").Throw<R>());
 
-        public static AsyncOperation FailAsync(string message = null)
+        [DebuggerHidden] public static AsyncOperation FailAsync(string message = null)
             => RunAsync(() => new Exception(message ?? "Operation Failed").Throw());
-        public static AsyncOperation FailAsync(Exception ex = null)
+        [DebuggerHidden] public static AsyncOperation FailAsync(Exception ex = null)
             => RunAsync(() => (ex ?? new Exception("Operation Failed")).Throw());
 
         #endregion

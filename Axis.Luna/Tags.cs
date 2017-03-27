@@ -17,7 +17,7 @@ namespace Axis.Luna
     /// </para>
     /// <para>
     /// The name/value pair list is encoded within the attribute in a css-like manner. Any non-empty string not containing ":" or ";"
-    /// may be used as a name, and any string may be used for it's value. ':', ';' and '@' are delimited within the string to 
+    /// may be used as a name, and any string may be used for it's value - ':', ';' and '@' are delimited within the string to 
     /// enable proper parsing of the string. Encoding is done by substitutions as follows:
     /// <para>
     /// <list type="bullet">
@@ -162,14 +162,6 @@ namespace Axis.Luna
             {"scol", new TagDelimiter{ Code="@scol", Value=";"}}
         };
 
-        public static string Decode(string value)
-        {
-            var aux = value;
-            if (string.IsNullOrWhiteSpace(value)) return value;
-            else foreach (var td in _Delimiters.Values) aux = aux.Replace(td.Code, td.Value);
-            return aux;
-        }
-
         /// <summary>
         /// Decode an <code>TagCodec.AltEncode</code> encoded string.
         /// </summary>
@@ -182,11 +174,11 @@ namespace Axis.Luna
             else foreach (var td in _Delimiters.Values) aux = aux.Replace(AltCode(td), td.Value);
             return aux;
         }
-        public static string Encode(string value)
+        public static string Decode(string value)
         {
             var aux = value;
             if (string.IsNullOrWhiteSpace(value)) return value;
-            else foreach (var td in _Delimiters.Values) aux = aux.Replace(td.Value, td.Code);
+            else foreach (var td in _Delimiters.Values) aux = aux.Replace(td.Code, td.Value);
             return aux;
         }
 
@@ -200,6 +192,13 @@ namespace Axis.Luna
             var aux = value;
             if (string.IsNullOrWhiteSpace(value)) return value;
             else foreach (var td in _Delimiters.Values) aux = aux.Replace(td.Code, AltCode(td));
+            return aux;
+        }
+        public static string Encode(string value)
+        {
+            var aux = value;
+            if (string.IsNullOrWhiteSpace(value)) return value;
+            else foreach (var td in _Delimiters.Values) aux = aux.Replace(td.Value, td.Code);
             return aux;
         }
 
@@ -238,12 +237,14 @@ namespace Axis.Luna
         private static Dictionary<MemberInfo, TagAttributeHolder> _tagCache = new Dictionary<MemberInfo, TagAttributeHolder>();
     }
 
-    public class TagAttributeHolder
+
+    internal class TagAttributeHolder
     {
         internal TagsAttribute TagAttribute { get; set; }
     }
 
-    public class TagDelimiter
+
+    internal class TagDelimiter
     {
         public string Value { get; set; }
         public string Code { get; set; }

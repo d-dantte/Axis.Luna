@@ -9,24 +9,49 @@ namespace Axis.Luna
     {
         private ConcurrentDictionary<string, CachePayload> _cache = new ConcurrentDictionary<string, CachePayload>();
 
+        /// <summary>
+        /// This code guarantees that dataProvider will be called only once
+        /// </summary>
+        /// <typeparam name="Data"></typeparam>
+        /// <param name="cacheKey"></param>
+        /// <param name="dataProvider"></param>
+        /// <returns></returns>
         public Data GetOrAdd<Data>(string cacheKey, Func<string, Data> dataProvider)
         where Data: class
         {
-            var payload = _cache.GetOrAdd(cacheKey, _key => new CachePayload<Data>(cacheKey, dataProvider)).As<CachePayload<Data>>();
+            var payload = _cache.GetOrAdd(cacheKey, _key => new CachePayload<Data>(_key, dataProvider))
+                                .As<CachePayload<Data>>();
+            
+            return payload.GetOrRefresh();
+        }
+
+        public Data GetOrRefresh<Data>(string cacheKey)
+        where Data : class
+        {
+            CachePayload _pl;
+            if (!_cache.TryGetValue(cacheKey, out _pl)) return null;
+
+            else return _pl.As<CachePayload<Data>>()?.GetOrRefresh();
+        }
+
+        public Data Get<Data>(string cacheKey)
+        where Data : class
+        {
+            CachePayload _pl;
+            if (!_cache.TryGetValue(cacheKey, out _pl)) return null;
 
             Data _data;
-            if (payload.Ref.TryGetTarget(out _data)) return _data;
-            else return payload.Refresh();
+            if (!_pl.As<CachePayload<Data>>().Ref.TryGetTarget(out _data)) return null;
+            else return _data;
         }
 
         public WeakCache Invalidate(string cacheKey)
         {
             CachePayload cp;
-            if(_cache.TryGetValue(cacheKey, out cp)) cp.AsDynamic().SetTarget(null);
+            if(_cache.TryGetValue(cacheKey, out cp)) cp.AsDynamic().Ref.SetTarget(null);
 
             return this;
         }
-        
         public WeakCache InvalidateAll()
         {
             _cache.Keys
@@ -35,9 +60,20 @@ namespace Axis.Luna
 
             return this;
         }
+
+        public Data Refresh<Data>(string cacheKey)
+        where Data: class
+        {
+            CachePayload _pl;
+            if (!_cache.TryGetValue(cacheKey, out _pl))
+                throw new Exception("The key is not contained in the cache");
+
+            else
+                return _pl.As<CachePayload<Data>>().GetOrRefresh(true);
+        }        
     }
 
-    internal class CachePayload
+    internal abstract class CachePayload
     {
         internal readonly object SyncLock = new object();
         internal string CacheKey { get; set; }
@@ -56,15 +92,18 @@ namespace Axis.Luna
 
             DataProvider = dataProvider;
             CacheKey = key;
-            Ref = new WeakReference<Data>(DataProvider.Invoke(key));
         }
 
-        internal Data Refresh()
+
+        internal Data GetOrRefresh(bool forceRefresh = false)
         {
             Data _data;
             lock (SyncLock)
             {
-                if (!Ref.TryGetTarget(out _data))
+                if (Ref == null)//called first time only
+                    Ref = new WeakReference<Data>(_data = DataProvider.Invoke(CacheKey));
+
+                else if (forceRefresh || !Ref.TryGetTarget(out _data))
                     Ref.SetTarget(_data = DataProvider.Invoke(CacheKey));
             }
 

@@ -28,7 +28,7 @@
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
-    <Optimize>true</Optimize>
+    <Optimize>false</Optimize>
     <OutputPath>bin\Release\</OutputPath>
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
@@ -61,6 +61,7 @@
     </Otherwise>
   </Choose>
   <ItemGroup>
+    <Compile Include="BalancedTreeHelper.cs" />
     <Compile Include="UnitTest1.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="UnitTest2.cs" />
@@ -68,6 +69,7 @@
     <Compile Include="RandomAlphanumTest.cs" />
     <Compile Include="ExceptionExtensionsUnitTest.cs" />
     <Compile Include="DynamicObjectTest.cs" />
+    <Compile Include="StackTraceTest.cs" />
     <Compile Include="WeakCacheTest.cs" />
   </ItemGroup>
   <ItemGroup>

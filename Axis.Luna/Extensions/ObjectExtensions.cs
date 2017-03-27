@@ -172,7 +172,7 @@
             => ValueHash(prime1, prime2, propertyValues.ToArray());
 
         public static int ValueHash(int prime1, int prime2, params object[] propertyValues)
-            => propertyValues.Aggregate(19, (hash, next) => hash * 181 + (next?.GetHashCode() ?? 0));
+            => propertyValues.Aggregate(prime1, (hash, next) => hash * prime2 + (next?.GetHashCode() ?? 0));
 
 
         public static Out Pipe<Out, In>(this In @this, Func<In, Out> projection) => projection(@this); 
