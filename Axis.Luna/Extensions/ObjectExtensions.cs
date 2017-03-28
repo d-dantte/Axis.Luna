@@ -265,6 +265,8 @@
             action();
             return Luna.Void.@void;
         }
+
+        public static Func<@void> Foid(Action action) => () => Void(action);
         #endregion
 
         #region String extensions

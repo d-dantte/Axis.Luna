@@ -1,9 +1,11 @@
-﻿namespace Axis.Luna
+﻿using System;
+
+namespace Axis.Luna
 {
 
     namespace MetaTypes
     {
-        public class @void
+        public sealed class @void
         {
             public static @void Instance = new @void();
             private @void() { }

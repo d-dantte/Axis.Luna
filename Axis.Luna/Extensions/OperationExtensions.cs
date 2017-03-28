@@ -1,6 +1,6 @@
-﻿using Axis.Luna.MetaTypes;
-using System;
-using System.Collections.Concurrent;
+﻿using System;
+using static Axis.Luna.Extensions.ObjectExtensions;
+
 namespace Axis.Luna.Extensions
 {
     using Axis.Luna.MetaTypes;
@@ -234,6 +234,79 @@ namespace Axis.Luna.Extensions
 
         ///...
 
+        #endregion
+
+        #region Lazy Operation
+        [DebuggerHidden]
+        public static LazyOperation<@void> Then(this LazyOperation<@void> op, Action action)
+        {
+            if (op.Succeeded == false) return op;
+            else if (op.Succeeded == true) return new LazyOperation<@void>(Foid(action));
+            else return new LazyOperation<@void>(Foid(() =>
+            {
+                op.Resolve();
+                action();
+            }));
+        }
+        [DebuggerHidden]
+        public static LazyOperation<Out> Then<Out>(this LazyOperation<@void> op, Func<Out> func)
+        {
+            if (op.Succeeded == false) return Operation.FailLazily<Out>(op.GetException());
+            else if (op.Succeeded == true) return new LazyOperation<Out>(func);
+            else return new LazyOperation<Out>(() =>
+            {
+                op.Resolve();
+                return func();
+            });
+
+        }
+        [DebuggerHidden]
+        public static LazyOperation<@void> Then(this LazyOperation<@void> op, Func<LazyOperation<@void>> func)
+        {
+            if (op.Succeeded == false) return op;
+            else if (op.Succeeded == true) return new LazyOperation<@void>(func);
+            else return new LazyOperation<@void>(() =>
+            {
+                op.Resolve();
+                return func();
+            });
+        }
+        [DebuggerHidden]
+        public static LazyOperation<Out> Then<Out>(this LazyOperation<@void> op, Func<LazyOperation<Out>> func)
+        {
+            if (op.Succeeded == false) return Operation.FailLazily<Out>(op.GetException());
+            else if (op.Succeeded == true) return new LazyOperation<Out>(func);
+            else return new LazyOperation<Out>(() =>
+            {
+                op.Resolve();
+                return func();
+            });
+        }
+
+        [DebuggerHidden]
+        public static LazyOperation<@void> Then<In>(this LazyOperation<In> op, Action<In> action)
+        {
+            if (op.Succeeded == false) return Operation.FailLazily(op.GetException());
+            else return new LazyOperation<@void>(Foid(() => action(op.Resolve())));
+        }
+        [DebuggerHidden]
+        public static LazyOperation<Out> Then<In, Out>(this LazyOperation<In> op, Func<In, Out> func)
+        {
+            if (op.Succeeded == false) return Operation.FailLazily<Out>(op.GetException());
+            else return new LazyOperation<Out>(() => func(op.Resolve()));
+        }
+        [DebuggerHidden]
+        public static LazyOperation<@void> Then<In>(this LazyOperation<In> op, Func<In, LazyOperation<@void>> func)
+        {
+            if (op.Succeeded == false) return Operation.FailLazily(op.GetException());
+            else return new LazyOperation<@void>(Foid(() => func(op.Resolve())));
+        }
+        [DebuggerHidden]
+        public static LazyOperation<Out> Then<In, Out>(this LazyOperation<In> op, Func<In, LazyOperation<Out>> func)
+        {
+            if (op.Succeeded == false) return Operation.FailLazily<Out>(op.GetException());
+            else return new LazyOperation<Out>(() => func(op.Resolve()));
+        }
         #endregion
     }
 }
