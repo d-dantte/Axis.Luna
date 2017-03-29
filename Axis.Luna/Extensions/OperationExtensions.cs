@@ -3,7 +3,7 @@ using static Axis.Luna.Extensions.ObjectExtensions;
 
 namespace Axis.Luna.Extensions
 {
-    using Axis.Luna.MetaTypes;
+    using MetaTypes;
     using System.Diagnostics;
 
     public static class OperationExtensions
