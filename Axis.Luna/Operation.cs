@@ -312,21 +312,9 @@
         private bool _resolved = false;
         private Func<R> _func;
 
-        public virtual R Result
-        {
-            get { return Eval(() => Resolve()); }
-            set { _result = value; }
-        }
-        public bool? Succeeded
-        {
-            get { return !_resolved ? null : Error == null ? (bool?)true : false; }
-            set { if (value == true) _resolved = true; }
-        }
-        public string Message
-        {
-            get { return Error?.GetRoot(e => e.InnerException)?.Message; }
-            set { if (!string.IsNullOrEmpty(value)) Error = new Exception(value); }
-        }
+        public virtual R Result => Eval(() => Resolve()); 
+        public bool? Succeeded => !_resolved ? null : Error == null ? (bool?)true : false;
+        public string Message => Error?.GetRoot(e => e.InnerException)?.Message;
         #endregion
 
         #region Methods 
