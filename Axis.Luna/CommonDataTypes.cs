@@ -27,6 +27,9 @@
         Email,
         Location,
 
-        UnknownType
+        UnknownType,
+
+        //others
+        Tags
     }
 }

@@ -10,6 +10,16 @@
     using System.Threading;
     using System.Diagnostics;
 
+    public interface IOperation<out R>
+    {
+        R Result { get; }
+        bool? Succeeded {get; }
+        string Message { get; }
+
+        R Resolve();
+        Exception GetException();
+    }
+
     #region Synchronious Operation
     public class Operation<R>
     {
@@ -114,7 +124,7 @@
 
         #endregion
 
-        #region Operation
+        #region Lazy Operation
         [DebuggerHidden]
         public static LazyOperation<@void> TryLazily(Action action) => new LazyOperation<@void>(Foid(action));
 
@@ -134,18 +144,17 @@
 
 
         [DebuggerHidden]
-        public static LazyOperation<R> FailLazily<R>(Exception ex = null)
-            => TryLazily(() => (ex ?? new Exception("Operation Failed")).Throw<R>());
+        public static LazyOperation<R> FailLazily<R>(Exception ex = null) => TryLazily(() => (ex ?? new Exception("Operation Failed")).Throw<R>());
         [DebuggerHidden]
-        public static LazyOperation<R> FailLazily<R>(string message = null)
-            => TryLazily(() => new Exception(message ?? "Operation Failed").Throw<R>());
+        public static LazyOperation<R> FailLazily<R>(string message = null) => TryLazily(() => new Exception(message ?? "Operation Failed").Throw<R>());
 
         [DebuggerHidden]
-        public static LazyOperation<@void> FailLazily(string message = null)
-            => TryLazily(() => new Exception(message ?? "Operation Failed").Throw());
+        public static LazyOperation<@void> FailLazily(string message = null) => TryLazily(() => new Exception(message ?? "Operation Failed").Throw());
         [DebuggerHidden]
-        public static LazyOperation<@void> FailLazily(Exception ex = null)
-            => TryLazily(() => (ex ?? new Exception("Operation Failed")).Throw());
+        public static LazyOperation<@void> FailLazily(Exception ex = null) => TryLazily(() => (ex ?? new Exception("Operation Failed")).Throw());
+
+        [DebuggerHidden]
+        public static LazyOperation<R> ResolvedFrom<R>(R value) => TryLazily(() => value).UsingValue(op => op.Resolve());
 
         #endregion
 

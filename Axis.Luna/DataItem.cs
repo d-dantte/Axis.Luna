@@ -91,8 +91,11 @@ namespace Axis.Luna
             if (@this.Type == CommonDataType.JsonObject)
                 return converter.Invoke(@this.Data);
 
+            else if (@this.Type == CommonDataType.Tags)
+                return (T)(TagBuilder.Parse(@this.Data) as object);
+
             else if (converter == null)
-                return (T) @this.ParseData();
+                return (T)@this.ParseData();
 
             else
                 return (T)@this.ParseData(_data => converter.Invoke(_data).As<object>());
