@@ -35,15 +35,7 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Expressions, Version=0.1.3.0, Culture=neutral, PublicKeyToken=8361ed6c3747d17c, processorArchitecture=MSIL">
-      <HintPath>..\packages\Expressions.0.1.3.0\lib\net20\Expressions.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
     <Reference Include="Microsoft.CSharp" />
-    <Reference Include="Newtonsoft.Json, Version=8.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
-      <HintPath>..\packages\Newtonsoft.Json.8.0.3\lib\net45\Newtonsoft.Json.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
     <Reference Include="System" />
   </ItemGroup>
   <Choose>
@@ -61,26 +53,13 @@
     </Otherwise>
   </Choose>
   <ItemGroup>
-    <Compile Include="BalancedTreeHelper.cs" />
-    <Compile Include="LazyOperationTest.cs" />
-    <Compile Include="UnitTest1.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="UnitTest2.cs" />
-    <Compile Include="EncodedBinaryDataTests.cs" />
-    <Compile Include="RandomAlphanumTest.cs" />
-    <Compile Include="ExceptionExtensionsUnitTest.cs" />
-    <Compile Include="DynamicObjectTest.cs" />
-    <Compile Include="StackTraceTest.cs" />
-    <Compile Include="WeakCacheTest.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Axis.Luna\Axis.Luna.csproj">
       <Project>{dc15dc69-5965-4769-9cfd-f7917fac5dd9}</Project>
       <Name>Axis.Luna</Name>
     </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="packages.config" />
   </ItemGroup>
   <Choose>
     <When Condition="'$(VisualStudioVersion)' == '10.0' And '$(IsCodedUITest)' == 'True'">
