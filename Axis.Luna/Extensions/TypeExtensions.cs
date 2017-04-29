@@ -40,17 +40,35 @@ namespace Axis.Luna.Extensions
             => type.IsValueType ? TypeDefaults.GetOrAdd(type, t => Activator.CreateInstance(t)) : null;
 
         public static string MinimalAQName(this Type type)
-            => MinimalAQNames.GetOrAdd(type, t =>
-            {
-                var sb = new StringBuilder($"{t.Namespace}.{t.Name}");
-                if (t.IsGenericType && !t.IsGenericTypeDefinition)
-                    sb.Append("[")
-                      .Append(t.GetGenericArguments()
-                               .Aggregate("", (ssb, n) => ssb += $"{(ssb.Length > 0 ? ", " : "")}[{n.MinimalAQName()}]"))
-                      .Append("]");
+        => MinimalAQNames.GetOrAdd(type, t =>
+        {
+            var sb = new StringBuilder($"{t.Namespace}.{t.Name}");
+            if (t.IsGenericType && !t.IsGenericTypeDefinition)
+                sb.Append("[")
+                  .Append(t.GetGenericArguments()
+                           .Aggregate("", (ssb, n) => ssb += $"{(ssb.Length > 0 ? ", " : "")}[{n.MinimalAQName()}]"))
+                  .Append("]");
 
-                return sb.Append($", {t.Assembly.GetName().Name}").ToString();
-            });
+            return sb.Append($", {t.Assembly.GetName().Name}").ToString();
+        });
+
+        public static string MinimalAQSignature(this Delegate d) => d.Method.MinimalAQSignature();
+
+        public static string MinimalAQSignature(this MethodInfo m)
+        {
+            var t = new StringBuilder();
+            t.Append(m.DeclaringType.MinimalAQName()).Append(".")
+                .Append(!m.IsGenericMethod ? "" :
+                        "<" + m.GetGenericArguments().Aggregate("", (@params, param) => @params += (@params == "" ? "" : ", ") + "[" + param.MinimalAQName() + "]") + ">")
+                .Append("(")
+                .Append(m.GetParameters()
+                         .Aggregate("", (@params, param) => @params += (@params == "" ? "" : ", ") + "[" + param.ParameterType.MinimalAQName() + "] " + param.Name))
+                .Append(")")
+                .Append("::")
+                .Append("[").Append(m.ReturnType.MinimalAQName()).Append("]");
+
+            return t.ToString();
+        }
 
         public static bool HasGenericAncestor(this Type type, Type genericDefinitionAncestorType)
         {

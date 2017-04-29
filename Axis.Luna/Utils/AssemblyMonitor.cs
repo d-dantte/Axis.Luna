@@ -9,7 +9,7 @@ using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 
-namespace Axis.Luna
+namespace Axis.Luna.Utils
 {
     public class AssemblyMonitor
     {
@@ -47,13 +47,13 @@ namespace Axis.Luna
         }
 
         private void Watcher_Changed(object sender, FileSystemEventArgs e)
-            => Task.Run(() =>
-            {
-                var asm = Assembly.ReflectionOnlyLoadFrom(e.FullPath);
-                List<Action<Assembly>> cbs = null;
-                lock (_callBacks) cbs = _callBacks.ToList();
-                cbs.ForEach(cb => Eval(() => cb(asm)));
-            });
+        => Task.Run(() =>
+        {
+            var asm = Assembly.ReflectionOnlyLoadFrom(e.FullPath);
+            List<Action<Assembly>> cbs = null;
+            lock (_callBacks) cbs = _callBacks.ToList();
+            cbs.ForEach(cb => Eval(() => cb(asm)));
+        });
 
         /// <summary>
         /// Attach a callback that gets notified with a Reflection-Only-Loaded Assembly

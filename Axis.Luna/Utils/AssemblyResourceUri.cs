@@ -1,18 +1,14 @@
 ﻿using static Axis.Luna.Extensions.ObjectExtensions;
-using static Axis.Luna.Extensions.ExceptionExtensions;
-using static Axis.Luna.Extensions.EnumerableExtensions;
 
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 using System.Diagnostics;
 
-namespace Axis.Luna
+namespace Axis.Luna.Utils
 {
     public class AssemblyResourceUri : Uri
     {

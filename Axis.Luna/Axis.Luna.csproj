@@ -30,6 +30,10 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="GitVersionCore, Version=3.6.5.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\GitVersion.3.6.5\lib\Net45\GitVersionCore.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Xml.Linq" />
@@ -40,20 +44,17 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="AssemblyMonitor.cs" />
-    <Compile Include="AssemblyResourceUri.cs" />
-    <Compile Include="BinaryData.cs" />
-    <Compile Include="BlobRef.cs" />
-    <Compile Include="DomainConverter.cs" />
-    <Compile Include="WeakCache.cs" />
-    <Compile Include="CommonDataTypes.cs" />
-    <Compile Include="DataItem.cs" />
-    <Compile Include="EncodedBinaryData.cs" />
+    <Compile Include="Utils\AssemblyMonitor.cs" />
+    <Compile Include="Utils\AssemblyResourceUri.cs" />
+    <Compile Include="Utils\BlobRef.cs" />
+    <Compile Include="Utils\WeakCache.cs" />
+    <Compile Include="Utils\CommonDataTypes.cs" />
+    <Compile Include="Utils\DataItem.cs" />
+    <Compile Include="Utils\EncodedBinaryData.cs" />
     <Compile Include="Extensions\DateTimeExtensions.cs" />
     <Compile Include="Extensions\XmlExtensions.cs" />
-    <Compile Include="MimeMap.cs" />
-    <Compile Include="SequencePage.cs" />
-    <Compile Include="StructuredEnum.cs" />
+    <Compile Include="Utils\MimeMap.cs" />
+    <Compile Include="Utils\SequencePage.cs" />
     <Compile Include="Extensions\EnumerableExtensions.cs" />
     <Compile Include="Extensions\ExceptionExtensions.cs" />
     <Compile Include="Extensions\FileExtensions.cs" />
@@ -61,18 +62,20 @@
     <Compile Include="Extensions\ObjectExtensions.cs" />
     <Compile Include="Extensions\OperationExtensions.cs" />
     <Compile Include="Extensions\TypeExtensions.cs" />
-    <Compile Include="IServiceConsumer.cs" />
-    <Compile Include="IServiceResolver.cs" />
-    <Compile Include="NumericBase.cs" />
-    <Compile Include="OneWayStreamIterator.cs" />
-    <Compile Include="Operation.cs" />
+    <Compile Include="Utils\IServiceConsumer.cs" />
+    <Compile Include="Utils\IServiceResolver.cs" />
+    <Compile Include="Utils\NumericBase.cs" />
+    <Compile Include="Utils\OneWayStreamIterator.cs" />
+    <Compile Include="Utils\Operation.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Pulser.cs" />
-    <Compile Include="RandomAlphaNumeric.cs" />
-    <Compile Include="Tags.cs" />
-    <Compile Include="Void.cs" />
+    <Compile Include="Utils\Pulser.cs" />
+    <Compile Include="Utils\RandomAlphaNumeric.cs" />
+    <Compile Include="Utils\Tags.cs" />
+    <Compile Include="Utils\Void.cs" />
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <None Include="packages.config" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

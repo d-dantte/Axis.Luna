@@ -2,7 +2,7 @@
 using static Axis.Luna.Extensions.ObjectExtensions;
 using static Axis.Luna.Extensions.EnumerableExtensions;
 
-namespace Axis.Luna
+namespace Axis.Luna.Utils
 {
     public interface IDataItem
     {

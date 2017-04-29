@@ -1,11 +1,10 @@
-﻿using Axis.Luna;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using static Axis.Luna.Extensions.ObjectExtensions;
 
-namespace Axis.Luna
+namespace Axis.Luna.Utils
 {
     public class EncodedBinaryData
     {

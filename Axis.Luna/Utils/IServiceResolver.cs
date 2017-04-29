@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace Axis.Luna
+namespace Axis.Luna.Utils
 {
     public interface IResolutionScopeProvider: IDisposable
     {

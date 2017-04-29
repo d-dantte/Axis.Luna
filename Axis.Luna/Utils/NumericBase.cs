@@ -1,9 +1,8 @@
 ﻿using Axis.Luna.Extensions;
-using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Axis.Luna
+namespace Axis.Luna.Utils
 {
     public class NumericBase<Digit>
     {
@@ -11,10 +10,9 @@ namespace Axis.Luna
 
         public int Base { get; private set; }
 
-        public NumericBase(int nBase, Digit[] digits)
+        public NumericBase(Digit[] digits)
         {
-            Base = Math.Abs(nBase);
-            if (digits.Length != nBase) throw new ArgumentException("Invalid digit count");
+            Base = digits.Length;
             _digits.AddRange(digits);
         }
 

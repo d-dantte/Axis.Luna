@@ -1,4 +1,4 @@
-﻿namespace Axis.Luna
+﻿namespace Axis.Luna.Utils
 {
 
     public interface IServiceConsumer

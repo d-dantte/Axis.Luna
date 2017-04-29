@@ -1,12 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 using static Axis.Luna.Extensions.ObjectExtensions;
 
-namespace Axis.Luna
+namespace Axis.Luna.Utils
 {
     public static class MimeMap
     {

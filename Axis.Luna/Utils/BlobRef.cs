@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace Axis.Luna
+namespace Axis.Luna.Utils
 {
     public class BlobRef
     {

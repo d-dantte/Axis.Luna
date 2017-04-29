@@ -1,12 +1,10 @@
 ﻿using static Axis.Luna.Extensions.ObjectExtensions;
 using static Axis.Luna.Extensions.ExceptionExtensions;
-
-using Axis.Luna;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 
-namespace Axis.Luna
+namespace Axis.Luna.Utils
 {
     public class OneWayStreamIterator<StreamImpl, Item> : IEnumerable<Item>, IEnumerator<Item>
     where StreamImpl : class
