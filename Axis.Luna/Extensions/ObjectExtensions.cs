@@ -1,6 +1,5 @@
 ﻿namespace Axis.Luna.Extensions
 {
-    using Axis.Luna.MetaTypes;
     using System;
     using System.Collections.Concurrent;
     using System.Collections.Generic;
@@ -8,7 +7,6 @@
     using System.Dynamic;
     using System.Linq;
     using System.Text;
-    using static Axis.Luna.Extensions.TypeExtensions;
 
     public static class ObjectExtensions
     {
