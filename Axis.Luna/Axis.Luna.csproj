@@ -44,6 +44,8 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Operation\AsyncOperation.cs" />
+    <Compile Include="Operation\ImediateOperation.cs" />
     <Compile Include="Operation\IOperation.cs" />
     <Compile Include="Operation\LazyOperation.cs" />
     <Compile Include="Utils\AssemblyMonitor.cs" />
