@@ -4,18 +4,26 @@ using static Axis.Luna.Extensions.ExceptionExtensions;
 
 namespace Axis.Luna.Operation
 {
-    public class LazyOperation : IOperation
+    public class ResolvedOperation : IOperation
     {
         private Exception _exception;
-        private Action _operation;
 
         public bool? Succeeded { get; set; }
-        
-        public LazyOperation(Action operation)
+
+        public ResolvedOperation(Action operation)
         {
             ThrowNullArguments(() => operation);
 
-            _operation = operation;
+            try
+            {
+                operation.Invoke();
+                Succeeded = true;
+            }
+            catch(Exception e)
+            {
+                this._exception = e;
+                Succeeded = false;
+            }
         }
 
         public Exception GetException() => _exception;
@@ -23,34 +31,19 @@ namespace Axis.Luna.Operation
         public void Resolve()
         {
             if (_exception != null) throw _exception;
-            else if (!Succeeded.HasValue)
-            {
-                try
-                {
-                    _operation.Invoke();
-                    Succeeded = true;
-                }
-                catch (Exception e)
-                {
-                    _exception = e;
-                    Succeeded = false;
-
-                    throw e;
-                }
-            }
         }
 
 
         #region Continuations
         public IOperation Then(Action continuation, Action<Exception> error = null)
-        => new LazyOperation(() =>
+        => new ResolvedOperation(() =>
         {
             try
             {
                 Resolve();
                 continuation.Invoke();
             }
-            catch(Exception e)
+            catch (Exception e)
             {
                 error?.Invoke(e);
                 throw e;
@@ -58,14 +51,14 @@ namespace Axis.Luna.Operation
         });
 
         public IOperation<R> Then<R>(Func<R> continuation, Action<Exception> error = null)
-        => new LazyOperation<R>(() =>
+        => new ResolvedOperation<R>(() =>
         {
             try
             {
                 Resolve();
                 return continuation.Invoke();
             }
-            catch(Exception e)
+            catch (Exception e)
             {
                 error?.Invoke(e);
                 throw e;
@@ -74,7 +67,7 @@ namespace Axis.Luna.Operation
 
 
         public IOperation Then(Func<IOperation> continuation, Action<Exception> error = null)
-        => new LazyOperation(() =>
+        => new ResolvedOperation(() =>
         {
             Resolve();
             var innerOp = continuation.Invoke();
@@ -82,7 +75,7 @@ namespace Axis.Luna.Operation
         });
 
         public IOperation<S> Then<S>(Func<IOperation<S>> continuation, Action<Exception> error = null)
-        => new LazyOperation<S>(() =>
+        => new ResolvedOperation<S>(() =>
         {
             Resolve();
             var innerOp = continuation.Invoke();
@@ -92,7 +85,7 @@ namespace Axis.Luna.Operation
 
         #region Error
         public IOperation Otherwise(Action<Exception> errorContinuation)
-        => new LazyOperation(() =>
+        => new ResolvedOperation(() =>
         {
             try
             {
@@ -106,7 +99,7 @@ namespace Axis.Luna.Operation
         });
 
         public IOperation<R> Otherwise<R>(Func<Exception, R> errorContinuation, Func<R> successContinuation)
-        => new LazyOperation<R>(() =>
+        => new ResolvedOperation<R>(() =>
         {
             try
             {
@@ -121,7 +114,7 @@ namespace Axis.Luna.Operation
         });
 
         public IOperation Otherwise(Func<Exception, IOperation> errorContinuation)
-        => new LazyOperation(() =>
+        => new ResolvedOperation(() =>
         {
             try
             {
@@ -136,7 +129,7 @@ namespace Axis.Luna.Operation
         });
 
         public IOperation<S> Otherwise<S>(Func<Exception, IOperation<S>> errorContinuation, Func<S> successContinuation)
-        => new LazyOperation<S>(() =>
+        => new ResolvedOperation<S>(() =>
         {
             try
             {
@@ -154,7 +147,7 @@ namespace Axis.Luna.Operation
 
         #region Finally
         public IOperation Finally(Action @finally)
-        => new LazyOperation(() =>
+        => new ResolvedOperation(() =>
         {
             try
             {
@@ -168,10 +161,9 @@ namespace Axis.Luna.Operation
         #endregion
     }
 
-    public class LazyOperation<R> : IOperation<R>
+    public class ResolvedOperation<R> : IOperation<R>
     {
         private Exception _exception;
-        private Func<R> _operation;
         private R _result;
 
         public bool? Succeeded { get; set; }
@@ -179,11 +171,20 @@ namespace Axis.Luna.Operation
         public R Result => Succeeded == true ? Resolve() : default(R);
 
 
-        public LazyOperation(Func<R> operation)
+        public ResolvedOperation(Func<R> operation)
         {
             ThrowNullArguments(() => operation);
 
-            _operation = operation;
+            try
+            {
+                _result = operation.Invoke();
+                Succeeded = true;
+            }
+            catch (Exception e)
+            {
+                this._exception = e;
+                Succeeded = false;
+            }
         }
 
         public Exception GetException() => _exception;
@@ -191,29 +192,13 @@ namespace Axis.Luna.Operation
         public R Resolve()
         {
             if (_exception != null) throw _exception;
-            else if (!Succeeded.HasValue)
-            {
-                try
-                {
-                    _result = _operation.Invoke();
-                    Succeeded = true;
-                }
-                catch (Exception e)
-                {
-                    _exception = e;
-                    Succeeded = false;
-
-                    throw e;
-                }
-            }
-
-            return _result;
+            else return _result;
         }
 
 
         #region Continuations
         public IOperation Then(Action<R> continuation, Action<Exception> error = null)
-        => new LazyOperation(() =>
+        => new ResolvedOperation(() =>
         {
             try
             {
@@ -226,7 +211,7 @@ namespace Axis.Luna.Operation
             }
         });
         public IOperation<S> Then<S>(Func<R, S> continuation, Action<Exception> error = null)
-        => new LazyOperation<S>(() =>
+        => new ResolvedOperation<S>(() =>
         {
             try
             {
@@ -240,14 +225,13 @@ namespace Axis.Luna.Operation
         });
 
         public IOperation Then(Func<R, IOperation> continuation, Action<Exception> error = null)
-        => new LazyOperation(() =>
+        => new ResolvedOperation(() =>
         {
             var innerOp = continuation.Invoke(Resolve());
             innerOp.Resolve();
         });
-
         public IOperation<S> Then<S>(Func<R, IOperation<S>> continuation, Action<Exception> error = null)
-        => new LazyOperation<S>(() =>
+        => new ResolvedOperation<S>(() =>
         {
             var innerOp = continuation.Invoke(Resolve());
             return innerOp.Resolve();
@@ -256,7 +240,7 @@ namespace Axis.Luna.Operation
 
         #region Error
         public IOperation Otherwise(Action<Exception> errorContinuation)
-        => new LazyOperation(() =>
+        => new ResolvedOperation(() =>
         {
             try
             {
@@ -270,10 +254,10 @@ namespace Axis.Luna.Operation
         });
 
         public IOperation<S> Otherwise<S>(Func<Exception, S> errorContinuation, Func<R, S> successContinuation)
-        => new LazyOperation<S>(() =>
+        => new ResolvedOperation<S>(() =>
         {
             try
-            {   
+            {                
                 return successContinuation(Resolve());
             }
             catch (Exception e)
@@ -284,7 +268,7 @@ namespace Axis.Luna.Operation
         });
 
         public IOperation Otherwise(Func<Exception, IOperation> errorContinuation)
-        => new LazyOperation(() =>
+        => new ResolvedOperation(() =>
         {
             try
             {
@@ -299,7 +283,7 @@ namespace Axis.Luna.Operation
         });
 
         public IOperation<S> Otherwise<S>(Func<Exception, IOperation<S>> errorContinuation, Func<R, S> successContinuation)
-        => new LazyOperation<S>(() =>
+        => new ResolvedOperation<S>(() =>
         {
             try
             {
@@ -316,7 +300,7 @@ namespace Axis.Luna.Operation
 
         #region Finally
         public IOperation<R> Finally(Action @finally)
-        => new LazyOperation<R>(() =>
+        => new ResolvedOperation<R>(() =>
         {
             try
             {
@@ -332,16 +316,18 @@ namespace Axis.Luna.Operation
 
 
     #region Helper
-    public static class LazyOp
+    public static class ResolvedOp
     {
-        public static LazyOperation Try(Action operation) => new LazyOperation(operation);
-        public static LazyOperation Try(Func<IOperation> operation) => new LazyOperation(() => operation().Resolve());
+        public static ResolvedOperation Try(Action operation) => new ResolvedOperation(operation);
+        public static ResolvedOperation Try(Func<IOperation> operation) => new ResolvedOperation(() => operation().Resolve());
 
-        public static LazyOperation<R> Try<R>(Func<R> operation) => new LazyOperation<R>(operation);
-        public static LazyOperation<R> Try<R>(Func<IOperation<R>> operation) => new LazyOperation<R>(() => operation().Resolve());
+        public static ResolvedOperation<R> Try<R>(Func<R> operation) => new ResolvedOperation<R>(operation);
+        public static ResolvedOperation<R> Try<R>(Func<IOperation<R>> operation) => new ResolvedOperation<R>(() => operation().Resolve());
 
-        public static LazyOperation Fail(Exception ex) => new LazyOperation(() => { throw ex; });
-        public static LazyOperation<R> Fail<R>(Exception ex) => new LazyOperation<R>(() => { throw ex; });
+        public static ResolvedOperation Fail(Exception ex) => new ResolvedOperation(() => { throw ex; });
+        public static ResolvedOperation<R> Fail<R>(Exception ex) => new ResolvedOperation<R>(() => { throw ex; });
+
+        public static ResolvedOperation<R> FromValue<R>(R value) => Try(() => value);
     }
     #endregion
 }

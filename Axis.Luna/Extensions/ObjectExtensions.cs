@@ -253,19 +253,7 @@
 
 
         public static Out SwitchDefault<Out>(this bool @switch, Out output) => @switch ? output : default(Out);
-
-
-        #region @void Extensions
-        public static @void Void() => Luna.Void.@void;
-
-        public static @void Void(Action action)
-        {
-            action();
-            return Luna.Void.@void;
-        }
-
-        public static Func<@void> Foid(Action action) => () => Void(action);
-        #endregion
+        
 
         #region String extensions
         public static string Trim(this string @string, string trimChars) => @string.TrimStart(trimChars).TrimEnd(trimChars);

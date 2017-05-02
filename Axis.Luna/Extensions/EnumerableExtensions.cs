@@ -5,6 +5,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
+using Axis.Luna.Operation;
 
 namespace Axis.Luna.Extensions
 {
@@ -131,13 +132,13 @@ namespace Axis.Luna.Extensions
         //convert the args to an enumerable
         public static IEnumerable<T> Enumerate<T>(this T value, params T[] args) => new T[] { value }.Concat(args);
 
-        public static IEnumerable<T> Enumerate<T>(this T value, Func<T, Operation<T>> generator)
+        public static IEnumerable<T> Enumerate<T>(this T value, Func<T, ResolvedOperation<T>> generator)
         {
             T prev = value;
             List<T> enm = new List<T>();
             enm.Add(prev);
-            Operation<T> opt = null;
-            while (Eval(() => (opt = generator(prev)).Succeeded)) enm.Add(prev = opt.Result);
+            ResolvedOperation<T> opt = null;
+            while (Eval(() => (opt = generator(prev)).Succeeded == true)) enm.Add(prev = opt.Result);
 
             return enm;
         }
