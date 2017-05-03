@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using Axis.Luna.Operation;
+using System.Security.Cryptography;
 
 namespace Axis.Luna.Extensions
 {
@@ -192,16 +193,18 @@ namespace Axis.Luna.Extensions
         /// <param name="source"></param>
         /// <param name="rng"></param>
         /// <returns></returns>
-        public static IEnumerable<V> Shuffle<V>(this IEnumerable<V> source, Random rng = null)
+        public static IEnumerable<V> Shuffle<V>(this IEnumerable<V> source)
         {
-            rng = rng ?? new Random(Guid.NewGuid().GetHashCode());
-            var buffer = source.ToArray();
-            for (int i = 0; i < buffer.Length; i++)
+            using (var rng = new RNGCryptoServiceProvider())
             {
-                int j = rng.Next(i, buffer.Length);
-                yield return buffer[j];
+                var buffer = source.ToArray();
+                for (int i = 0; i < buffer.Length; i++)
+                {
+                    int j = rng.RandomInt(i, buffer.Length);
+                    yield return buffer[j];
 
-                buffer[j] = buffer[i];
+                    buffer[j] = buffer[i];
+                }
             }
         }
 

@@ -1,5 +1,7 @@
-﻿using Axis.Luna.Operation;
+﻿using Axis.Luna.Extensions;
+using Axis.Luna.Operation;
 using System;
+using System.Security.Cryptography;
 
 namespace ConsolePlayground
 {
@@ -7,8 +9,21 @@ namespace ConsolePlayground
     {
         static void Main(string[] args)
         {
-            var op = LazyOp.Try(() => Console.WriteLine("resolved"));
-            op.Resolve();
+            using (var rng = new RNGCryptoServiceProvider())
+            {
+                for (int cnt = 0; cnt < 50; cnt++)
+                {
+                    Console.WriteLine(rng.RandomSignedInt());
+                }
+
+                Console.ReadKey();
+                for (int cnt = 0; cnt < 50; cnt++)
+                {
+                    Console.WriteLine(rng.RandomInt(10, 20));
+                }
+            }
+
+            Console.ReadKey();
         }
     }
 }

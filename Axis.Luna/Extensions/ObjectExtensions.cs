@@ -6,6 +6,7 @@
     using System.ComponentModel;
     using System.Dynamic;
     using System.Linq;
+    using System.Security.Cryptography;
     using System.Text;
 
     public static class ObjectExtensions
@@ -247,6 +248,36 @@
 
         public static string SplitCamelCase(this string source, string separator = " ")
         => source.Aggregate(new StringBuilder(), (acc, ch) => acc.Append(char.IsUpper(ch) ? separator : "").Append(ch)).ToString().Trim();
+        #endregion
+
+        #region Random Numbers
+        public static int RandomSignedInt(this RandomNumberGenerator rng)
+        {
+            var intByte = new byte[4];
+            rng.GetBytes(intByte);
+            return BitConverter.ToInt32(intByte, 0);
+        }
+        public static int RandomInt(this RandomNumberGenerator rng, int minInclusive = 0, int maxExclusive = int.MaxValue)
+        {
+            var value = Math.Abs(rng.RandomSignedInt()) + minInclusive;
+
+            if (value >= maxExclusive) return value % maxExclusive;
+            else return value;
+        }
+        public static long RandomSignedLong(this RandomNumberGenerator rng, long minInclusive = 0, long maxExclusive = long.MaxValue)
+        {
+            var intByte = new byte[8];
+            rng.GetBytes(intByte);
+            return BitConverter.ToInt64(intByte, 0);
+        }
+        public static long RandomLong(this RandomNumberGenerator rng, long minInclusive = 0, long maxExclusive = long.MaxValue)
+        {
+            var value = Math.Abs(rng.RandomSignedInt()) + minInclusive;
+
+            if (value >= maxExclusive) return value % maxExclusive;
+            else return value;
+        }
+
         #endregion
     }
 }

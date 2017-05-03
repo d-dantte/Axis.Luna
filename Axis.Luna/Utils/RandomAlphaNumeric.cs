@@ -1,4 +1,4 @@
-﻿using System;
+﻿using Axis.Luna.Extensions;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -47,14 +47,6 @@ namespace Axis.Luna
             }
         }
 
-        private static int NextInt(RNGCryptoServiceProvider rng, int maxExclusive = int.MaxValue)
-        {
-            var intByte = new byte[4];
-            rng.GetBytes(intByte);
-            var value = Math.Abs(BitConverter.ToInt32(intByte, 0));
-
-            if (value >= maxExclusive) return value % maxExclusive;
-            else return value;
-        }
+        private static int NextInt(RNGCryptoServiceProvider rng, int maxExclusive = int.MaxValue) => rng.RandomInt();
     }
 }
