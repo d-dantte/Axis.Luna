@@ -45,9 +45,9 @@ namespace Axis.Luna.Utils
         => ResolvedOp.Try(() => Name.Substring(Name.LastIndexOf('.'))).Result?.Trim(); //index should include the '.'
 
         public Mime MimeObject()
-            => string.IsNullOrWhiteSpace(_mime) ?
-               MimeMap.ToMimeObject(Extension()) :
-               new Mime { MimeCode = _mime, Extension = Extension() ?? "." };
+        => string.IsNullOrWhiteSpace(_mime) ?
+           MimeMap.ToMimeObject(Extension()) :
+           new Mime { MimeCode = _mime, Extension = Extension() ?? "." };
 
         public string Base64() => Convert.ToBase64String(Data);
         public Stream ByteStream() => new MemoryStream(Data);
