@@ -11,10 +11,6 @@ namespace Axis.Luna.Extensions
 {
     public static class EnumerableExtensions
     {
-        public static IList<T> Append<T>(this IList<T> list, T value) => list.UsingValue(_l => _l.Add(value));
-
-        public static IList<T> AppendAll<T>(this IList<T> list, IEnumerable<T> values) => list.UsingValue(_l => _l.AddRange(values));
-
         /// <summary>
         /// Splices the enumerable at the specified POSITIVE index, making it the head of the enumerable, joining the old head at the tail
         /// e.g
@@ -27,7 +23,7 @@ namespace Axis.Luna.Extensions
         /// <param name="spliceIndex"></param>
         /// <returns></returns>
         public static IEnumerable<V> Splice<V>(this IEnumerable<V> enumerable, int spliceIndex)
-            => enumerable.Skip(Math.Abs(spliceIndex)).Concat(enumerable.Take(Math.Abs(spliceIndex)));
+        => enumerable.Skip(Math.Abs(spliceIndex)).Concat(enumerable.Take(Math.Abs(spliceIndex)));
 
         public static IEnumerable<V> AppendAt<V>(this IEnumerable<V> enumerable, int position, V value)
         {
@@ -43,10 +39,6 @@ namespace Axis.Luna.Extensions
 
         public static IEnumerable<V> Append<V>(this IEnumerable<V> enumerable, V value) => enumerable.Concat(value.Enumerate());
 
-        public static IEnumerable<Out> Transform<In, Out>(this IQueryable<In> query, Func<In, Out> transformation)
-        {
-            foreach (var qin in query) yield return transformation(qin);
-        }
         public static IEnumerable<V> UsingEach<V>(this IEnumerable<V> enumerable, Action<V> action)
         {
             foreach(var v in enumerable)
@@ -85,6 +77,11 @@ namespace Axis.Luna.Extensions
             var cnt = 0L;
             foreach (var t in enumerable) loopAction(cnt++, t);
         }
+        public static void ForAll<T>(this IEnumerable<T> enumerable, Action<T> loopAction)
+        {
+            foreach (var t in enumerable) loopAction(t);
+        }
+
         public static void Repeat(this long repetitions, Action<long> repeatAction)
         {
             for (long cnt = 0, limit = Math.Abs(repetitions); cnt < limit; cnt++)
@@ -93,35 +90,30 @@ namespace Axis.Luna.Extensions
 
         public static IEnumerable<V> GenerateSequence<V>(this long repetitions, Func<long, V> generator)
         {
-            using (var entor = new CountdownEnumerator(repetitions))
-                while (entor.MoveNext()) yield return generator.Invoke(entor.Current);
+            for (long cnt = 0; cnt < repetitions; cnt++)
+                yield return generator.Invoke(cnt);
         }
         public static IEnumerable<V> GenerateSequence<V>(this uint repetitions, Func<uint, V> generator)
         {
-            using (var entor = new CountdownEnumerator(repetitions))
-                while (entor.MoveNext()) yield return generator.Invoke((uint)entor.Current);
+            for (uint cnt = 0; cnt < repetitions; cnt++)
+                yield return generator.Invoke(cnt);
         }
         public static IEnumerable<V> GenerateSequence<V>(this int repetitions, Func<int, V> generator)
         {
-            using (var entor = new CountdownEnumerator(repetitions))
-                while (entor.MoveNext()) yield return generator.Invoke((int)entor.Current);
+            for (int cnt = 0; cnt < repetitions; cnt++)
+                yield return generator.Invoke(cnt);
         }
         public static IEnumerable<V> GenerateSequence<V>(this ushort repetitions, Func<ushort, V> generator)
         {
-            using (var entor = new CountdownEnumerator(repetitions))
-                while (entor.MoveNext()) yield return generator.Invoke((ushort)entor.Current);
+            for (ushort cnt = 0; cnt < repetitions; cnt++)
+                yield return generator.Invoke(cnt);
         }
         public static IEnumerable<V> GenerateSequence<V>(this short repetitions, Func<short, V> generator)
         {
-            using (var entor = new CountdownEnumerator(repetitions))
-                while (entor.MoveNext()) yield return generator.Invoke((short)entor.Current);
+            for (short cnt = 0; cnt < repetitions; cnt++)
+                yield return generator.Invoke(cnt);
         }
 
-        public static T AddAndGet<T>(this ICollection<T> collection, T item)
-        {
-            collection.Add(item);
-            return item;
-        }
         public static T GetOrAdd<T>(this ICollection<T> collection, Func<T, bool> predicate, Func<T> generator)
         {
             var value = collection.FirstOrDefault(predicate);
@@ -138,7 +130,7 @@ namespace Axis.Luna.Extensions
             List<T> enm = new List<T>();
             enm.Add(prev);
             ResolvedOperation<T> opt = null;
-            while (Eval(() => (opt = generator(prev)).Succeeded == true)) enm.Add(prev = opt.Result);
+            while ((opt = generator(prev)).Succeeded == true) enm.Add(prev = opt.Result);
 
             return enm;
         }
@@ -167,7 +159,7 @@ namespace Axis.Luna.Extensions
         }
         public static ICollection<Value> AddRange<Value>(this ICollection<Value> collection, IEnumerable<Value> values)
         {
-            values.ToList().ForEach(v => collection.Add(v));
+            values.ForAll(collection.Add);
             return collection;
         }
         public static TValue GetOrAdd<TKey, TValue>(this IDictionary<TKey, TValue> @this, TKey key, Func<TKey, TValue> valueFactory)
@@ -181,10 +173,10 @@ namespace Axis.Luna.Extensions
         }
 
         public static void RemoveAll<V>(this ICollection<V> collection, params V[] values)
-            => values.ToList().ForEach(v => collection.Remove(v));
+        => values.ForAll(v => collection.Remove(v));
 
         public static void RemoveAll<V>(this ICollection<V> collection, Func<V, bool> predicate)
-            => collection.RemoveAll(collection.Where(v => predicate(v)).ToArray());
+        => collection.RemoveAll(collection.Where(predicate).ToArray());
 
         public static Dictionary<K, V> AddAll<K, V>(this Dictionary<K, V> dict, IEnumerable<KeyValuePair<K, V>> values)
         {
@@ -216,7 +208,8 @@ namespace Axis.Luna.Extensions
 
         #region Batch
         public static IEnumerable<IEnumerable<T>> Batch<T>(this IEnumerable<T> source, int batchSize, int skipBatches = 0)
-            => BatchGroup(source, batchSize, skipBatches).Select(g => g.Value);
+        => BatchGroup(source, batchSize, skipBatches).Select(g => g.Value);
+
         public static IEnumerable<KeyValuePair<int, IEnumerable<T>>> BatchGroup<T>(this IEnumerable<T> source, int batchSize, int skipBatches = 0)
         {
             batchSize = Math.Abs(batchSize);
@@ -229,7 +222,7 @@ namespace Axis.Luna.Extensions
                 {
                     //cache the items before loading the kvp
                     var l = enumerator.enumerateSome(batchSize).ToList();
-                    yield return (indx++).ValuePair(l.As<IEnumerable<T>>());
+                    yield return (indx++).ValuePair(l.Cast<IEnumerable<T>>());
                 }
             }
         }
@@ -244,10 +237,10 @@ namespace Axis.Luna.Extensions
             }
         }
         public static int BatchCount<T>(this IEnumerable<T> source, int batchSize)
-            => (int)Math.Round(((double)source.Count()) / batchSize, MidpointRounding.AwayFromZero);
+        => (int)Math.Round(((double)source.Count()) / batchSize, MidpointRounding.AwayFromZero);
 
         public static IEnumerable<IQueryable<T>> Batch<T>(this IQueryable<T> source, int batchSize, int skipBatches = 0)
-            => BatchGroup(source, batchSize, skipBatches).Select(g => g.Value);
+        => BatchGroup(source, batchSize, skipBatches).Select(g => g.Value);
         public static IEnumerable<KeyValuePair<int, IQueryable<T>>> BatchGroup<T>(this IQueryable<T> source, int batchSize, int skipBatches = 0)
         {
             batchSize = Math.Abs(batchSize);
@@ -262,27 +255,7 @@ namespace Axis.Luna.Extensions
             while (true);
         }
         public static int BatchCount<T>(this IQueryable<T> source, int batchSize)
-            => (int)Math.Round(((double)source.Count()) / batchSize, MidpointRounding.AwayFromZero);
-        #endregion
-
-        #region Match Expressions on an IEnumerable
-        public static MatchExpressionEnumerable<In, Out> When<In, Out>(this IEnumerable<In> @this,
-                                                                       Func<In, bool> predicate,
-                                                                       Func<In, Out> projection)
-            => new MatchExpressionEnumerable<In, Out>(@this, new MatchExpression<In, Out>
-            {
-                Predicate = predicate,
-                Projection = projection
-            });
-
-        public static MatchExpressionEnumerable<In, Out> When<In, Out>(this MatchExpressionEnumerable<In, Out> @this,
-                                                                       Func<In, bool> predicate,
-                                                                       Func<In, Out> projection)
-            => @this.AddExpression(new MatchExpression<In, Out> { Predicate = predicate, Projection = projection });
-
-        public static IEnumerable<Out> ElseProject<In, Out>(this MatchExpressionEnumerable<In, Out> @this,
-                                                            Func<In, Out> projection)
-            => @this.AddExpression(new MatchExpression<In, Out> { Predicate = x => true, Projection = projection });
+        => (int)Math.Round(((double)source.Count()) / batchSize, MidpointRounding.AwayFromZero);
         #endregion
 
         #region Sequence Page
@@ -298,113 +271,5 @@ namespace Axis.Luna.Extensions
                                       pageSize,
                                       pageIndex);
         #endregion
-    }
-
-    /// <summary>
-    /// I believe something like this should already exist...
-    /// </summary>
-    public class CountdownEnumerator : IEnumerator<long>
-    {
-        /// <summary>
-        /// limit always resolves to a positive number
-        /// </summary>
-        /// <param name="count"></param>
-        public CountdownEnumerator(long count)
-        {
-            Count = Math.Abs(count);
-            _finalIndex = Count - 1;
-            Reset();
-        }
-
-        private long _finalIndex;
-        public long Count { get; private set; }
-
-        private long _current;
-        public long Current
-        {
-            get
-            {
-                if (_disposed) throw new Exception("Enumerator is disposed");
-                else if (_current < 0) throw new Exception("Enumeration has not started");
-                else return _current;
-            }
-        }
-        object IEnumerator.Current => this.Current;
-
-        private volatile bool _disposed = false;
-        public void Dispose() => _disposed = true;
-
-        public bool MoveNext()
-        {
-            if (_disposed) throw new Exception("Enumerator is disposed");
-            else if (_current == _finalIndex) return false;
-            //else
-
-            ++_current;
-            return true;
-        }
-
-        public void Reset()
-        {
-            if (_disposed) throw new Exception("Enumerator is disposed");
-            this._current = -1;
-        }
-    }
-
-
-    public class MatchExpressionEnumerable<In, Out> : IEnumerable<Out>
-    {
-        private IEnumerable<In> _originalEnumerable { get; set; }
-        internal List<MatchExpression<In, Out>> _mexps = new List<MatchExpression<In, Out>>();
-
-        internal MatchExpressionEnumerable(IEnumerable<In> enumerable, params MatchExpression<In, Out>[] exps)
-        {
-            _mexps.AddRange(exps);
-            _originalEnumerable = enumerable;
-        }
-
-        internal MatchExpressionEnumerable<In, Out> AddExpression(MatchExpression<In, Out> expression)
-        {
-            if (expression == null) throw new ArgumentException(nameof(expression));
-
-            _mexps.Add(expression);
-            return this;
-        }
-
-        public IEnumerator<Out> GetEnumerator() => new Enumerator { _enumerator = _originalEnumerable.GetEnumerator(), _parent = this };
-
-        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
-
-        internal class Enumerator : IEnumerator<Out>
-        {
-            internal IEnumerator<In> _enumerator { get; set; }
-            internal MatchExpressionEnumerable<In, Out> _parent { get; set; }
-
-            public Out Current
-            {
-                get
-                {
-                    var _in = _enumerator.Current;
-                    var exp = _parent._mexps
-                                     .FirstOrDefault(mexp => mexp.Predicate(_in));
-                    if (exp == null) return _in.As<Out>();
-                    else return exp.Projection(_in);
-                }
-            }
-
-            object IEnumerator.Current => Current;
-            public bool MoveNext() => _enumerator.MoveNext();
-            public void Reset() => _enumerator.Reset();
-            public void Dispose() => _enumerator.Dispose();
-        }
-    }
-
-    public class MatchExpression<In, Out>
-    {
-        internal MatchExpression()
-        { }
-
-        public virtual Func<In, bool> Predicate { get; internal set; }
-        public Func<In, Out> Projection { get; internal set; }
     }
 }

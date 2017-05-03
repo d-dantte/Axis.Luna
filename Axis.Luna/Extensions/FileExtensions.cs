@@ -1,9 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Axis.Luna.Extensions
 {
@@ -11,7 +7,7 @@ namespace Axis.Luna.Extensions
     {
         /// <summary>
         /// Opens a file stream from a file info when it becomes available, using a timespan of 30 seconds.
-        /// The classic usage scenario for this is with file watchers: for files of considerable size, or for system lags,
+        /// The classic usage scenario for this is with file watchers: for files of considerable size, or for system logs,
         /// a file may not be available to read even if a FileWatcher event has been fired for the file; this method will 
         /// continue to attempt to open the file until the specified timeout is reached.
         /// </summary>

@@ -1,6 +1,7 @@
 ﻿using System;
 using static Axis.Luna.Extensions.ObjectExtensions;
 using static Axis.Luna.Extensions.EnumerableExtensions;
+using Axis.Luna.Operation;
 
 namespace Axis.Luna.Utils
 {
@@ -23,7 +24,7 @@ namespace Axis.Luna.Utils
 
         public override int GetHashCode() => ValueHash(Name.Enumerate());
         public override bool Equals(object obj)
-            => obj.As<DataItem>()
+            => obj.Cast<DataItem>()
                   .Pipe(_da => _da.Name == Name && _da.Data == Data);
 
         public override string ToString() => $"[{Name}: {this.DisplayData()}]";
@@ -49,7 +50,7 @@ namespace Axis.Luna.Utils
                 case CommonDataType.Location:
                 case CommonDataType.TimeSpan:
                 case CommonDataType.JsonObject: return @this.Data;
-                case CommonDataType.DateTime: return Eval(() => DateTime.Parse(@this.Data).ToString(), ex => "");
+                case CommonDataType.DateTime: return ResolvedOp.Try(() => DateTime.Parse(@this.Data).ToString()).Result;
 
                 case CommonDataType.Binary: return "Binary-Data";
 
@@ -98,7 +99,7 @@ namespace Axis.Luna.Utils
                 return (T)@this.ParseData();
 
             else
-                return (T)@this.ParseData(_data => converter.Invoke(_data).As<object>());
+                return (T)@this.ParseData(_data => converter.Invoke(_data).Cast<object>());
         }
     }
 }

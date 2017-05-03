@@ -1,4 +1,5 @@
 ﻿
+using Axis.Luna.Operation;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -39,6 +40,7 @@ namespace Axis.Luna.Extensions
         public static object DefaultValue(this Type type)
             => type.IsValueType ? TypeDefaults.GetOrAdd(type, t => Activator.CreateInstance(t)) : null;
 
+        #region Type Names
         public static string MinimalAQName(this Type type)
         => MinimalAQNames.GetOrAdd(type, t =>
         {
@@ -69,6 +71,7 @@ namespace Axis.Luna.Extensions
 
             return t.ToString();
         }
+        #endregion
 
         public static bool HasGenericAncestor(this Type type, Type genericDefinitionAncestorType)
         {
@@ -82,7 +85,7 @@ namespace Axis.Luna.Extensions
 
         public static IEnumerable<Type> TypeLineage(this Type type) => type.GetInterfaces().Concat(type.BaseTypes());
 
-        public static IEnumerable<Type> BaseTypes(this Type type) => type.Enumerate(t => Operation.Run(() => t.BaseType.ThrowIfNull()));
+        public static IEnumerable<Type> BaseTypes(this Type type) => type.Enumerate(t => ResolvedOp.Try(() => t.BaseType.ThrowIfNull()));
 
         public static MemberInfo Member(Expression<Func<object>> expr)
         {
@@ -108,7 +111,7 @@ namespace Axis.Luna.Extensions
 
 
         #region Property access
-        public static PropertyInfo Property(Expression<Func<object>> expr) => Member(expr).As<PropertyInfo>();
+        public static PropertyInfo Property(Expression<Func<object>> expr) => Member(expr).Cast<PropertyInfo>();
 
         public static object PropertyValue(this object obj, Expression<Func<object>> expr) => Property(expr).GetValue(obj);
 
@@ -159,7 +162,7 @@ namespace Axis.Luna.Extensions
 
         #region Field access
         public static FieldInfo Field(Expression<Func<object>> expr)
-            => Member(expr).As<FieldInfo>();
+            => Member(expr).Cast<FieldInfo>();
         public static object FieldVaue(this object obj, Expression<Func<object>> expr)
             => Field(expr).GetValue(obj);
         public static object FieldValue(this object obj, string field)
@@ -205,7 +208,7 @@ namespace Axis.Luna.Extensions
 
         #region Method access
         public static Delegate Method(this object obj, Expression<Func<object>> expr) 
-            => Delegate.CreateDelegate(obj.GetType(), obj, Member(expr).As<MethodInfo>());
+            => Delegate.CreateDelegate(obj.GetType(), obj, Member(expr).Cast<MethodInfo>());
 
         public static Delegate StaticMethod(this Type t, string method, params Type[] argTypes)
             => Delegate.CreateDelegate(t, t.GetMethod(method, argTypes));

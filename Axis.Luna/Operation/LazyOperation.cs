@@ -1,6 +1,5 @@
 ﻿using System;
 
-using static Axis.Luna.Extensions.ExceptionExtensions;
 
 namespace Axis.Luna.Operation
 {
@@ -13,8 +12,7 @@ namespace Axis.Luna.Operation
         
         public LazyOperation(Action operation)
         {
-            ThrowNullArguments(() => operation);
-
+            if (operation == null) throw new Exception("null argument");
             _operation = operation;
         }
 
@@ -48,13 +46,13 @@ namespace Axis.Luna.Operation
             try
             {
                 Resolve();
-                continuation.Invoke();
             }
             catch(Exception e)
             {
                 error?.Invoke(e);
                 throw e;
             }
+            continuation.Invoke();
         });
 
         public IOperation<R> Then<R>(Func<R> continuation, Action<Exception> error = null)
@@ -63,20 +61,29 @@ namespace Axis.Luna.Operation
             try
             {
                 Resolve();
-                return continuation.Invoke();
             }
             catch(Exception e)
             {
                 error?.Invoke(e);
                 throw e;
             }
+            return continuation.Invoke();
         });
 
 
         public IOperation Then(Func<IOperation> continuation, Action<Exception> error = null)
         => new LazyOperation(() =>
         {
-            Resolve();
+            try
+            {
+                Resolve();
+            }
+            catch (Exception e)
+            {
+                error?.Invoke(e);
+                throw e;
+            }
+
             var innerOp = continuation.Invoke();
             innerOp.Resolve();
         });
@@ -84,71 +91,59 @@ namespace Axis.Luna.Operation
         public IOperation<S> Then<S>(Func<IOperation<S>> continuation, Action<Exception> error = null)
         => new LazyOperation<S>(() =>
         {
-            Resolve();
+            try
+            {
+                Resolve();
+            }
+            catch (Exception e)
+            {
+                error?.Invoke(e);
+                throw e;
+            }
+
             var innerOp = continuation.Invoke();
             return innerOp.Resolve();
         });
-        #endregion
 
-        #region Error
-        public IOperation Otherwise(Action<Exception> errorContinuation)
-        => new LazyOperation(() =>
+
+        public IOperation ContinueWith(Action<IOperation> continuation) => new LazyOperation(() =>
         {
             try
             {
                 Resolve();
             }
-            catch (Exception e)
-            {
-                errorContinuation(e);
-                //not re-throwing e makes this a successfull operation upon resolution
-            }
+            catch { }
+            continuation(this);
         });
 
-        public IOperation<R> Otherwise<R>(Func<Exception, R> errorContinuation, Func<R> successContinuation)
-        => new LazyOperation<R>(() =>
+        public IOperation<R> ContinueWith<R>(Func<IOperation, R> continuation) => new LazyOperation<R>(() =>
         {
             try
             {
                 Resolve();
-                return successContinuation();
             }
-            catch (Exception e)
-            {
-                return errorContinuation(e);
-                //not re-throwing e makes this a successfull operation upon resolution
-            }
+            catch { }
+            return continuation(this);
         });
 
-        public IOperation Otherwise(Func<Exception, IOperation> errorContinuation)
-        => new LazyOperation(() =>
+        public IOperation ContinueWith(Func<IOperation, IOperation> continuation) => new LazyOperation(() =>
         {
             try
             {
                 Resolve();
             }
-            catch (Exception e)
-            {
-                var innerOp = errorContinuation(e);
-                innerOp.Resolve();
-                //not re-throwing e makes this a successfull operation upon resolution
-            }
+            catch { }
+            continuation(this).Resolve();
         });
 
-        public IOperation<S> Otherwise<S>(Func<Exception, IOperation<S>> errorContinuation, Func<S> successContinuation)
-        => new LazyOperation<S>(() =>
+        public IOperation<S> ContinueWith<S>(Func<IOperation, IOperation<S>> continuation) => new LazyOperation<S>(() =>
         {
             try
             {
                 Resolve();
-                return successContinuation();
             }
-            catch (Exception e)
-            {
-                var innerOp = errorContinuation(e);
-                return innerOp.Resolve();
-                //not re-throwing e makes this a successfull operation upon resolution
-            }
+            catch { }
+            return continuation(this).Resolve();
         });
         #endregion
 
@@ -181,7 +176,7 @@ namespace Axis.Luna.Operation
 
         public LazyOperation(Func<R> operation)
         {
-            ThrowNullArguments(() => operation);
+            if (operation == null) throw new Exception("null argument");
 
             _operation = operation;
         }
@@ -215,102 +210,113 @@ namespace Axis.Luna.Operation
         public IOperation Then(Action<R> continuation, Action<Exception> error = null)
         => new LazyOperation(() =>
         {
+            R _r;
             try
             {
-                continuation.Invoke(Resolve());
+                _r = Resolve();
             }
             catch (Exception e)
             {
                 error?.Invoke(e);
                 throw e;
             }
+            continuation.Invoke(_r);
         });
+
         public IOperation<S> Then<S>(Func<R, S> continuation, Action<Exception> error = null)
         => new LazyOperation<S>(() =>
         {
+            R _r;
             try
             {
-                return continuation.Invoke(Resolve());
+                _r = Resolve();
             }
             catch (Exception e)
             {
                 error?.Invoke(e);
                 throw e;
             }
+
+            return continuation.Invoke(_r);
         });
+
 
         public IOperation Then(Func<R, IOperation> continuation, Action<Exception> error = null)
         => new LazyOperation(() =>
         {
-            var innerOp = continuation.Invoke(Resolve());
+            R _r;
+            try
+            {
+                _r = Resolve();
+            }
+            catch (Exception e)
+            {
+                error?.Invoke(e);
+                throw e;
+            }
+
+            var innerOp = continuation.Invoke(_r);
             innerOp.Resolve();
         });
 
         public IOperation<S> Then<S>(Func<R, IOperation<S>> continuation, Action<Exception> error = null)
         => new LazyOperation<S>(() =>
         {
-            var innerOp = continuation.Invoke(Resolve());
+            R _r;
+            try
+            {
+                _r = Resolve();
+            }
+            catch (Exception e)
+            {
+                error?.Invoke(e);
+                throw e;
+            }
+
+            var innerOp = continuation.Invoke(_r);
             return innerOp.Resolve();
         });
-        #endregion
 
-        #region Error
-        public IOperation Otherwise(Action<Exception> errorContinuation)
-        => new LazyOperation(() =>
+
+
+        public IOperation ContinueWith(Action<IOperation<R>> continuation) => new LazyOperation(() =>
         {
             try
             {
                 Resolve();
             }
-            catch (Exception e)
-            {
-                errorContinuation(e);
-                //not re-throwing e makes this a successfull operation upon resolution
-            }
+            catch { }
+            continuation(this);
         });
 
-        public IOperation<S> Otherwise<S>(Func<Exception, S> errorContinuation, Func<R, S> successContinuation)
-        => new LazyOperation<S>(() =>
-        {
-            try
-            {   
-                return successContinuation(Resolve());
-            }
-            catch (Exception e)
-            {
-                return errorContinuation(e);
-                //not re-throwing e makes this a successfull operation upon resolution
-            }
-        });
-
-        public IOperation Otherwise(Func<Exception, IOperation> errorContinuation)
-        => new LazyOperation(() =>
+        public IOperation<S> ContinueWith<S>(Func<IOperation<R>, S> continuation) => new LazyOperation<S>(() =>
         {
             try
             {
                 Resolve();
             }
-            catch (Exception e)
-            {
-                var innerOp = errorContinuation(e);
-                innerOp.Resolve();
-                //not re-throwing e makes this a successfull operation upon resolution
-            }
+            catch { }
+            return continuation(this);
         });
 
-        public IOperation<S> Otherwise<S>(Func<Exception, IOperation<S>> errorContinuation, Func<R, S> successContinuation)
-        => new LazyOperation<S>(() =>
+        public IOperation ContinueWith(Func<IOperation<R>, IOperation> continuation) => new LazyOperation(() =>
         {
             try
             {
-                return successContinuation(Resolve());
+                Resolve();
             }
-            catch (Exception e)
+            catch { }
+            continuation(this).Resolve();
+        });
+
+        public IOperation<S> ContinueWith<S>(Func<IOperation<R>, IOperation<S>> continuation) => new LazyOperation<S>(() =>
+        {
+            try
             {
-                var innerOp = errorContinuation(e);
-                return innerOp.Resolve();
-                //not re-throwing e makes this a successfull operation upon resolution
+                Resolve();
             }
+            catch { }
+            return continuation(this).Resolve();
         });
         #endregion
 

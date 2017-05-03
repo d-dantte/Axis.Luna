@@ -6,13 +6,14 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Text;
 using System.Reflection;
+using Axis.Luna.Operation;
 
 namespace Axis.Luna.Extensions
 {
     public static class ExceptionExtensions
     {
         public static void ThrowNullArguments(this IEnumerable<Expression<Func<object>>> expressions)
-            => ThrowNullArguments(expressions.ToArray());
+        => ThrowNullArguments(expressions.ToArray());
 
         public static void ThrowNullArguments(params Expression<Func<object>>[] expressions)
         {
@@ -37,9 +38,9 @@ namespace Axis.Luna.Extensions
         }
 
         private static object CapturedValue(this MemberExpression memberAccess)
-            => memberAccess.Expression.Is<ConstantExpression>() ?
-               memberAccess.Member.As<FieldInfo>().GetValue(memberAccess.Expression.As<ConstantExpression>().Value) :
-               memberAccess.Expression.As<MemberExpression>().CapturedValue();
+        => (memberAccess.Expression is ConstantExpression) ?
+           memberAccess.Member.Cast<FieldInfo>().GetValue(memberAccess.Expression.Cast<ConstantExpression>().Value) :
+           memberAccess.Expression.Cast<MemberExpression>().CapturedValue();
 
 
         public static void Throw(this Exception e)
@@ -97,10 +98,10 @@ namespace Axis.Luna.Extensions
         }
 
         public static R ThrowIf<R>(this R value, Func<R, bool> predicate, Func<R, string> exceptionMessage = null)
-            => value.ThrowIf(predicate, exceptionMessage?.Invoke(value));
+        => value.ThrowIf(predicate, exceptionMessage?.Invoke(value));
 
         public static R ThrowIf<R>(this R value, Func<R, bool> predicate, Func<R, Exception> ex = null)
-            => value.ThrowIf(predicate, ex?.Invoke(value));
+        => value.ThrowIf(predicate, ex?.Invoke(value));
 
         public static R ThrowIfFail<R>(Func<R> func, Func<Exception, Exception> exception)
         {
@@ -129,8 +130,8 @@ namespace Axis.Luna.Extensions
         }
 
         public static string FlattenMessage(this Exception e, string separator)
-            => e.Enumerate(ex => Operation.Run(() => ex.InnerException.ThrowIfNull()))
-                .Aggregate(new StringBuilder(), (sb, next) => sb.Append(next.Message).Append(separator))
-                .ToString();
+        => e.Enumerate(ex => ResolvedOp.Try(() => ex.InnerException.ThrowIfNull()))
+            .Aggregate(new StringBuilder(), (sb, next) => sb.Append(next.Message).Append(separator))
+            .ToString();
     }
 }

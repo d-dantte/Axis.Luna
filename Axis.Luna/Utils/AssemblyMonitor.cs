@@ -8,6 +8,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
+using Axis.Luna.Operation;
 
 namespace Axis.Luna.Utils
 {
@@ -52,7 +53,7 @@ namespace Axis.Luna.Utils
             var asm = Assembly.ReflectionOnlyLoadFrom(e.FullPath);
             List<Action<Assembly>> cbs = null;
             lock (_callBacks) cbs = _callBacks.ToList();
-            cbs.ForEach(cb => Eval(() => cb(asm)));
+            cbs.ForEach(cb => ResolvedOp.Try(() => cb(asm)));
         });
 
         /// <summary>

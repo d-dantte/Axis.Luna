@@ -11,19 +11,17 @@ namespace Axis.Luna.Operation
 
 
         #region Continuations
+        IOperation Then(Func<IOperation> continuation, Action<Exception> error = null);
+        IOperation<S> Then<S>(Func<IOperation<S>> continuation, Action<Exception> error = null);
+
         IOperation Then(Action continuation, Action<Exception> error = null);
         IOperation<R> Then<R>(Func<R> continuation, Action<Exception> error = null);
 
-        IOperation Then(Func<IOperation> continuation, Action<Exception> error = null);
-        IOperation<S> Then<S>(Func<IOperation<S>> continuation, Action<Exception> error = null);
-        #endregion
+        IOperation ContinueWith(Action<IOperation> continuation);
+        IOperation<R> ContinueWith<R>(Func<IOperation, R> continuation);
 
-        #region Error
-        IOperation Otherwise(Action<Exception> errorContinuation);
-        IOperation<S> Otherwise<S>(Func<Exception, S> errorContinuation, Func<S> successContinuation);
-
-        IOperation Otherwise(Func<Exception, IOperation> errorContinuation);
-        IOperation<S> Otherwise<S>(Func<Exception, IOperation<S>> errorContinuation, Func<S> successContinuation);
+        IOperation ContinueWith(Func<IOperation, IOperation> continuation);
+        IOperation<S> ContinueWith<S>(Func<IOperation, IOperation<S>> continuation);
         #endregion
 
         #region Finally
@@ -46,14 +44,13 @@ namespace Axis.Luna.Operation
 
         IOperation Then(Func<R, IOperation> continuation, Action<Exception> error = null);
         IOperation<S> Then<S>(Func<R, IOperation<S>> continuation, Action<Exception> error = null);
-        #endregion
 
-        #region Error
-        IOperation Otherwise(Action<Exception> errorContinuation);
-        IOperation<S> Otherwise<S>(Func<Exception, S> errorContinuation, Func<R, S> successContinuation);
 
-        IOperation Otherwise(Func<Exception, IOperation> errorContinuation);
-        IOperation<S> Otherwise<S>(Func<Exception, IOperation<S>> errorContinuation, Func<R, S> successContinuation);
+        IOperation ContinueWith(Action<IOperation<R>> continuation);
+        IOperation<S> ContinueWith<S>(Func<IOperation<R>, S> continuation);
+
+        IOperation ContinueWith(Func<IOperation<R>, IOperation> continuation);
+        IOperation<S> ContinueWith<S>(Func<IOperation<R>, IOperation<S>> continuation);
         #endregion
 
         #region Finally

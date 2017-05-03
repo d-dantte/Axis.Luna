@@ -1,16 +1,17 @@
 ﻿using System;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
-using static Axis.Luna.Extensions.ExceptionExtensions;
 
 namespace Axis.Luna.Operation
 {
     public class AsyncOperation : IOperation
     {
-        private Exception _exception;
         private Task _task;
 
-        public bool? Succeeded { get; set; }
+        public bool? Succeeded => _task.Status == TaskStatus.RanToCompletion ? true :
+                                  _task.Status == TaskStatus.Canceled ? false :
+                                  _task.Status == TaskStatus.Faulted ? false :
+                                  (bool?)null;
 
         public AsyncOperation(Action operation)
         : this(Task.Run(operation))
@@ -19,12 +20,12 @@ namespace Axis.Luna.Operation
 
         public AsyncOperation(Task task)
         {
-            ThrowNullArguments(() => task);
+            if (task == null) throw new Exception("null argument");
 
             this._task = task;
         }
 
-        public Exception GetException() => _exception;
+        public Exception GetException() => _task.GetInnerException();
 
         public void Resolve() => _task.GetAwaiter().GetResult();
 
@@ -35,35 +36,40 @@ namespace Axis.Luna.Operation
         public IOperation Then(Action continuation, Action<Exception> error = null)
         => new AsyncOperation(_task.ContinueWith(_t =>
         {
-            try
+            if(_t.Status != TaskStatus.RanToCompletion)
             {
-                continuation.Invoke();
-            }
-            catch (Exception e)
-            {
+                var e = _t.GetInnerException();
                 error?.Invoke(e);
                 throw e;
             }
+
+            continuation.Invoke();
         }));
 
         public IOperation<R> Then<R>(Func<R> continuation, Action<Exception> error = null)
         => new AsyncOperation<R>(_task.ContinueWith(_t =>
         {
-            try
+            if (_t.Status != TaskStatus.RanToCompletion)
             {
-                return continuation.Invoke();
-            }
-            catch (Exception e)
-            {
+                var e = _t.GetInnerException();
                 error?.Invoke(e);
                 throw e;
             }
+
+            return continuation.Invoke();
         }));
 
 
         public IOperation Then(Func<IOperation> continuation, Action<Exception> error = null)
         => new AsyncOperation(_task.ContinueWith(_t =>
         {
+            if (_t.Status != TaskStatus.RanToCompletion)
+            {
+                var e = _t.GetInnerException();
+                error?.Invoke(e);
+                throw e;
+            }
+
             var innerOp = continuation.Invoke();
             innerOp.Resolve();
         }));
@@ -71,40 +77,26 @@ namespace Axis.Luna.Operation
         public IOperation<S> Then<S>(Func<IOperation<S>> continuation, Action<Exception> error = null)
         => new AsyncOperation<S>(_task.ContinueWith(_t =>
         {
+            if (_t.Status != TaskStatus.RanToCompletion)
+            {
+                var e = _t.GetInnerException();
+                error?.Invoke(e);
+                throw e;
+            }
+
             var innerOp = continuation.Invoke();
             return innerOp.Resolve();
         }));
-        #endregion
 
-        #region Error
-        public IOperation Otherwise(Action<Exception> errorContinuation)
-        => new AsyncOperation(_task.ContinueWith(_t =>
-        {
-            if(_t.Status != TaskStatus.RanToCompletion) errorContinuation(_t.GetInnerException());
-        }));
 
-        public IOperation<R> Otherwise<R>(Func<Exception, R> errorContinuation, Func<R> successContinuation)
-        => new AsyncOperation<R>(_task.ContinueWith(_t =>
-        {
-            if (_t.Status == TaskStatus.RanToCompletion) return successContinuation();
-            else return errorContinuation(_t.GetInnerException());
-        }));
 
-        public IOperation Otherwise(Func<Exception, IOperation> errorContinuation)
-        => new AsyncOperation(_task.ContinueWith(_t =>
-        {
-            if (_t.Status != TaskStatus.RanToCompletion)
-                errorContinuation.Invoke(_t.GetInnerException()).Resolve();
-        }));
+        public IOperation ContinueWith(Action<IOperation> continuation) => new AsyncOperation(_task.ContinueWith(_t => continuation(this)));
 
-        public IOperation<S> Otherwise<S>(Func<Exception, IOperation<S>> errorContinuation, Func<S> successContinuation)
-        => new AsyncOperation<S>(_task.ContinueWith(_t =>
-        {
-            if (_t.Status == TaskStatus.RanToCompletion)
-                return successContinuation.Invoke();
+        public IOperation<S> ContinueWith<S>(Func<IOperation, S> continuation) => new AsyncOperation<S>(_task.ContinueWith(_t => continuation(this)));
 
-            else return errorContinuation.Invoke(_t.GetInnerException()).Resolve();
-        }));
+        public IOperation ContinueWith(Func<IOperation, IOperation> continuation) => new AsyncOperation(_task.ContinueWith(_t => continuation(this).Resolve()));
+
+        public IOperation<S> ContinueWith<S>(Func<IOperation, IOperation<S>> continuation) => new AsyncOperation<S>(_task.ContinueWith(_t => continuation(this).Resolve()));
         #endregion
 
         #region Finally
@@ -117,11 +109,13 @@ namespace Axis.Luna.Operation
     }
 
     public class AsyncOperation<R> : IOperation<R>
-    {
-        private Exception _exception;
+    { 
         private Task<R> _task;
 
-        public bool? Succeeded { get; set; }
+        public bool? Succeeded => _task.Status == TaskStatus.RanToCompletion ? true :
+                                  _task.Status == TaskStatus.Canceled ? false :
+                                  _task.Status == TaskStatus.Faulted ? false :
+                                  (bool?)null;
 
         public R Result => Succeeded == true ? Resolve() : default(R);
 
@@ -133,12 +127,12 @@ namespace Axis.Luna.Operation
 
         public AsyncOperation(Task<R> task)
         {
-            ThrowNullArguments(() => task);
+            if (task == null) throw new Exception("null argument");
 
             _task = task;
         }
 
-        public Exception GetException() => _exception;
+        public Exception GetException() => _task.GetInnerException();
 
         public R Resolve() => _task.GetAwaiter().GetResult();
 
@@ -147,77 +141,67 @@ namespace Axis.Luna.Operation
         public IOperation Then(Action<R> continuation, Action<Exception> error = null)
         => new AsyncOperation(_task.ContinueWith(_t =>
         {
-            try
+            if (_t.Status != TaskStatus.RanToCompletion)
             {
-                continuation.Invoke(Resolve());
-            }
-            catch (Exception e)
-            {
+                var e = _t.GetInnerException();
                 error?.Invoke(e);
                 throw e;
             }
+
+            continuation.Invoke(_t.Result);
         }));
 
         public IOperation<S> Then<S>(Func<R, S> continuation, Action<Exception> error = null)
         => new AsyncOperation<S>(_task.ContinueWith(_t =>
         {
-            try
+            if (_t.Status != TaskStatus.RanToCompletion)
             {
-                return continuation.Invoke(Resolve());
-            }
-            catch (Exception e)
-            {
+                var e = _t.GetInnerException();
                 error?.Invoke(e);
                 throw e;
             }
+
+            return continuation.Invoke(_t.Result);
         }));
+
 
         public IOperation Then(Func<R, IOperation> continuation, Action<Exception> error = null)
         => new AsyncOperation(_task.ContinueWith(_t =>
         {
-            var innerOp = continuation.Invoke(Resolve());
+            if (_t.Status != TaskStatus.RanToCompletion)
+            {
+                var e = _t.GetInnerException();
+                error?.Invoke(e);
+                throw e;
+            }
+
+            var innerOp = continuation.Invoke(_t.Result);
             innerOp.Resolve();
         }));
 
         public IOperation<S> Then<S>(Func<R, IOperation<S>> continuation, Action<Exception> error = null)
         => new AsyncOperation<S>(_task.ContinueWith(_t =>
         {
-            var innerOp = continuation.Invoke(Resolve());
+            if (_t.Status != TaskStatus.RanToCompletion)
+            {
+                var e = _t.GetInnerException();
+                error?.Invoke(e);
+                throw e;
+            }
+
+            var innerOp = continuation.Invoke(_t.Result);
             return innerOp.Resolve();
         }));
-        #endregion
 
-        #region Error
-        public IOperation Otherwise(Action<Exception> errorContinuation)
-        => new AsyncOperation(_task.ContinueWith(_t =>
-        {
-            if (_t.Status != TaskStatus.RanToCompletion) errorContinuation(_t.GetInnerException());
-        }));
 
-        public IOperation<S> Otherwise<S>(Func<Exception, S> errorContinuation, Func<R, S> successContinuation)
-        => new AsyncOperation<S>(_task.ContinueWith(_t =>
-        {
-            if (_t.Status == TaskStatus.RanToCompletion)
-                return successContinuation(Resolve());
 
-            else return errorContinuation(_t.GetInnerException());
-        }));
+        public IOperation ContinueWith(Action<IOperation<R>> continuation) => new AsyncOperation(_task.ContinueWith(_t => continuation(this)));
 
-        public IOperation Otherwise(Func<Exception, IOperation> errorContinuation)
-        => new AsyncOperation(_task.ContinueWith(_t =>
-        {
-            if (_t.Status != TaskStatus.RanToCompletion)
-                errorContinuation.Invoke(_t.GetInnerException()).Resolve();
-        }));
+        public IOperation<S> ContinueWith<S>(Func<IOperation<R>, S> continuation) => new AsyncOperation<S>(_task.ContinueWith(_t => continuation(this)));
 
-        public IOperation<S> Otherwise<S>(Func<Exception, IOperation<S>> errorContinuation, Func<R, S> successContinuation)
-        => new AsyncOperation<S>(_task.ContinueWith(_t =>
-        {
-            if (_t.Status == TaskStatus.RanToCompletion)
-                return successContinuation.Invoke(Resolve());
+        public IOperation ContinueWith(Func<IOperation<R>, IOperation> continuation) => new AsyncOperation(_task.ContinueWith(_t => continuation(this).Resolve()));
 
-            else return errorContinuation.Invoke(_t.GetInnerException()).Resolve();
-        }));
+        public IOperation<S> ContinueWith<S>(Func<IOperation<R>, IOperation<S>> continuation) => new AsyncOperation<S>(_task.ContinueWith(_t => continuation(this).Resolve()));
         #endregion
 
         #region Finally

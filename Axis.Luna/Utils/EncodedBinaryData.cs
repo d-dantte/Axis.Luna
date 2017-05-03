@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Axis.Luna.Operation;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -41,7 +42,7 @@ namespace Axis.Luna.Utils
         }
 
         public string Extension() 
-            => Eval(() => Name.Substring(Name.LastIndexOf('.')))?.Trim(); //index should include the '.'
+        => ResolvedOp.Try(() => Name.Substring(Name.LastIndexOf('.'))).Result?.Trim(); //index should include the '.'
 
         public Mime MimeObject()
             => string.IsNullOrWhiteSpace(_mime) ?

@@ -20,7 +20,7 @@ namespace Axis.Luna
         where Data: class
         {
             var payload = _cache.GetOrAdd(cacheKey, _key => new CachePayload<Data>(_key, dataProvider))
-                                .As<CachePayload<Data>>();
+                                .Cast<CachePayload<Data>>();
             
             return payload.GetOrRefresh();
         }
@@ -31,7 +31,7 @@ namespace Axis.Luna
             CachePayload _pl;
             if (!_cache.TryGetValue(cacheKey, out _pl)) return null;
 
-            else return _pl.As<CachePayload<Data>>()?.GetOrRefresh();
+            else return _pl.Cast<CachePayload<Data>>()?.GetOrRefresh();
         }
 
         public Data Get<Data>(string cacheKey)
@@ -41,7 +41,7 @@ namespace Axis.Luna
             if (!_cache.TryGetValue(cacheKey, out _pl)) return null;
 
             Data _data;
-            if (!_pl.As<CachePayload<Data>>().Ref.TryGetTarget(out _data)) return null;
+            if (!_pl.Cast<CachePayload<Data>>().Ref.TryGetTarget(out _data)) return null;
             else return _data;
         }
 
@@ -69,7 +69,7 @@ namespace Axis.Luna
                 throw new Exception("The key is not contained in the cache");
 
             else
-                return _pl.As<CachePayload<Data>>().GetOrRefresh(true);
+                return _pl.Cast<CachePayload<Data>>().GetOrRefresh(true);
         }        
     }
 

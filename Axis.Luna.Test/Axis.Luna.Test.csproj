@@ -53,6 +53,10 @@
     </Otherwise>
   </Choose>
   <ItemGroup>
+    <Compile Include="Operation\AsyncOperationTests.cs" />
+    <Compile Include="Operation\LazyOperationTests.cs" />
+    <Compile Include="Operation\MiscTests.cs" />
+    <Compile Include="Operation\ResolvedOperationTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="TypeExtensionTests.cs" />
   </ItemGroup>
@@ -61,6 +65,10 @@
       <Project>{dc15dc69-5965-4769-9cfd-f7917fac5dd9}</Project>
       <Name>Axis.Luna</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Extensions\" />
+    <Folder Include="Utils\" />
   </ItemGroup>
   <Choose>
     <When Condition="'$(VisualStudioVersion)' == '10.0' And '$(IsCodedUITest)' == 'True'">

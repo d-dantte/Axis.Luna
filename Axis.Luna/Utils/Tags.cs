@@ -143,7 +143,7 @@ namespace Axis.Luna
         //public override string ToString() => $"{TagCodec.Encode(Name)}:{TagCodec.Encode(Value)};";
 
         public override bool Equals(object obj)
-            => obj.As<Tag>().Pipe(_t => _t?.Name == Name && _t?.Value == Value);
+            => obj.Cast<Tag>().Pipe(_t => _t?.Name == Name && _t?.Value == Value);
 
         public override int GetHashCode() => this.PropertyHash();
     }
