@@ -21,7 +21,7 @@ namespace Axis.Luna.Test.Operation
                 resolved = true;
             });
             Assert.IsFalse(resolved);
-            Thread.Sleep(600);
+            op.Resolve();
             Assert.IsTrue(resolved);
 
             resolved = false;
@@ -31,7 +31,7 @@ namespace Axis.Luna.Test.Operation
                 return resolved = true;
             });
             Assert.IsFalse(resolved);
-            Thread.Sleep(600);
+            op_.Resolve();
             Assert.IsTrue(resolved);
 
             op = AsyncOp.Fail(new Exception("ex"));
