@@ -1,0 +1,47 @@
+mode: ContinuousDeployment
+branches:
+  master:
+    regex: build/
+    mode: ContinuousDelivery
+    tag: ''
+    increment: None
+    prevent-increment-of-merged-branch-version: true
+    track-merge-target: false
+    tracks-release-branches: false
+    is-release-branch: false
+  release:
+    regex: release/
+    mode: ContinuousDelivery
+    tag: ''
+    increment: Inherit
+    prevent-increment-of-merged-branch-version: true
+    track-merge-target: false
+    tracks-release-branches: false
+    is-release-branch: true
+  hotfix:
+    regex: hotfix/
+    mode: ContinuousDelivery
+    tag: ''
+    increment: Patch
+    prevent-increment-of-merged-branch-version: true
+    track-merge-target: false
+    tracks-release-branches: false
+    is-release-branch: false
+  feature:
+    regex: features/
+    mode: ContinuousDelivery
+    tag: useBranchName
+    increment: Inherit
+    prevent-increment-of-merged-branch-version: true
+    track-merge-target: false
+    tracks-release-branches: false
+    is-release-branch: false
+  develop:
+    regex: dev/
+    mode: ContinuousDeployment
+    tag: unstable
+    increment: Inherit
+    prevent-increment-of-merged-branch-version: true
+    track-merge-target: true
+    tracks-release-branches: true
+    is-release-branch: false
