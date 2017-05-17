@@ -27,8 +27,6 @@ namespace Axis.Luna.Test.Extensions
                 Assert.IsInstanceOfType(e, typeof(ArgumentNullException));
                 Assert.AreEqual((e as ArgumentNullException).ParamName, "z");
             }
-
-        }
-        
+        }        
     }
 }

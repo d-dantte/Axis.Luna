@@ -54,6 +54,7 @@
   </Choose>
   <ItemGroup>
     <Compile Include="Extensions\ExceptionExtensionTests.cs" />
+    <Compile Include="Extensions\ObjectExtensionTests.cs" />
     <Compile Include="Operation\AsyncOperationTests.cs" />
     <Compile Include="Operation\LazyOperationTests.cs" />
     <Compile Include="Operation\MiscTests.cs" />
