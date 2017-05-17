@@ -1,0 +1,14 @@
+
+
+ 3.0.6 =========================================================================================================
+
+ 
+ 1. Add Test for ThrowNullArguments
+
+
+
+ 3.0.7 =========================================================================================================
+
+ 1. Cache delegates to optimize "TypeExtension.PropertyValue" calls.
+ 2. Make IOperation into an awaitable type
+ 3. Make Operation functions debugger hidden

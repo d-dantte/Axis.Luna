@@ -42,12 +42,16 @@
         public static T Cast<T>(this object value)
         => ResolvedOp.Try(() =>
         {
-            return (T)Convert.ChangeType(value, typeof(T));
+            if (value is IConvertible && typeof(IConvertible).IsAssignableFrom(typeof(T)))
+                return (T)Convert.ChangeType(value, typeof(T));
+            else return (T)value;
         }).Result;
         public static T Cast<S, T>(this S value)
         => ResolvedOp.Try(() =>
         {
-            return (T)Convert.ChangeType(value, typeof(T));
+            if (value is IConvertible && typeof(IConvertible).IsAssignableFrom(typeof(T)))
+                return (T)Convert.ChangeType(value, typeof(T));
+            else return (T)(object)value;
         }).Result;
 
         public static dynamic AsDynamic(this object value) => value;

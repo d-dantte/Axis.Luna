@@ -53,6 +53,7 @@
     </Otherwise>
   </Choose>
   <ItemGroup>
+    <Compile Include="Extensions\ExceptionExtensionTests.cs" />
     <Compile Include="Operation\AsyncOperationTests.cs" />
     <Compile Include="Operation\LazyOperationTests.cs" />
     <Compile Include="Operation\MiscTests.cs" />
@@ -67,7 +68,6 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <Folder Include="Extensions\" />
     <Folder Include="Utils\" />
   </ItemGroup>
   <Choose>
