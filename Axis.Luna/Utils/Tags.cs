@@ -51,7 +51,7 @@ namespace Axis.Luna
             initTags(tagPairs);
         }
         public TagsAttribute(TagBuilder builder)
-            : this(builder.ToString())
+        : this(builder.ToString())
         { }
 
         private void initTags(string tpairs)
@@ -62,7 +62,7 @@ namespace Axis.Luna
 
     public class TagBuilder
     {
-        private Dictionary<string,Tag> tags = new Dictionary<string, Tag>();
+        private Dictionary<string, Tag> tags = new Dictionary<string, Tag>();
         public IEnumerable<Tag> Tags => tags.Select(_kvp => _kvp.Value).ToArray();
 
 
@@ -88,7 +88,7 @@ namespace Axis.Luna
         }
 
         public Tag GetOrAdd(string name, string value)
-            => tags.GetOrAdd(name, _k => new Tag(name, value));
+        => tags.GetOrAdd(name, _k => new Tag(name, value));
 
 
         public override string ToString()
@@ -143,7 +143,7 @@ namespace Axis.Luna
         //public override string ToString() => $"{TagCodec.Encode(Name)}:{TagCodec.Encode(Value)};";
 
         public override bool Equals(object obj)
-            => obj.Cast<Tag>().Pipe(_t => _t?.Name == Name && _t?.Value == Value);
+        => obj.Cast<Tag>().Pipe(_t => _t?.Name == Name && _t?.Value == Value);
 
         public override int GetHashCode() => this.PropertyHash();
     }
