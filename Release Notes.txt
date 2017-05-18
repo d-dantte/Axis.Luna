@@ -1,14 +1,19 @@
 
 
- 3.0.5 =========================================================================================================
-
+ 3.0.x =========================================================================================================
  
- 1. Add Test for ThrowNullArguments
+ 5. Add Test for ThrowNullArguments[Done]
+ 
+ 6. Fix RandomAlphaNumericGenerator Issues
+    Add Test for RandomAlphaNumericGenerator
 
 
 
- 3.0.6 =========================================================================================================
+
+ 3.1.0 =========================================================================================================
 
  1. Cache delegates to optimize "TypeExtension.PropertyValue" calls.
  2. Make IOperation into an awaitable type
  3. Make Operation functions debugger hidden
+ 4. Add a continuation for operations that takes an enumeration of operations and continues when ALL, ANY, or
+    SOME (with a specific number) completes.

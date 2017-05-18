@@ -47,6 +47,6 @@ namespace Axis.Luna
             }
         }
 
-        private static int NextInt(RNGCryptoServiceProvider rng, int maxExclusive = int.MaxValue) => rng.RandomInt();
+        private static int NextInt(RNGCryptoServiceProvider rng, int maxExclusive = int.MaxValue) => rng.RandomInt() % maxExclusive;
     }
 }
