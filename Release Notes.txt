@@ -17,5 +17,8 @@
  -	Make Operation functions debugger hidden
  -	Add a continuation for operations that takes an enumeration of operations and continues when ALL, ANY, or
     SOME (with a specific number) completes.
- -	Change CommonDataTypes.BinaryData to CommonDataTypes.EncodedBinaryData
- -	add dispaly logic for CommonDataTypes.EncodedBinaryData, CommonDataTypes.Tags
+ -	LazyOp should have special recognition for functions that return "Lazy<>" types.
+ -  ResolvedOps should have special recognition for functions that return Operations - it should return the inner operation.
+ -	AsyncOps should have special recognition for functions that reteurn tasks.
+ -	Remove CommonDataTypes.BinaryData; the JsonObject is sufficient to encode it [Done]
+ -	add dispaly logic for CommonDataTypes.EncodedBinaryData, CommonDataTypes.Tags [Done]

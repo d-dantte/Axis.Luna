@@ -52,10 +52,9 @@ namespace Axis.Luna.Utils
                 case CommonDataType.JsonObject: return @this.Data;
                 case CommonDataType.DateTime: return ResolvedOp.Try(() => DateTime.Parse(@this.Data).ToString()).Result;
 
-                case CommonDataType.Tags: return "";
-                case CommonDataType.BinaryData: return "";
+                case CommonDataType.Tags: return TagBuilder.Create(@this.Data).ToString();
 
-                case CommonDataType.Binary: return "Binary-Data";
+                case CommonDataType.Binary: return "B64-Encoded";
 
                 case CommonDataType.UnknownType:
                 default: return "Unknown-Type";
@@ -76,6 +75,8 @@ namespace Axis.Luna.Utils
                 case CommonDataType.TimeSpan: return TimeSpan.Parse(@this.Data);
                 case CommonDataType.DateTime: return DateTime.Parse(@this.Data);
                 case CommonDataType.Binary: return Convert.FromBase64String(@this.Data);
+
+                case CommonDataType.Tags: return TagBuilder.Create(@this.Data).Tags;
 
                 case CommonDataType.IPV4:
                 case CommonDataType.IPV6:

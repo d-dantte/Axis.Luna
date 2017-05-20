@@ -12,11 +12,6 @@
 
         JsonObject,
 
-        /// <summary>
-        /// Json encoded representation of a Axis.Luna.BinaryData object
-        /// </summary>
-        BinaryData,
-
         DateTime,
         TimeSpan,
 
