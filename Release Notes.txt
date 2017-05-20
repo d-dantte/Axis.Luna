@@ -10,10 +10,12 @@
 
 
 
- 3.1.0 =========================================================================================================
+ 3.1.0/features =========================================================================================================
 
- 1. Cache delegates to optimize "TypeExtension.PropertyValue" calls.
- 2. Make IOperation into an awaitable type
- 3. Make Operation functions debugger hidden
- 4. Add a continuation for operations that takes an enumeration of operations and continues when ALL, ANY, or
+ -	Cache delegates to optimize "TypeExtension.PropertyValue" calls.
+ -	Make IOperation into an awaitable type
+ -	Make Operation functions debugger hidden
+ -	Add a continuation for operations that takes an enumeration of operations and continues when ALL, ANY, or
     SOME (with a specific number) completes.
+ -	Change CommonDataTypes.BinaryData to CommonDataTypes.EncodedBinaryData
+ -	add dispaly logic for CommonDataTypes.EncodedBinaryData, CommonDataTypes.Tags
