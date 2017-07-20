@@ -1,6 +1,8 @@
 ﻿using System;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Axis.Luna.Extensions;
+using System.Collections.Generic;
+using System.Collections;
 
 namespace Axis.Luna.Test.Extensions
 {
@@ -60,6 +62,15 @@ namespace Axis.Luna.Test.Extensions
 
         }
 
+        [TestMethod]
+        public void MinimalAQNameTest()
+        {
+            var objName = typeof(object).MinimalAQName();
+            Console.WriteLine(objName);
+
+            //Assert.AreEqual("", objName);
+        }
+
         public void AssertNumericConversions(object boxed)
         {
             Assert.AreNotEqual(0, boxed.Cast<int>());
@@ -94,7 +105,16 @@ namespace Axis.Luna.Test.Extensions
             Assert.IsNotNull(_2.Cast<IOtherThing>());
             Assert.IsNotNull(_2.Cast<IManyThings>());
         }
+
+        [TestMethod]
+        public void HasGenericAncestorTest()
+        {
+            Assert.IsTrue(typeof(HashSet<int>).ImplementsGenericInterface(typeof(ICollection<>)));
+            Assert.IsFalse(typeof(ArrayList).HasGenericAncestor(typeof(ICollection<>)));
+        }
     }
+
+
 
     public interface ISomething
     {

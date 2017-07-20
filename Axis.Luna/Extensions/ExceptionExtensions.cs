@@ -91,7 +91,7 @@ namespace Axis.Luna.Extensions
         public static R ThrowIf<R>(this R value, Func<R, bool> predicate, string exceptionMessage = null)
             => value.ThrowIf(predicate, new Exception(exceptionMessage));
 
-        public static R ThrowIf<R>(this R value, Func<R, bool> predicate, Exception ex = null)
+        public static R ThrowIf<R>(this R value, Func<R, bool> predicate, Exception ex)
         {
             if (predicate(value)) throw ex ?? new Exception("Invalid internal state");
             else return value;
@@ -100,7 +100,7 @@ namespace Axis.Luna.Extensions
         public static R ThrowIf<R>(this R value, Func<R, bool> predicate, Func<R, string> exceptionMessage = null)
         => value.ThrowIf(predicate, exceptionMessage?.Invoke(value));
 
-        public static R ThrowIf<R>(this R value, Func<R, bool> predicate, Func<R, Exception> ex = null)
+        public static R ThrowIf<R>(this R value, Func<R, bool> predicate, Func<R, Exception> ex)
         => value.ThrowIf(predicate, ex?.Invoke(value));
 
         public static R ThrowIfFail<R>(Func<R> func, Func<Exception, Exception> exception)
@@ -127,6 +127,14 @@ namespace Axis.Luna.Extensions
                 if (exception != null) throw exception(e);
                 else throw e;
             }
+        }
+
+        public static V ThrowIf<V>(this V test, V compare, string exceptionMessage = null) => test.ThrowIf(compare, new Exception(exceptionMessage));
+
+        public static V ThrowIf<V>(this V test, V compare, Exception ex)
+        {
+            if (EqualityComparer<V>.Default.Equals(test, compare)) throw ex ?? new Exception($"value is: {compare}");
+            else return test;
         }
 
         public static string FlattenMessage(this Exception e, string separator)

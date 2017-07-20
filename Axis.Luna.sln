@@ -20,7 +20,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConsolePlayground", "Consol
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{63ECDC93-300E-4686-8FFC-74C47B3A2694}"
 	ProjectSection(SolutionItems) = preProject
-		Release Notes.txt = Release Notes.txt
+		BackLog.txt = BackLog.txt
 	EndProjectSection
 EndProject
 Global

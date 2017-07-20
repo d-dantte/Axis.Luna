@@ -15,6 +15,7 @@ namespace Axis.Luna.Extensions
         private static ConcurrentDictionary<Type, object> TypeDefaults = new ConcurrentDictionary<Type, object>();
         private static ConcurrentDictionary<Type, string> MinimalAQNames = new ConcurrentDictionary<Type, string>();
         private static ConcurrentDictionary<string, Func<object, object>> AccessorCache = new ConcurrentDictionary<string, Func<object, object>>();
+        private static ConcurrentDictionary<string, Action<object, object>> MutatorCache = new ConcurrentDictionary<string, Action<object, object>>();
 
         #region Helpers
         private static string AccessorSignature(this PropertyInfo pinfo)
@@ -83,11 +84,33 @@ namespace Axis.Luna.Extensions
                        .Any();
         }
 
+        public static bool ImplementsGenericInterface(this Type type, Type genericDefinitionInterfaceType)
+        => type.GetInterfaces().Any(_i => _i.IsGenericType && _i.GetGenericTypeDefinition() == genericDefinitionInterfaceType);
+
         public static IEnumerable<Type> TypeLineage(this Type type) => type.GetInterfaces().Concat(type.BaseTypes());
 
         public static IEnumerable<Type> BaseTypes(this Type type) => type.Enumerate(t => ResolvedOp.Try(() => t.BaseType.ThrowIfNull()));
 
         public static MemberInfo Member(Expression<Func<object>> expr)
+        {
+            var lambda = expr as LambdaExpression;
+            if (lambda == null) return null;
+            else if (lambda.Body is UnaryExpression)
+            {
+                var member = (lambda.Body as UnaryExpression).Operand as MemberExpression;
+                if (member == null) return null;
+                else return member.Member as MemberInfo;
+            }
+            else if (lambda.Body is MemberExpression)
+            {
+                var member = (lambda.Body as MemberExpression);
+                if (member == null) return null;
+                else return member.Member as MemberInfo;
+            }
+            else return null;
+        }
+
+        public static MemberInfo Member<V>(Expression<Func<V>> expr)
         {
             var lambda = expr as LambdaExpression;
             if (lambda == null) return null;
@@ -112,6 +135,7 @@ namespace Axis.Luna.Extensions
 
         #region Property access
         public static PropertyInfo Property(Expression<Func<object>> expr) => Member(expr).Cast<PropertyInfo>();
+        public static PropertyInfo Property<V>(Expression<Func<V>> expr) => Member(expr).Cast<PropertyInfo>();
 
         public static object PropertyValue(this object obj, Expression<Func<object>> expr) => Property(expr).GetValue(obj);
 
@@ -158,6 +182,43 @@ namespace Axis.Luna.Extensions
             val = (V)oval;
             return r;
         }
+
+        public static object SetPropertyValue(this object obj, Expression<Func<object>> propertyExpression, object value) 
+        => obj.SetPropertyValue(Property(propertyExpression).Name, value);
+
+        public static object SetPropertyValue(this object obj, string propertyName, object value)
+        {
+            var property = obj.GetType().GetProperty(propertyName);
+            return value.UsingValue(_v =>
+            {
+                MutatorCache.GetOrAdd(property.MutatorSignature(), _msig =>
+                {
+                    //create a method that assigns the property: ((Model)obj).Property = (PropertyType)val;
+                    ParameterExpression pmodel = Expression.Parameter(typeof(object), "obj"),
+                                        pvalue = Expression.Parameter(typeof(object), "val");
+                    var lambda = Expression.Lambda(
+                        Expression.Block(
+                            Expression.Assign(
+                                Expression.MakeMemberAccess(
+                                    Expression.Convert(pmodel, property.DeclaringType),
+                                    property
+                                ),
+                                Expression.Convert(pvalue, property.PropertyType)
+                            ),
+                            Expression.Empty()
+                        ),
+                        pmodel, pvalue);
+
+                    return (Action<object, object>)lambda.Compile();
+                })
+                .Invoke(obj, value);
+            });
+        }
+
+
+        public static V SetPropertyValue<V>(this object obj, Expression<Func<V>> propertyExpression, V value)
+        => obj.SetPropertyValue(Property(propertyExpression).Name, value);
+        public static V SetPropertyValue<V>(this object obj, string propertyName, V value) => (V)obj.SetPropertyValue(propertyName, (object)value);
         #endregion
 
         #region Field access
@@ -215,6 +276,10 @@ namespace Axis.Luna.Extensions
 
         public static Delegate Method(this object obj, string method, params Type[] argTypes)
             => Delegate.CreateDelegate(obj.GetType(), obj, obj.GetType().GetMethod(method, argTypes));
+
+
+        //public static object Call(this string methodName, params object[] methodArgs);
+        //public static object CallGeneric(this string methodName, object[] genericArgs, params object[] methodArgs);
 
         #endregion
 

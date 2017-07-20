@@ -1,0 +1,69 @@
+
+
+ 3.0.x =========================================================================================================
+ 
+ 5. Add Test for ThrowNullArguments[Done]
+ 
+ 6. Fix RandomAlphaNumericGenerator Issues
+    Add Test for RandomAlphaNumericGenerator
+
+
+
+
+ 2017/06/01 #5 =========================================================================================================
+
+ -	Add SetPropertyValue to TypeExtensions 
+	[Done]
+
+ -	Make IOperation into an awaitable type 
+	[Next Version]
+
+ -	Make Operation functions debugger hidden 
+	[Next Version]
+
+ -	Add a fold-continuation for operations that takes an enumeration of operations and continues when ALL completes. 
+	[Done]
+
+ -	LazyOp should have special recognition for functions that return "Lazy<>" types. 
+	[Next Version]
+
+ -  ResolvedOps should have special recognition for functions that return Operations - it should return the inner operation. 
+	[Next Version]
+
+ -	AsyncOps should have special recognition for functions that return tasks. 
+    [Next Version]
+
+ -	Remove CommonDataTypes.BinaryData; the JsonObject is sufficient to encode it 
+	[Done]
+
+ -	add dispaly logic for CommonDataTypes.EncodedBinaryData, CommonDataTypes.Tags 
+	[Done]
+
+ -	add an extension to conveniently call any funtion on an object when the static type isn't known.
+    e.g object o = ...
+	o.call(methodName, methodArgs);
+	The signature for the above could be something like:
+	
+	static object call(this string methodName, params object[] methodArgs);
+	static object callGeneric(this string methodName, object[] genericArgs, params object[] methodArgs);
+	[Next Version]
+
+-	add ImplementsGenericInterface(Type interfaceType), used like so:
+	typeof(HashSet<int>).ImplementsGenericInterface(typeof(ICollection<>)); 
+	[Done]
+
+-	Added IValidatable that has only one method public IOperation Validate(); 
+	[Done]
+
+-	Added ThrowIf(this V value, V compare, Exception ex) variant to the Exception Extensions 
+	[Done]
+
+-	Added Guid to CommonDataTypes 
+	[Done]
+
+-	Added implementation for CommonDataType.Guid to DataItem 
+	[Done]
+
+-	Added extension methods for IValidatable in Axis.Luna.Extensions.ValidatableExtensions 
+	[Done]
+

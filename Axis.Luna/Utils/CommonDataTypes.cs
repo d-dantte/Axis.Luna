@@ -21,6 +21,7 @@
         Phone,
         Email,
         Location,
+        Guid,
 
         UnknownType,
 

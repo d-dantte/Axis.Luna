@@ -12,15 +12,24 @@ namespace Axis.Luna
         public long PageCount { get; private set; }
         public long PageSize { get; private set; }
 
-        public SequencePage(Data[] page, long sequenceLength, long pageSize = -1, long pageIndex = 0)
+        public SequencePage(Data[] page, long sequenceLength, int pageSize = 1, int pageIndex = 0)
         {
-            if (page == null || pageIndex < 0 || sequenceLength < 0 || pageSize < -1) throw new Exception("invalid page");
+            if (page == null) throw new Exception("invalid page");
+
             PageIndex = pageIndex;
-            SequenceLength = sequenceLength;
+            SequenceLength = Math.Abs(sequenceLength);
             Page = page;
-            PageSize = pageSize < 0 ? page.Length : pageSize;
+            PageSize = pageSize == 0 && Page.Length == 0 ? 1 :
+                       Page.Length == 0 ? 1 :
+                       pageSize == 0 ? Page.Length :
+                       Math.Abs(pageSize);
+
             PageCount = SequenceLength / PageSize + (SequenceLength % PageSize > 0 ? 1 : 0);
         }
+
+        public SequencePage()
+        : this(new Data[0], 0)
+        { }
 
         /// <summary>
         /// Returns an array containing page indexes for pages immediately adjecent to the current page.

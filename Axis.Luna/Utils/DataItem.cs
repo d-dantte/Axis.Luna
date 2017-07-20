@@ -33,6 +33,9 @@ namespace Axis.Luna.Utils
 
     public static class DataItemHelper
     {
+        public static readonly string DefaultDateTimeFormat = "yyy/MMM/dd HH:mm:ss";
+
+
         public static string DisplayData(this IDataItem @this)
         {
             switch (@this.Type)
@@ -49,8 +52,9 @@ namespace Axis.Luna.Utils
                 case CommonDataType.Email:
                 case CommonDataType.Location:
                 case CommonDataType.TimeSpan:
+                case CommonDataType.Guid:
                 case CommonDataType.JsonObject: return @this.Data;
-                case CommonDataType.DateTime: return ResolvedOp.Try(() => DateTime.Parse(@this.Data).ToString()).Result;
+                case CommonDataType.DateTime: return ResolvedOp.Try(() => DateTime.Parse(@this.Data).ToString(DefaultDateTimeFormat)).Result;
 
                 case CommonDataType.Tags: return TagBuilder.Create(@this.Data).ToString();
 
@@ -83,6 +87,7 @@ namespace Axis.Luna.Utils
                 case CommonDataType.Phone:
                 case CommonDataType.Email:
                 case CommonDataType.Location:
+                case CommonDataType.Guid: return Guid.Parse(@this.Data);
                 case CommonDataType.UnknownType: return converter?.Invoke(@this.Data) ?? @this.Data;
 
                 case CommonDataType.JsonObject: return converter.Invoke(@this.Data);

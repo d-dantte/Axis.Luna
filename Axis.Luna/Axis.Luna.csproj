@@ -42,6 +42,8 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Extensions\OperationExtensions.cs" />
+    <Compile Include="Extensions\ValidatableExtensions.cs" />
     <Compile Include="Operation\AsyncOperation.cs" />
     <Compile Include="Operation\ResolvedOperation.cs" />
     <Compile Include="Operation\IOperation.cs" />
@@ -49,6 +51,7 @@
     <Compile Include="Utils\AssemblyMonitor.cs" />
     <Compile Include="Utils\AssemblyResourceUri.cs" />
     <Compile Include="Utils\BlobRef.cs" />
+    <Compile Include="Utils\IValidatable.cs" />
     <Compile Include="Utils\WeakCache.cs" />
     <Compile Include="Utils\CommonDataTypes.cs" />
     <Compile Include="Utils\DataItem.cs" />

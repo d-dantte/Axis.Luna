@@ -2,6 +2,7 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Axis.Luna.Extensions;
 using System.Reflection;
+using System.Collections.Generic;
 
 namespace Axis.Luna.Test
 {
@@ -36,6 +37,16 @@ namespace Axis.Luna.Test
 
             a4 = d.Method8<int, string, decimal>;
             Console.WriteLine(a4.MinimalAQSignature());
+        }
+
+        [TestMethod]
+        public void ImplementsGenericInterfaceTest()
+        {
+            var result = typeof(HashSet<int>).ImplementsGenericInterface(typeof(ICollection<>));
+            Assert.IsTrue(result);
+
+            result = typeof(HashSet<int>).ImplementsGenericInterface(typeof(IList<>));
+            Assert.IsFalse(result);
         }
     }
 
