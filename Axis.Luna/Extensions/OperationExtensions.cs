@@ -50,5 +50,23 @@ namespace Axis.Luna.Extensions
                     .Pipe(foldAction);
             });
         }
+
+        public static void ResolveSafely(this IOperation op)
+        {
+            try
+            {
+                op.Resolve();
+            }
+            catch { }
+        }
+
+        public static void ResolveSafely<R>(this IOperation<R> op)
+        {
+            try
+            {
+                op.Resolve();
+            }
+            catch { }
+        }
     }
 }

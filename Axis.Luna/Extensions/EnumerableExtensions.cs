@@ -49,6 +49,24 @@ namespace Axis.Luna.Extensions
             }
         }
 
+        public static bool ExactlyAll<V>(this IEnumerable<V> enumerable, Func<V, bool> predicate)
+        {
+            if (enumerable == null) return false;
+            else
+            {
+                int totalCount = 0,
+                    trueCount = 0;
+
+                foreach (var v in enumerable)
+                {
+                    totalCount++;
+                    if (predicate(v)) trueCount++;
+                }
+
+                return totalCount > 0 && totalCount == trueCount;
+            }
+        }
+
         public static IEnumerable<KeyValuePair<K,V>> PairWith<K,V>(this IEnumerable<K> keys, IEnumerable<V> values)
         {
             using (var ktor = keys.GetEnumerator())
