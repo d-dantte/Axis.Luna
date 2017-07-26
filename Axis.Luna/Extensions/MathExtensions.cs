@@ -1,11 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System.Diagnostics;
 
 namespace Axis.Luna.Extensions
 {
+    [DebuggerStepThrough]
     public static class MathExtensions
     {
         public static Fraction Divide(this int denominator, int numerator) => new Fraction

@@ -2,10 +2,12 @@
 using Axis.Luna.Utils;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 
 namespace Axis.Luna.Extensions
 {
+    [DebuggerStepThrough]
     public static class ValidatableExtensions
     {
         public static IOperation ValidateModels(this IEnumerable<IValidatable> models) => ValidateModels(models.ToArray());

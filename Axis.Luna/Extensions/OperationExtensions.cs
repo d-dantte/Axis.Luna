@@ -1,10 +1,12 @@
 ﻿using Axis.Luna.Operation;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 
 namespace Axis.Luna.Extensions
 {
+    [DebuggerStepThrough]
     public static class OperationExtensions
     {
         public static IOperation FoldAll(this IEnumerable<IOperation> ops, Action foldAction)

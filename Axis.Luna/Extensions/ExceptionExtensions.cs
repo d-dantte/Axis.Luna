@@ -1,5 +1,4 @@
-﻿using static Axis.Luna.Extensions.TypeExtensions;
-
+﻿
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -7,9 +6,11 @@ using System.Linq.Expressions;
 using System.Text;
 using System.Reflection;
 using Axis.Luna.Operation;
+using System.Diagnostics;
 
 namespace Axis.Luna.Extensions
 {
+    [DebuggerStepThrough]
     public static class ExceptionExtensions
     {
         public static void ThrowNullArguments(this IEnumerable<Expression<Func<object>>> expressions)

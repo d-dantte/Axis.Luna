@@ -4,6 +4,7 @@
     using System;
     using System.Collections.Generic;
     using System.ComponentModel;
+    using System.Diagnostics;
     using System.Dynamic;
     using System.Linq;
     using System.Security.Cryptography;
@@ -11,6 +12,7 @@
 
     public static class ObjectExtensions
     {
+        [DebuggerStepThrough]
         public static Out Using<D, Out>(this D disposable, Func<D, Out> func)
         where D : IDisposable
         {

@@ -1,8 +1,10 @@
 ﻿
 using Axis.Luna.Operation;
+using Axis.Luna.Utils;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -10,6 +12,7 @@ using System.Text;
 
 namespace Axis.Luna.Extensions
 {
+    [DebuggerStepThrough]
     public static class TypeExtensions
     {
         private static ConcurrentDictionary<Type, object> TypeDefaults = new ConcurrentDictionary<Type, object>();
@@ -268,6 +271,8 @@ namespace Axis.Luna.Extensions
         #endregion
 
         #region Method access
+        private static ConcurrentDictionary<MethodInfo, DynamicMethodInvoker> _invokerMap = new ConcurrentDictionary<MethodInfo, DynamicMethodInvoker>();
+
         public static Delegate Method(this object obj, Expression<Func<object>> expr) 
             => Delegate.CreateDelegate(obj.GetType(), obj, Member(expr).Cast<MethodInfo>());
 
@@ -278,8 +283,28 @@ namespace Axis.Luna.Extensions
             => Delegate.CreateDelegate(obj.GetType(), obj, obj.GetType().GetMethod(method, argTypes));
 
 
-        //public static object Call(this string methodName, params object[] methodArgs);
-        //public static object CallGeneric(this string methodName, object[] genericArgs, params object[] methodArgs);
+        public static object Call(this MethodInfo method, params object[] methodArgs)
+        {
+            var invoker = _invokerMap.GetOrAdd(method, _ => new DynamicMethodInvoker(method));
+
+            if (invoker.IsActionInvoker)
+            {
+                invoker.InvokeStaticAction(methodArgs);
+                return null;
+            }
+            else return invoker.InvokeStaticFunc(methodArgs);
+        }
+        public static object Call(this object instance, MethodInfo method, params object[] methodArgs)
+        {
+            var invoker = _invokerMap.GetOrAdd(method, _ => new DynamicMethodInvoker(method));
+
+            if (invoker.IsActionInvoker)
+            {
+                invoker.InvokeAction(instance, methodArgs);
+                return null;
+            }
+            else return invoker.InvokeFunc(instance, methodArgs);
+        }
 
         #endregion
 

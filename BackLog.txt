@@ -39,14 +39,17 @@
  -	add dispaly logic for CommonDataTypes.EncodedBinaryData, CommonDataTypes.Tags 
 	[Done]
 
+-	Add DynamicDelegateInvoker that relies on Expression tree building and compiling to create delegates that call the targeted method.
+	[Done]
+
  -	add an extension to conveniently call any funtion on an object when the static type isn't known.
     e.g object o = ...
 	o.call(methodName, methodArgs);
 	The signature for the above could be something like:
 	
-	static object call(this string methodName, params object[] methodArgs);
-	static object callGeneric(this string methodName, object[] genericArgs, params object[] methodArgs);
-	[Next Version]
+	public static object Call(this MethodInfo method, params object[] methodArgs);
+	public static object Call(this object instance, MethodInfo method, params object[] methodArgs);
+	[Done]
 
 -	add ImplementsGenericInterface(Type interfaceType), used like so:
 	typeof(HashSet<int>).ImplementsGenericInterface(typeof(ICollection<>)); 
@@ -74,3 +77,5 @@
 	if the sequence is empty.
 	[Done]
 
+-	Remove IServiceConsumer, IServiceResolver, IServiceRegistrar from this solution and created Axis.Proteus for them.
+	[Done]

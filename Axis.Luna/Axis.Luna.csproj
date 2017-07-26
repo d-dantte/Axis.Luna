@@ -51,6 +51,7 @@
     <Compile Include="Utils\AssemblyMonitor.cs" />
     <Compile Include="Utils\AssemblyResourceUri.cs" />
     <Compile Include="Utils\BlobRef.cs" />
+    <Compile Include="Utils\DynamicDelegateInvoker.cs" />
     <Compile Include="Utils\IValidatable.cs" />
     <Compile Include="Utils\WeakCache.cs" />
     <Compile Include="Utils\CommonDataTypes.cs" />
@@ -66,8 +67,6 @@
     <Compile Include="Extensions\MathExtensions.cs" />
     <Compile Include="Extensions\ObjectExtensions.cs" />
     <Compile Include="Extensions\TypeExtensions.cs" />
-    <Compile Include="Utils\IServiceConsumer.cs" />
-    <Compile Include="Utils\IServiceResolver.cs" />
     <Compile Include="Utils\NumericBase.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Utils\Pulser.cs" />

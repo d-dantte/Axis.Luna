@@ -1,15 +1,14 @@
-﻿using static Axis.Luna.Extensions.ObjectExtensions;
-
+﻿
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using System.Linq.Expressions;
 using Axis.Luna.Operation;
 using System.Security.Cryptography;
+using System.Diagnostics;
 
 namespace Axis.Luna.Extensions
 {
+    [DebuggerStepThrough]
     public static class EnumerableExtensions
     {
         /// <summary>
@@ -49,6 +48,13 @@ namespace Axis.Luna.Extensions
             }
         }
 
+        /// <summary>
+        /// Does the same thing as <c>Enumerable.All(...)</c>, with the exception that if the sequence is empty, it returns false.
+        /// </summary>
+        /// <typeparam name="V"></typeparam>
+        /// <param name="enumerable"></param>
+        /// <param name="predicate"></param>
+        /// <returns></returns>
         public static bool ExactlyAll<V>(this IEnumerable<V> enumerable, Func<V, bool> predicate)
         {
             if (enumerable == null) return false;

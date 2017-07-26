@@ -1,8 +1,10 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Globalization;
 
 namespace Axis.Luna.Extensions
 {
+    [DebuggerStepThrough]
     public static class DateTimeExtensions
     {
         public static string FriendlyDisplay(this DateTime date)

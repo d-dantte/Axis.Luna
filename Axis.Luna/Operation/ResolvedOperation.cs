@@ -1,7 +1,9 @@
 ﻿using System;
+using System.Diagnostics;
 
 namespace Axis.Luna.Operation
 {
+    [DebuggerStepThrough]
     public class ResolvedOperation : IOperation
     {
         private Exception _exception;
@@ -46,7 +48,7 @@ namespace Axis.Luna.Operation
                 throw e;
             }
 
-            continuation.Invoke();
+            continuation?.Invoke();
         });
 
         public IOperation<R> Then<R>(Func<R> continuation, Action<Exception> error = null)
@@ -62,9 +64,8 @@ namespace Axis.Luna.Operation
                 throw e;
             }
 
-            return continuation.Invoke();
+            return continuation != null ? continuation.Invoke() : default(R);
         });
-
 
         public IOperation Then(Func<IOperation> continuation, Action<Exception> error = null)
         => new ResolvedOperation(() =>
@@ -79,8 +80,9 @@ namespace Axis.Luna.Operation
                 throw e;
             }
 
-            var innerOp = continuation.Invoke();
-            innerOp.Resolve();
+            continuation?
+                .Invoke()?
+                .Resolve();
         });
 
         public IOperation<S> Then<S>(Func<IOperation<S>> continuation, Action<Exception> error = null)
@@ -96,21 +98,26 @@ namespace Axis.Luna.Operation
                 throw e;
             }
 
-            var innerOp = continuation.Invoke();
-            return innerOp.Resolve();
+            var innerOp = continuation?.Invoke();
+            return innerOp == null? default(S): innerOp.Resolve();
         });
 
 
-        public IOperation ContinueWith(Action<IOperation> continuation) => new ResolvedOperation(() => continuation(this));
+        public IOperation ContinueWith(Action<IOperation> continuation) => new ResolvedOperation(() => continuation?.Invoke(this));
 
-        public IOperation<R> ContinueWith<R>(Func<IOperation, R> continuation) => new ResolvedOperation<R>(() => continuation(this));
+        public IOperation<R> ContinueWith<R>(Func<IOperation, R> continuation) 
+        => new ResolvedOperation<R>(() => continuation == null? default(R): continuation.Invoke(this));
 
-        public IOperation ContinueWith(Func<IOperation, IOperation> continuation) => new ResolvedOperation(() => continuation(this).Resolve());
+        public IOperation ContinueWith(Func<IOperation, IOperation> continuation) => new ResolvedOperation(() => continuation?.Invoke(this)?.Resolve());
 
-        public IOperation<S> ContinueWith<S>(Func<IOperation, IOperation<S>> continuation) => new ResolvedOperation<S>(() => continuation(this).Resolve());
-        #endregion
+        public IOperation<S> ContinueWith<S>(Func<IOperation, IOperation<S>> continuation) 
+        => new ResolvedOperation<S>(() =>
+        {
+            var innerOp = continuation?.Invoke(this);
+            return innerOp == null? default(S): innerOp.Resolve();
+        });
 
-        #region Finally
+
         public IOperation Finally(Action @finally)
         => new ResolvedOperation(() =>
         {
@@ -126,6 +133,7 @@ namespace Axis.Luna.Operation
         #endregion
     }
 
+    [DebuggerStepThrough]
     public class ResolvedOperation<R> : IOperation<R>
     {
         private Exception _exception;
@@ -176,7 +184,7 @@ namespace Axis.Luna.Operation
                 throw e;
             }
 
-            continuation.Invoke(_r);
+            continuation?.Invoke(_r);
         });
 
         public IOperation<S> Then<S>(Func<R, S> continuation, Action<Exception> error = null)
@@ -193,9 +201,8 @@ namespace Axis.Luna.Operation
                 throw e;
             }
 
-            return continuation.Invoke(_r);
+            return continuation == null ? default(S) : continuation.Invoke(_r);
         });
-
 
         public IOperation Then(Func<R, IOperation> continuation, Action<Exception> error = null)
         => new ResolvedOperation(() =>
@@ -211,8 +218,9 @@ namespace Axis.Luna.Operation
                 throw e;
             }
             
-            var innerOp = continuation.Invoke(_r);
-            innerOp.Resolve();
+            continuation
+                ?.Invoke(_r)
+                ?.Resolve();
         });
 
         public IOperation<S> Then<S>(Func<R, IOperation<S>> continuation, Action<Exception> error = null)
@@ -229,23 +237,27 @@ namespace Axis.Luna.Operation
                 throw e;
             }
             
-            var innerOp = continuation.Invoke(_r);
-            return innerOp.Resolve();
+            var innerOp = continuation?.Invoke(_r);
+            return innerOp == null ? default(S) : innerOp.Resolve();
         });
 
 
 
-        public IOperation ContinueWith(Action<IOperation<R>> continuation) => new ResolvedOperation(() => continuation(this));
+        public IOperation ContinueWith(Action<IOperation<R>> continuation) => new ResolvedOperation(() => continuation?.Invoke(this));
 
-        public IOperation<S> ContinueWith<S>(Func<IOperation<R>, S> continuation) => new ResolvedOperation<S>(() => continuation(this));
+        public IOperation<S> ContinueWith<S>(Func<IOperation<R>, S> continuation)
+        => new ResolvedOperation<S>(() => continuation == null ? default(S) : continuation.Invoke(this));
+
+        public IOperation ContinueWith(Func<IOperation<R>, IOperation> continuation) => new ResolvedOperation(() => continuation?.Invoke(this)?.Resolve());
+
+        public IOperation<S> ContinueWith<S>(Func<IOperation<R>, IOperation<S>> continuation) 
+        => new ResolvedOperation<S>(() =>
+        {
+            var innerOp = continuation?.Invoke(this);
+            return innerOp == null ? default(S) : innerOp.Resolve();
+        });
 
 
-        public IOperation ContinueWith(Func<IOperation<R>, IOperation> continuation) => new ResolvedOperation(() => continuation(this).Resolve());
-
-        public IOperation<S> ContinueWith<S>(Func<IOperation<R>, IOperation<S>> continuation) => new ResolvedOperation<S>(() => continuation(this).Resolve());
-        #endregion
-
-        #region Finally
         public IOperation<R> Finally(Action @finally)
         => new ResolvedOperation<R>(() =>
         {
@@ -263,6 +275,7 @@ namespace Axis.Luna.Operation
 
 
     #region Helper
+    [DebuggerStepThrough]
     public static class ResolvedOp
     {
         public static ResolvedOperation Try(Action operation) => new ResolvedOperation(operation);

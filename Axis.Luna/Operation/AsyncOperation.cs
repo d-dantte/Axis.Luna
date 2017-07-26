@@ -1,9 +1,11 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 
 namespace Axis.Luna.Operation
 {
+    [DebuggerStepThrough]
     public class AsyncOperation : IOperation
     {
         private Task _task;
@@ -43,7 +45,7 @@ namespace Axis.Luna.Operation
                 throw e;
             }
 
-            continuation.Invoke();
+            continuation?.Invoke();
         }));
 
         public IOperation<R> Then<R>(Func<R> continuation, Action<Exception> error = null)
@@ -56,7 +58,7 @@ namespace Axis.Luna.Operation
                 throw e;
             }
 
-            return continuation.Invoke();
+            return continuation == null ? default(R) : continuation.Invoke();
         }));
 
 
@@ -70,8 +72,9 @@ namespace Axis.Luna.Operation
                 throw e;
             }
 
-            var innerOp = continuation.Invoke();
-            innerOp.Resolve();
+            continuation
+                ?.Invoke()
+                ?.Resolve();
         }));
 
         public IOperation<S> Then<S>(Func<IOperation<S>> continuation, Action<Exception> error = null)
@@ -84,30 +87,38 @@ namespace Axis.Luna.Operation
                 throw e;
             }
 
-            var innerOp = continuation.Invoke();
-            return innerOp.Resolve();
+            var innerOp = continuation?.Invoke();
+            return innerOp != null ? innerOp.Resolve() : default(S);
         }));
 
 
 
-        public IOperation ContinueWith(Action<IOperation> continuation) => new AsyncOperation(_task.ContinueWith(_t => continuation(this)));
+        public IOperation ContinueWith(Action<IOperation> continuation) => new AsyncOperation(_task.ContinueWith(_t => continuation?.Invoke(this)));
 
-        public IOperation<S> ContinueWith<S>(Func<IOperation, S> continuation) => new AsyncOperation<S>(_task.ContinueWith(_t => continuation(this)));
+        public IOperation<S> ContinueWith<S>(Func<IOperation, S> continuation)
+        => new AsyncOperation<S>(_task.ContinueWith(_t => continuation != null ? continuation.Invoke(this) : default(S)));
 
-        public IOperation ContinueWith(Func<IOperation, IOperation> continuation) => new AsyncOperation(_task.ContinueWith(_t => continuation(this).Resolve()));
+        public IOperation ContinueWith(Func<IOperation, IOperation> continuation) => new AsyncOperation(_task.ContinueWith(_t => continuation?.Invoke(this)?.Resolve()));
 
-        public IOperation<S> ContinueWith<S>(Func<IOperation, IOperation<S>> continuation) => new AsyncOperation<S>(_task.ContinueWith(_t => continuation(this).Resolve()));
-        #endregion
+        public IOperation<S> ContinueWith<S>(Func<IOperation, IOperation<S>> continuation) 
+        => new AsyncOperation<S>(_task.ContinueWith(_t =>
+        {
+            var inner = continuation?.Invoke(this);
+            return inner == null ? default(S) : inner.Resolve();
+        }));
 
-        #region Finally
+
         public IOperation Finally(Action @finally)
         => new AsyncOperation(_task.ContinueWith(_t =>
         {
-            @finally.Invoke();
+            @finally?.Invoke();
+
+            Resolve();
         }));
         #endregion
     }
 
+    [DebuggerStepThrough]
     public class AsyncOperation<R> : IOperation<R>
     { 
         private Task<R> _task;
@@ -148,7 +159,7 @@ namespace Axis.Luna.Operation
                 throw e;
             }
 
-            continuation.Invoke(_t.Result);
+            continuation?.Invoke(_t.Result);
         }));
 
         public IOperation<S> Then<S>(Func<R, S> continuation, Action<Exception> error = null)
@@ -161,7 +172,7 @@ namespace Axis.Luna.Operation
                 throw e;
             }
 
-            return continuation.Invoke(_t.Result);
+            return continuation == null? default(S): continuation.Invoke(_t.Result);
         }));
 
 
@@ -175,8 +186,9 @@ namespace Axis.Luna.Operation
                 throw e;
             }
 
-            var innerOp = continuation.Invoke(_t.Result);
-            innerOp.Resolve();
+            continuation
+                ?.Invoke(_t.Result)
+                ?.Resolve();
         }));
 
         public IOperation<S> Then<S>(Func<R, IOperation<S>> continuation, Action<Exception> error = null)
@@ -189,22 +201,27 @@ namespace Axis.Luna.Operation
                 throw e;
             }
 
-            var innerOp = continuation.Invoke(_t.Result);
+            var innerOp = continuation?.Invoke(_t.Result);
             return innerOp.Resolve();
         }));
 
 
 
-        public IOperation ContinueWith(Action<IOperation<R>> continuation) => new AsyncOperation(_task.ContinueWith(_t => continuation(this)));
+        public IOperation ContinueWith(Action<IOperation<R>> continuation) => new AsyncOperation(_task.ContinueWith(_t => continuation?.Invoke(this)));
 
-        public IOperation<S> ContinueWith<S>(Func<IOperation<R>, S> continuation) => new AsyncOperation<S>(_task.ContinueWith(_t => continuation(this)));
+        public IOperation<S> ContinueWith<S>(Func<IOperation<R>, S> continuation) 
+        => new AsyncOperation<S>(_task.ContinueWith(_t => continuation == null? default(S): continuation.Invoke(this)));
 
-        public IOperation ContinueWith(Func<IOperation<R>, IOperation> continuation) => new AsyncOperation(_task.ContinueWith(_t => continuation(this).Resolve()));
+        public IOperation ContinueWith(Func<IOperation<R>, IOperation> continuation) => new AsyncOperation(_task.ContinueWith(_t => continuation?.Invoke(this)?.Resolve()));
 
-        public IOperation<S> ContinueWith<S>(Func<IOperation<R>, IOperation<S>> continuation) => new AsyncOperation<S>(_task.ContinueWith(_t => continuation(this).Resolve()));
-        #endregion
+        public IOperation<S> ContinueWith<S>(Func<IOperation<R>, IOperation<S>> continuation) 
+        => new AsyncOperation<S>(_task.ContinueWith(_t =>
+        {
+            var innerOp = continuation?.Invoke(this);
+            return innerOp == null ? default(S) : innerOp.Resolve();
+        }));
 
-        #region Finally
+
         public IOperation<R> Finally(Action @finally)
         => new AsyncOperation<R>(_task.ContinueWith(_t =>
         {
@@ -217,6 +234,7 @@ namespace Axis.Luna.Operation
 
 
     #region Helper
+    [DebuggerStepThrough]
     public static class AsyncOp
     {
         public static AsyncOperation Try(Action operation) => new AsyncOperation(operation);

@@ -1,8 +1,10 @@
 ﻿using System;
+using System.Diagnostics;
 using System.IO;
 
 namespace Axis.Luna.Extensions
 {
+    [DebuggerStepThrough]
     public static class FileExtensions
     {
         /// <summary>

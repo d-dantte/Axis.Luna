@@ -1,8 +1,9 @@
 ﻿using System;
-
+using System.Diagnostics;
 
 namespace Axis.Luna.Operation
 {
+    [DebuggerStepThrough]
     public class LazyOperation : IOperation
     {
         private Exception _exception;
@@ -52,7 +53,7 @@ namespace Axis.Luna.Operation
                 error?.Invoke(e);
                 throw e;
             }
-            continuation.Invoke();
+            continuation?.Invoke();
         });
 
         public IOperation<R> Then<R>(Func<R> continuation, Action<Exception> error = null)
@@ -67,7 +68,7 @@ namespace Axis.Luna.Operation
                 error?.Invoke(e);
                 throw e;
             }
-            return continuation.Invoke();
+            return continuation == null ? default(R) : continuation.Invoke();
         });
 
 
@@ -84,8 +85,9 @@ namespace Axis.Luna.Operation
                 throw e;
             }
 
-            var innerOp = continuation.Invoke();
-            innerOp.Resolve();
+            continuation
+                ?.Invoke()
+                ?.Resolve();
         });
 
         public IOperation<S> Then<S>(Func<IOperation<S>> continuation, Action<Exception> error = null)
@@ -101,8 +103,8 @@ namespace Axis.Luna.Operation
                 throw e;
             }
 
-            var innerOp = continuation.Invoke();
-            return innerOp.Resolve();
+            var innerOp = continuation?.Invoke();
+            return innerOp == null ? default(S) : innerOp.Resolve();
         });
 
 
@@ -113,7 +115,7 @@ namespace Axis.Luna.Operation
                 Resolve();
             }
             catch { }
-            continuation(this);
+            continuation?.Invoke(this);
         });
 
         public IOperation<R> ContinueWith<R>(Func<IOperation, R> continuation) => new LazyOperation<R>(() =>
@@ -123,7 +125,7 @@ namespace Axis.Luna.Operation
                 Resolve();
             }
             catch { }
-            return continuation(this);
+            return continuation == null ? default(R) : continuation(this);
         });
 
         public IOperation ContinueWith(Func<IOperation, IOperation> continuation) => new LazyOperation(() =>
@@ -133,7 +135,9 @@ namespace Axis.Luna.Operation
                 Resolve();
             }
             catch { }
-            continuation(this).Resolve();
+            continuation
+                ?.Invoke(this)
+                ?.Resolve();
         });
 
         public IOperation<S> ContinueWith<S>(Func<IOperation, IOperation<S>> continuation) => new LazyOperation<S>(() =>
@@ -143,11 +147,11 @@ namespace Axis.Luna.Operation
                 Resolve();
             }
             catch { }
-            return continuation(this).Resolve();
+            var innerOp = continuation?.Invoke(this);
+            return innerOp == null ? default(S) : innerOp.Resolve();
         });
-        #endregion
 
-        #region Finally
+
         public IOperation Finally(Action @finally)
         => new LazyOperation(() =>
         {
@@ -157,12 +161,13 @@ namespace Axis.Luna.Operation
             }
             finally
             {
-                @finally.Invoke();
+                @finally?.Invoke();
             }
         });
         #endregion
     }
 
+    [DebuggerStepThrough]
     public class LazyOperation<R> : IOperation<R>
     {
         private Exception _exception;
@@ -220,7 +225,7 @@ namespace Axis.Luna.Operation
                 error?.Invoke(e);
                 throw e;
             }
-            continuation.Invoke(_r);
+            continuation?.Invoke(_r);
         });
 
         public IOperation<S> Then<S>(Func<R, S> continuation, Action<Exception> error = null)
@@ -237,9 +242,8 @@ namespace Axis.Luna.Operation
                 throw e;
             }
 
-            return continuation.Invoke(_r);
+            return continuation == null ? default(S) : continuation.Invoke(_r);
         });
-
 
         public IOperation Then(Func<R, IOperation> continuation, Action<Exception> error = null)
         => new LazyOperation(() =>
@@ -255,8 +259,9 @@ namespace Axis.Luna.Operation
                 throw e;
             }
 
-            var innerOp = continuation.Invoke(_r);
-            innerOp.Resolve();
+            continuation
+                ?.Invoke(_r)
+                ?.Resolve();
         });
 
         public IOperation<S> Then<S>(Func<R, IOperation<S>> continuation, Action<Exception> error = null)
@@ -273,8 +278,8 @@ namespace Axis.Luna.Operation
                 throw e;
             }
 
-            var innerOp = continuation.Invoke(_r);
-            return innerOp.Resolve();
+            var innerOp = continuation?.Invoke(_r);
+            return innerOp == null ? default(S) : innerOp.Resolve();
         });
 
 
@@ -286,7 +291,7 @@ namespace Axis.Luna.Operation
                 Resolve();
             }
             catch { }
-            continuation(this);
+            continuation?.Invoke(this);
         });
 
         public IOperation<S> ContinueWith<S>(Func<IOperation<R>, S> continuation) => new LazyOperation<S>(() =>
@@ -296,7 +301,7 @@ namespace Axis.Luna.Operation
                 Resolve();
             }
             catch { }
-            return continuation(this);
+            return continuation == null ? default(S) : continuation.Invoke(this);
         });
 
         public IOperation ContinueWith(Func<IOperation<R>, IOperation> continuation) => new LazyOperation(() =>
@@ -306,7 +311,9 @@ namespace Axis.Luna.Operation
                 Resolve();
             }
             catch { }
-            continuation(this).Resolve();
+            continuation
+                ?.Invoke(this)
+                ?.Resolve();
         });
 
         public IOperation<S> ContinueWith<S>(Func<IOperation<R>, IOperation<S>> continuation) => new LazyOperation<S>(() =>
@@ -316,11 +323,11 @@ namespace Axis.Luna.Operation
                 Resolve();
             }
             catch { }
-            return continuation(this).Resolve();
+            var innerOp = continuation?.Invoke(this);
+            return innerOp == null ? default(S) : innerOp.Resolve();
         });
-        #endregion
 
-        #region Finally
+
         public IOperation<R> Finally(Action @finally)
         => new LazyOperation<R>(() =>
         {
@@ -338,6 +345,7 @@ namespace Axis.Luna.Operation
 
 
     #region Helper
+    [DebuggerStepThrough]
     public static class LazyOp
     {
         public static LazyOperation Try(Action operation) => new LazyOperation(operation);
