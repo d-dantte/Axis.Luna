@@ -6,12 +6,8 @@ using System.Reflection;
 
 namespace Axis.Luna.Utils
 {
-
     public class DynamicMethodInvoker
     {
-        public MethodInfo TargetMethod { get; private set; }
-
-
         private Func<object, object[], object> _funcInvoker { get; set; }
         private Action<object, object[]> _actionInvoker { get; set; }
 
@@ -19,6 +15,7 @@ namespace Axis.Luna.Utils
         private Action<object[]> _staticActionInvoker { get; set; }
 
 
+        public MethodInfo TargetMethod { get; private set; }
         public bool IsFunctionInvoker => TargetMethod.ReturnType != typeof(void);
         public bool IsActionInvoker => TargetMethod.ReturnType == typeof(void);
 
@@ -107,5 +104,8 @@ namespace Axis.Luna.Utils
         public void InvokeAction(object instance, params object[] @params) => _actionInvoker(instance, @params);
 
         public void InvokeStaticAction(params object[] @params) => _staticActionInvoker(@params);
+
+
+        private object[] SanitizeParams(object[] @params) => @params;
     }
 }

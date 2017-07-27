@@ -232,6 +232,16 @@ namespace Axis.Luna.Extensions
             }
         }
 
+        public static IEnumerable<V> SelectWhen<V>(this IEnumerable<V> sequence, Func<V, bool> predicate, Func<V, V> projection)
+        {
+            foreach (var v in sequence)
+            {
+                yield return predicate?.Invoke(v) ?? false ?
+                             projection(v) :
+                             v;
+            }
+        }
+
 
         #region Batch
         public static IEnumerable<IEnumerable<T>> Batch<T>(this IEnumerable<T> source, int batchSize, int skipBatches = 0)

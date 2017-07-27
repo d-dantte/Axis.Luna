@@ -73,9 +73,12 @@
 -	Added ResolveSafely extension method for IOperations that resolves without throwing exceptions if the operation fails. Note 
 	though that this method always returns void
 
--	Added "EnumerableOperations.ExactlyAll", which essentially does what "Enumerable.All" does, with the exception of returning false
+-	Added "EnumerableExtensions.ExactlyAll", which essentially does what "Enumerable.All" does, with the exception of returning false
 	if the sequence is empty.
 	[Done]
 
 -	Remove IServiceConsumer, IServiceResolver, IServiceRegistrar from this solution and created Axis.Proteus for them.
+	[Done]
+
+-	Add "EnumerableExtensions.SelectWhen", a method that does selective projections based on a predicate condition
 	[Done]

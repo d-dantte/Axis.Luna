@@ -10,6 +10,8 @@ using System.Linq.Expressions;
 using System.Reflection;
 using System.Text;
 
+using static Axis.Luna.Extensions.EnumerableExtensions;
+
 namespace Axis.Luna.Extensions
 {
     [DebuggerStepThrough]
@@ -92,6 +94,7 @@ namespace Axis.Luna.Extensions
 
         public static IEnumerable<Type> TypeLineage(this Type type) => type.GetInterfaces().Concat(type.BaseTypes());
 
+        [DebuggerStepThrough]
         public static IEnumerable<Type> BaseTypes(this Type type) => type.Enumerate(t => ResolvedOp.Try(() => t.BaseType.ThrowIfNull()));
 
         public static MemberInfo Member(Expression<Func<object>> expr)
@@ -285,7 +288,7 @@ namespace Axis.Luna.Extensions
 
         public static object Call(this MethodInfo method, params object[] methodArgs)
         {
-            var invoker = _invokerMap.GetOrAdd(method, _ => new DynamicMethodInvoker(method));
+            var invoker = _invokerMap.GetOrAdd(method, _ => new DynamicMethodInvoker(_));
 
             if (invoker.IsActionInvoker)
             {
@@ -296,7 +299,7 @@ namespace Axis.Luna.Extensions
         }
         public static object Call(this object instance, MethodInfo method, params object[] methodArgs)
         {
-            var invoker = _invokerMap.GetOrAdd(method, _ => new DynamicMethodInvoker(method));
+            var invoker = _invokerMap.GetOrAdd(method, _ => new DynamicMethodInvoker(_));
 
             if (invoker.IsActionInvoker)
             {
@@ -311,9 +314,10 @@ namespace Axis.Luna.Extensions
         public static bool Implements(this Type type, Type firstInterface, params Type[] implementedInterfaces)
         {
             var interfaces = type.GetInterfaces();
-            return firstInterface.Enumerate().Union(implementedInterfaces)
-                                             .Where(intf => intf.IsInterface)
-                                             .All(intf => interfaces.Contains(intf));
+            return Enumerate(firstInterface)
+                .Union(implementedInterfaces)
+                .Where(intf => intf.IsInterface)
+                .All(intf => interfaces.Contains(intf));
         }
 
 

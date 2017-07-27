@@ -51,7 +51,7 @@
     <Compile Include="Utils\AssemblyMonitor.cs" />
     <Compile Include="Utils\AssemblyResourceUri.cs" />
     <Compile Include="Utils\BlobRef.cs" />
-    <Compile Include="Utils\DynamicDelegateInvoker.cs" />
+    <Compile Include="Utils\DynamicMethodInvoker.cs" />
     <Compile Include="Utils\IValidatable.cs" />
     <Compile Include="Utils\WeakCache.cs" />
     <Compile Include="Utils\CommonDataTypes.cs" />
