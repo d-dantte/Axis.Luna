@@ -61,7 +61,6 @@
     <Compile Include="Operation\ResolvedOperationTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Extensions\TypeExtensionTests.cs" />
-    <Compile Include="Utils\DynamicMethodInvokerTest.cs" />
     <Compile Include="Utils\RandomAlphaNumericGeneratorTests.cs" />
   </ItemGroup>
   <ItemGroup>

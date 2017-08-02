@@ -137,5 +137,17 @@ namespace Axis.Luna.Test.Operation
             Assert.AreEqual(continues[4], 5);
             Assert.AreEqual(continues[5], 6);
         }
+
+
+        [TestMethod]
+        public void LazyOperationExtension()
+        {
+            var t = new Lazy<int>(() => 5)
+                .Then(_ => 6)
+                .Resolve();
+
+            Assert.AreNotEqual(5, t);
+            Assert.AreEqual(6, t);
+        }
     }
 }

@@ -10,9 +10,10 @@
     using System.Security.Cryptography;
     using System.Text;
 
+    [DebuggerStepThrough]
     public static class ObjectExtensions
     {
-        [DebuggerStepThrough]
+
         public static Out Using<D, Out>(this D disposable, Func<D, Out> func)
         where D : IDisposable
         {
@@ -161,6 +162,8 @@
         public static int ValueHash(int prime1, int prime2, params object[] propertyValues)
         => propertyValues.Aggregate(prime1, (hash, next) => hash * prime2 + (next?.GetHashCode() ?? 0));
 
+        public static int ValueHash(params object[] values) => ValueHash(values.AsEnumerable());
+
 
         public static Out Pipe<In, Out>(this In @this, Func<In, Out> projection) => projection(@this); 
 
@@ -285,5 +288,23 @@
         }
 
         #endregion
+    }
+
+
+    internal class CastVector
+    {
+        internal Type From { get; set; }
+        internal Type To { get; set; }
+
+        public override bool Equals(object obj)
+        {
+            var other = obj.Cast<CastVector>();
+
+            return other != null &&
+                   other.From == From &&
+                   other.To == To;
+        }
+
+        public override int GetHashCode() => ObjectExtensions.ValueHash(From, To);
     }
 }

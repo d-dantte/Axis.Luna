@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Axis.Luna.Extensions;
+using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
@@ -24,7 +25,7 @@ namespace Axis.Luna.Operation
         {
             if (task == null) throw new Exception("null argument");
 
-            this._task = task;
+            _task = task;
         }
 
         public Exception GetException() => _task.GetInnerException();
@@ -113,7 +114,7 @@ namespace Axis.Luna.Operation
         {
             @finally?.Invoke();
 
-            Resolve();
+            Resolve(); //to throw an exception if one exists
         }));
         #endregion
     }
@@ -146,6 +147,8 @@ namespace Axis.Luna.Operation
         public Exception GetException() => _task.GetInnerException();
 
         public R Resolve() => _task.GetAwaiter().GetResult();
+
+        public TaskAwaiter<R> GetAwaiter() => _task.GetAwaiter();
 
 
         #region Continuations
@@ -262,6 +265,73 @@ namespace Axis.Luna.Operation
 
             return e;
         }
+
+        #region Task Helpers
+        public static AsyncOperation Then(this Task _task, Action continuation, Action<Exception> error = null)
+        => new AsyncOperation(_task).Then(continuation, error).Cast<AsyncOperation>();
+
+        public static AsyncOperation<R> Then<R>(this Task _task, Func<R> continuation, Action<Exception> error = null)
+        => new AsyncOperation(_task).Then(continuation, error).Cast<AsyncOperation<R>>();
+
+
+        public static AsyncOperation Then(this Task _task, Func<IOperation> continuation, Action<Exception> error = null)
+        => new AsyncOperation(_task).Then(continuation).Cast<AsyncOperation>();
+
+        public static AsyncOperation<S> Then<S>(this Task _task, Func<IOperation<S>> continuation, Action<Exception> error = null)
+        => new AsyncOperation(_task).Then(continuation, error).Cast<AsyncOperation<S>>();
+
+
+
+        public static AsyncOperation ContinueWith(this Task _task, Action<IOperation> continuation)
+        => new AsyncOperation(_task).ContinueWith(continuation).Cast<AsyncOperation>();
+
+        public static AsyncOperation<S> ContinueWith<S>(this Task _task, Func<IOperation, S> continuation)
+        => new AsyncOperation(_task).ContinueWith(continuation).Cast<AsyncOperation<S>>();
+
+        public static AsyncOperation ContinueWith(this Task _task, Func<IOperation, IOperation> continuation)
+        => new AsyncOperation(_task).ContinueWith(continuation).Cast<AsyncOperation>();
+
+        public static AsyncOperation<S> ContinueWith<S>(this Task _task, Func<IOperation, IOperation<S>> continuation)
+        => new AsyncOperation(_task).ContinueWith(continuation).Cast<AsyncOperation<S>>();
+
+
+        public static AsyncOperation Finally(this Task _task, Action @finally)
+        => new AsyncOperation(_task).Finally(@finally).Cast<AsyncOperation>();
+        #endregion
+
+        #region Task<R> Helpers
+
+        public static AsyncOperation Then<R>(this Task<R> _task, Action<R> continuation, Action<Exception> error = null)
+        => new AsyncOperation<R>(_task).Then(continuation, error).Cast<AsyncOperation>();
+
+        public static AsyncOperation<S> Then<R, S>(this Task<R> _task, Func<R, S> continuation, Action<Exception> error = null)
+        => new AsyncOperation<R>(_task).Then(continuation, error).Cast<AsyncOperation<S>>();
+
+
+        public static AsyncOperation Then<R>(this Task<R> _task, Func<R, IOperation> continuation, Action<Exception> error = null)
+        => new AsyncOperation<R>(_task).Then(continuation, error).Cast<AsyncOperation>();
+
+        public static AsyncOperation<S> Then<R, S>(this Task<R> _task, Func<R, IOperation<S>> continuation, Action<Exception> error = null)
+        => new AsyncOperation<R>(_task).Then(continuation, error).Cast<AsyncOperation<S>>();
+
+
+
+        public static AsyncOperation ContinueWith<R>(this Task<R> _task, Action<IOperation<R>> continuation)
+        => new AsyncOperation<R>(_task).ContinueWith(continuation).Cast<AsyncOperation>();
+
+        public static IOperation<S> ContinueWith<R, S>(this Task<R> _task, Func<IOperation<R>, S> continuation)
+        => new AsyncOperation<R>(_task).ContinueWith(continuation).Cast<AsyncOperation<S>>();
+
+        public static AsyncOperation ContinueWith<R>(this Task<R> _task, Func<IOperation<R>, IOperation> continuation)
+        => new AsyncOperation<R>(_task).ContinueWith(continuation).Cast<AsyncOperation>();
+
+        public static AsyncOperation<S> ContinueWith<R, S>(this Task<R> _task, Func<IOperation<R>, IOperation<S>> continuation)
+        => new AsyncOperation<R>(_task).ContinueWith(continuation).Cast<AsyncOperation<S>>();
+
+
+        public static AsyncOperation<R> Finally<R>(this Task<R> _task, Action @finally) 
+        => new AsyncOperation<R>(_task).Finally(@finally).Cast<AsyncOperation<R>>();
+        #endregion
     }
     #endregion
 }

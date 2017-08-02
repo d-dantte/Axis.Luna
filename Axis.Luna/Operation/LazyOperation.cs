@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Axis.Luna.Extensions;
+using System;
 using System.Diagnostics;
 
 namespace Axis.Luna.Operation
@@ -186,6 +187,11 @@ namespace Axis.Luna.Operation
             _operation = operation;
         }
 
+        public LazyOperation(Lazy<R> lazy)
+        : this(() => lazy.Value)
+        {
+        }
+
         public Exception GetException() => _exception;
 
         public R Resolve()
@@ -283,7 +289,6 @@ namespace Axis.Luna.Operation
         });
 
 
-
         public IOperation ContinueWith(Action<IOperation<R>> continuation) => new LazyOperation(() =>
         {
             try
@@ -356,6 +361,38 @@ namespace Axis.Luna.Operation
 
         public static LazyOperation Fail(Exception ex) => new LazyOperation(() => { throw ex; });
         public static LazyOperation<R> Fail<R>(Exception ex) => new LazyOperation<R>(() => { throw ex; });
+
+
+        #region Lazy<R> helpers
+        public static LazyOperation Then<R>(this Lazy<R> lazy, Action<R> continuation, Action<Exception> error = null)
+        => new LazyOperation<R>(lazy).Then(continuation, error).Cast<LazyOperation>();
+
+        public static LazyOperation<S> Then<R, S>(this Lazy<R> lazy, Func<R, S> continuation, Action<Exception> error = null)
+        => new LazyOperation<R>(lazy).Then(continuation, error).Cast<LazyOperation<S>>();
+
+        public static LazyOperation Then<R>(this Lazy<R> lazy, Func<R, IOperation> continuation, Action<Exception> error = null)
+        => new LazyOperation<R>(lazy).Then(continuation, error).Cast<LazyOperation>();
+
+        public static LazyOperation<S> Then<R, S>(this Lazy<R> lazy, Func<R, IOperation<S>> continuation, Action<Exception> error = null)
+        => new LazyOperation<R>(lazy).Then(continuation, error).Cast<LazyOperation<S>>();
+
+
+        public static LazyOperation ContinueWith<R>(this Lazy<R> lazy, Action<IOperation<R>> continuation)
+        => new LazyOperation<R>(lazy).ContinueWith(continuation).Cast<LazyOperation>();
+
+        public static LazyOperation<S> ContinueWith<R, S>(this Lazy<R> lazy, Func<IOperation<R>, S> continuation)
+        => new LazyOperation<R>(lazy).ContinueWith(continuation).Cast<LazyOperation<S>>();
+
+        public static LazyOperation ContinueWith<R>(this Lazy<R> lazy, Func<IOperation<R>, IOperation> continuation)
+        => new LazyOperation<R>(lazy).ContinueWith(continuation).Cast<LazyOperation>();
+
+        public static LazyOperation<S> ContinueWith<R, S>(this Lazy<R> lazy, Func<IOperation<R>, IOperation<S>> continuation)
+        => new LazyOperation<R>(lazy).ContinueWith(continuation).Cast<LazyOperation<S>>();
+
+
+        public static LazyOperation<R> Finally<R>(this Lazy<R> lazy, Action @finally)
+        => new LazyOperation<R>(lazy).Finally(@finally).Cast<LazyOperation<R>>();
+        #endregion
     }
     #endregion
 }

@@ -4,6 +4,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Collections.Generic;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace Axis.Luna.Test.Operation
 {
@@ -124,6 +125,40 @@ namespace Axis.Luna.Test.Operation
             Assert.AreEqual(continues[3], 4);
             Assert.AreEqual(continues[4], 5);
             Assert.AreEqual(continues[5], 6);
+        }
+
+
+        [TestMethod]
+        public void AwaitTest()
+        {
+            AwaitInner().Wait();
+        }
+
+        private async Task AwaitInner()
+        {
+            var x = await AsyncOp
+                .Try(() => 6)
+                .Then(_ => 5)
+                .Cast<AsyncOperation<int>>();
+
+            Assert.AreNotEqual(6, x);
+            Assert.AreEqual(5, x);
+        }
+
+        [TestMethod]
+        public void TaskExtensionTest()
+        {
+            TaskExtensionInner().Wait();
+        }
+
+        private async Task TaskExtensionInner()
+        {
+            var x = await Task
+                .Run(() => 6)
+                .Then(_ => 5);
+
+            Assert.AreNotEqual(6, x);
+            Assert.AreEqual(5, x);
         }
     }
 }

@@ -25,13 +25,13 @@
 	[Done]
 
  -	LazyOp should have special recognition for functions that return "Lazy<>" types. 
-	[Next Version]
+	[Done]
 
  -  ResolvedOps should have special recognition for functions that return Operations - it should return the inner operation. 
 	[Next Version]
 
  -	AsyncOps should have special recognition for functions that return tasks. 
-    [Next Version]
+    [Done]
 
  -	Remove CommonDataTypes.BinaryData; the JsonObject is sufficient to encode it 
 	[Done]
@@ -49,6 +49,9 @@
 	
 	public static object Call(this MethodInfo method, params object[] methodArgs);
 	public static object Call(this object instance, MethodInfo method, params object[] methodArgs);
+	[Done]
+
+-	Move the Call functions to the Axis.Rhea project
 	[Done]
 
 -	add ImplementsGenericInterface(Type interfaceType), used like so:
