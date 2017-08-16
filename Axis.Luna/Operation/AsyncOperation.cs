@@ -242,9 +242,13 @@ namespace Axis.Luna.Operation
     {
         public static AsyncOperation Try(Action operation) => new AsyncOperation(operation);
         public static AsyncOperation Try(Func<IOperation> operation) => new AsyncOperation(() => operation().Resolve());
+        public static AsyncOperation Try(Func<Task> operation) => new AsyncOperation(operation());
+        public static AsyncOperation Try(Task operation) => new AsyncOperation(operation);
 
         public static AsyncOperation<R> Try<R>(Func<R> operation) => new AsyncOperation<R>(operation);
         public static AsyncOperation<R> Try<R>(Func<IOperation<R>> operation) => new AsyncOperation<R>(() => operation().Resolve());
+        public static AsyncOperation<R> Try<R>(Func<Task<R>> operation) => new AsyncOperation<R>(operation());
+        public static AsyncOperation<R> Try<R>(Task<R> operation) => new AsyncOperation<R>(operation);
 
         public static AsyncOperation Fail(Exception ex) => new AsyncOperation(() => { throw ex; });
         public static AsyncOperation<R> Fail<R>(Exception ex) => new AsyncOperation<R>(() => { throw ex; });

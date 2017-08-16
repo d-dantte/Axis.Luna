@@ -2,6 +2,7 @@
 using Axis.Luna.Operation;
 using System;
 using System.Security.Cryptography;
+using System.Threading.Tasks;
 
 namespace ConsolePlayground
 {
@@ -9,6 +10,7 @@ namespace ConsolePlayground
     {
         static void Main(string[] args)
         {
+            Task<int> t;
             var op = LazyOp.Try(() =>
             {
                 Console.WriteLine("starting");

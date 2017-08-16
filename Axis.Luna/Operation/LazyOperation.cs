@@ -358,6 +358,8 @@ namespace Axis.Luna.Operation
 
         public static LazyOperation<R> Try<R>(Func<R> operation) => new LazyOperation<R>(operation);
         public static LazyOperation<R> Try<R>(Func<IOperation<R>> operation) => new LazyOperation<R>(() => operation().Resolve());
+        public static LazyOperation<R> Try<R>(Func<Lazy<R>> operation) => new LazyOperation<R>(operation());
+        public static LazyOperation<R> Try<R>(Lazy<R> operation) => new LazyOperation<R>(operation);
 
         public static LazyOperation Fail(Exception ex) => new LazyOperation(() => { throw ex; });
         public static LazyOperation<R> Fail<R>(Exception ex) => new LazyOperation<R>(() => { throw ex; });

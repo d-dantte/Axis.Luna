@@ -68,7 +68,8 @@ namespace Axis.Luna.Test.Operation
             var _op =  AsyncOp.Try(() => 
             {
                 Thread.Sleep(100);
-                throw new Exception();
+                if (true) throw new Exception();
+                else return;
             });
             Assert.IsTrue(_op.Succeeded == null);
 

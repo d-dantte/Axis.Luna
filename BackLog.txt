@@ -15,10 +15,10 @@
  -	Add SetPropertyValue to TypeExtensions 
 	[Done]
 
- -	Make IOperation into an awaitable type 
+ -	Make IOperation into an awaitable type: currently, AsyncOperation is the only awaitable implementation
 	[Next Version]
 
- -	Make Operation functions debugger hidden 
+ -	Make Operation functions debugger pass-through 
 	[Next Version]
 
  -	Add a fold-continuation for operations that takes an enumeration of operations and continues when ALL completes. 

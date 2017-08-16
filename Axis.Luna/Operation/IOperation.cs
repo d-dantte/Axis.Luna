@@ -7,6 +7,7 @@ namespace Axis.Luna.Operation
         bool? Succeeded { get; }
 
         void Resolve();
+
         Exception GetException();
 
 
@@ -32,9 +33,11 @@ namespace Axis.Luna.Operation
     public interface IOperation<out R>
     {
         bool? Succeeded { get; }
+
         R Result { get; }
 
         R Resolve();
+
         Exception GetException();
 
 

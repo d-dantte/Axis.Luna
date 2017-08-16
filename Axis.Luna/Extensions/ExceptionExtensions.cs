@@ -90,7 +90,7 @@ namespace Axis.Luna.Extensions
         }
 
         public static R ThrowIf<R>(this R value, Func<R, bool> predicate, string exceptionMessage = null)
-            => value.ThrowIf(predicate, new Exception(exceptionMessage));
+        => value.ThrowIf(predicate, new Exception(exceptionMessage));
 
         public static R ThrowIf<R>(this R value, Func<R, bool> predicate, Exception ex)
         {
@@ -104,7 +104,7 @@ namespace Axis.Luna.Extensions
         public static R ThrowIf<R>(this R value, Func<R, bool> predicate, Func<R, Exception> ex)
         => value.ThrowIf(predicate, ex?.Invoke(value));
 
-        public static R ThrowIfFail<R>(Func<R> func, Func<Exception, Exception> exception)
+        public static R ThrowIfFail<R>(this Func<R> func, Func<Exception, Exception> exception)
         {
             try
             {
@@ -117,7 +117,7 @@ namespace Axis.Luna.Extensions
             }
         }
 
-        public static void ThrowIfFail(Action action, Func<Exception, Exception> exception)
+        public static void ThrowIfFail(this Action action, Func<Exception, Exception> exception)
         {
             try
             {
@@ -129,6 +129,7 @@ namespace Axis.Luna.Extensions
                 else throw e;
             }
         }
+
 
         public static V ThrowIf<V>(this V test, V compare, string exceptionMessage = null) => test.ThrowIf(compare, new Exception(exceptionMessage));
 
