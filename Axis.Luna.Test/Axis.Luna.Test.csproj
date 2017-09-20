@@ -53,6 +53,7 @@
     </Otherwise>
   </Choose>
   <ItemGroup>
+    <Compile Include="Extensions\EnumerableExtensionTests.cs" />
     <Compile Include="Extensions\ExceptionExtensionTests.cs" />
     <Compile Include="Extensions\ObjectExtensionTests.cs" />
     <Compile Include="Operation\AsyncOperationTests.cs" />

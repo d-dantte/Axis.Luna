@@ -11,6 +11,11 @@ namespace Axis.Luna.Extensions
     [DebuggerStepThrough]
     public static class EnumerableExtensions
     {
+        public static bool ContainsAll<V>(this IEnumerable<V> enumerable, IEnumerable<V> items)
+        {
+            return enumerable.Intersect(items).Count() == items.Count();
+        }
+
         /// <summary>
         /// Splices the enumerable at the specified POSITIVE index, making it the head of the enumerable, joining the old head at the tail
         /// e.g
@@ -209,6 +214,24 @@ namespace Axis.Luna.Extensions
             return dict;
         }
 
+        /// <summary>
+        /// https://stackoverflow.com/a/33336576
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="sequence"></param>
+        /// <param name="choices"></param>
+        /// <returns></returns>
+        public static IEnumerable<IEnumerable<T>> Combinations<T>(this IEnumerable<T> sequence, int choices)
+        => choices == 0 ?
+           new[] { new T[0] } :
+           sequence.SelectMany((e, i) =>
+           {
+               return sequence
+                   .Skip(i + 1)
+                   .Combinations(choices - 1)
+                   .Select(c => (new[] { e }).Concat(c));
+           });
+
 
         /// <summary>
         ///  Fisher-Yates-Durstenfeld shuffle http://en.wikipedia.org/wiki/Fisher%E2%80%93Yates_shuffle#The_modern_algorithm
@@ -239,6 +262,45 @@ namespace Axis.Luna.Extensions
                 yield return predicate?.Invoke(v) ?? false ?
                              projection(v) :
                              v;
+            }
+        }
+
+
+        /// <summary>
+        /// Skips every <c>skipCount</c> number of elements and takes one element after skipping. The process starts by skipping
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="sequence"></param>
+        /// <param name="skipCount"></param>
+        /// <param name="until"></param>
+        /// <returns></returns>
+        public static IEnumerable<T> SkipEvery<T>(this IEnumerable<T> sequence, int skipCount, Func<long, T, bool> until = null)
+        {
+            var count = 0L;
+            var mod = skipCount + 1;
+            foreach (var t in sequence)
+            {
+                if (until?.Invoke(count, t) ?? false) yield return t;
+                else if ((++count) % mod == 0) yield return t;
+            }
+        }
+
+        /// <summary>
+        /// Takes every <c>takeCount</c> elements, and skips one element. The method starts by taking elements.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="sequence"></param>
+        /// <param name="takeCount"></param>
+        /// <param name="until"></param>
+        /// <returns></returns>
+        public static IEnumerable<T> TakeEvery<T>(this IEnumerable<T> sequence, int takeCount, Func<long, T, bool> until = null)
+        {
+            var count = 0L;
+            var mod = takeCount + 1;
+            foreach (var t in sequence)
+            {
+                if (until?.Invoke(count, t) ?? false) yield return t;
+                else if ((++count) % mod != 0) yield return t;
             }
         }
 
@@ -276,9 +338,9 @@ namespace Axis.Luna.Extensions
         public static int BatchCount<T>(this IEnumerable<T> source, int batchSize)
         => (int)Math.Round(((double)source.Count()) / batchSize, MidpointRounding.AwayFromZero);
 
-        public static IEnumerable<IQueryable<T>> Batch<T>(this IQueryable<T> source, int batchSize, int skipBatches = 0)
+        public static IEnumerable<IQueryable<T>> Batch<T>(this IOrderedQueryable<T> source, int batchSize, int skipBatches = 0)
         => BatchGroup(source, batchSize, skipBatches).Select(g => g.Value);
-        public static IEnumerable<KeyValuePair<int, IQueryable<T>>> BatchGroup<T>(this IQueryable<T> source, int batchSize, int skipBatches = 0)
+        public static IEnumerable<KeyValuePair<int, IQueryable<T>>> BatchGroup<T>(this IOrderedQueryable<T> source, int batchSize, int skipBatches = 0)
         {
             batchSize = Math.Abs(batchSize);
             int indx = Math.Abs(skipBatches);
