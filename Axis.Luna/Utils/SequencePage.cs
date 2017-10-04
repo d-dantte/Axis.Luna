@@ -39,8 +39,10 @@ namespace Axis.Luna
         /// <returns></returns>
         public long[] AdjacentIndexes(int span)
         {
-            var fullspan = (span.ThrowIf(_s => _s < 0, "invalid span: " + span) * 2) + 1;
-            long start = 0, 
+            if (span < 0) throw new Exception("invalid span: " + span);
+
+            var fullspan = (span * 2) + 1;
+            long start = 0,
                  count = 0;
 
             if (fullspan >= PageCount) count = PageCount;

@@ -105,7 +105,6 @@ namespace Axis.Luna.Utils
         public R InvokeStaticFunc<R>(params object[] @params) => (R)InvokeStaticFunc(@params);
 
         public void InvokeAction(object instance, params object[] @params) => _actionInvoker(instance, @params);
-
         public void InvokeStaticAction(params object[] @params) => _staticActionInvoker(@params);
     }
 }

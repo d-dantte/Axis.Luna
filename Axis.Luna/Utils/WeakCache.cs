@@ -55,8 +55,8 @@ namespace Axis.Luna
         public WeakCache InvalidateAll()
         {
             _cache.Keys
-                  .ToArray()
-                  .ForAll((_cnt, _next) => Invalidate(_next));
+                  .ToArray() //<-- get a snapshot of the keys
+                  .ForAll(_next => Invalidate(_next));
 
             return this;
         }
