@@ -276,12 +276,13 @@ namespace Axis.Luna.Extensions
         /// <returns></returns>
         public static IEnumerable<T> SkipEvery<T>(this IEnumerable<T> sequence, int skipCount, Func<long, T, bool> until = null)
         {
-            var count = 0L;
+            var count = -1L;
             var mod = skipCount + 1;
             foreach (var t in sequence)
             {
+                ++count;
                 if (until?.Invoke(count, t) ?? false) yield return t;
-                else if ((++count) % mod == 0) yield return t;
+                else if ((count + 1) % mod == 0) yield return t;
             }
         }
 
@@ -295,12 +296,13 @@ namespace Axis.Luna.Extensions
         /// <returns></returns>
         public static IEnumerable<T> TakeEvery<T>(this IEnumerable<T> sequence, int takeCount, Func<long, T, bool> until = null)
         {
-            var count = 0L;
+            var count = -1L;
             var mod = takeCount + 1;
             foreach (var t in sequence)
             {
+                ++count;
                 if (until?.Invoke(count, t) ?? false) yield return t;
-                else if ((++count) % mod != 0) yield return t;
+                else if ((count + 1) % mod != 0) yield return t;
             }
         }
 

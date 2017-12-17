@@ -1,10 +1,6 @@
 ﻿using Axis.Luna.Extensions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Axis.Luna.Test.Extensions
 {
@@ -85,7 +81,7 @@ namespace Axis.Luna.Test.Extensions
             Assert.IsTrue(r.SequenceEqual(new[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 }));
 
             r = seq6.TakeEvery(4).ToArray();
-            Assert.IsTrue(r.Length == 127);
+            Assert.IsTrue(r.Length == 126);
         }
     }
 }
