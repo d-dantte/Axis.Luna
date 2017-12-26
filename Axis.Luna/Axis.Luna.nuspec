@@ -2,7 +2,7 @@
 <package>
   <metadata>
     <id>Axis.Luna</id>
-    <version>3.1.0-pre-20171217-78482689</version>
+    <version>3.1.0</version>
     <authors>Dantte</authors>
     <owners>Axiis</owners>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
