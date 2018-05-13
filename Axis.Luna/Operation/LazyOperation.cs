@@ -35,7 +35,7 @@ namespace Axis.Luna.Operation
                     _exception = e;
                     Succeeded = false;
 
-                    throw e;
+                    throw;
                 }
             }
         }
@@ -52,7 +52,7 @@ namespace Axis.Luna.Operation
             catch(Exception e)
             {
                 error?.Invoke(e);
-                throw e;
+                throw;
             }
             continuation?.Invoke();
         });
@@ -67,7 +67,7 @@ namespace Axis.Luna.Operation
             catch(Exception e)
             {
                 error?.Invoke(e);
-                throw e;
+                throw;
             }
             return continuation == null ? default(R) : continuation.Invoke();
         });
@@ -83,7 +83,7 @@ namespace Axis.Luna.Operation
             catch (Exception e)
             {
                 error?.Invoke(e);
-                throw e;
+                throw;
             }
 
             continuation
@@ -101,7 +101,7 @@ namespace Axis.Luna.Operation
             catch (Exception e)
             {
                 error?.Invoke(e);
-                throw e;
+                throw;
             }
 
             var innerOp = continuation?.Invoke();
@@ -209,7 +209,7 @@ namespace Axis.Luna.Operation
                     _exception = e;
                     Succeeded = false;
 
-                    throw e;
+                    throw;
                 }
             }
 
@@ -229,7 +229,7 @@ namespace Axis.Luna.Operation
             catch (Exception e)
             {
                 error?.Invoke(e);
-                throw e;
+                throw;
             }
             continuation?.Invoke(_r);
         });
@@ -245,7 +245,7 @@ namespace Axis.Luna.Operation
             catch (Exception e)
             {
                 error?.Invoke(e);
-                throw e;
+                throw;
             }
 
             return continuation == null ? default(S) : continuation.Invoke(_r);
@@ -262,7 +262,7 @@ namespace Axis.Luna.Operation
             catch (Exception e)
             {
                 error?.Invoke(e);
-                throw e;
+                throw;
             }
 
             continuation
@@ -281,7 +281,7 @@ namespace Axis.Luna.Operation
             catch (Exception e)
             {
                 error?.Invoke(e);
-                throw e;
+                throw;
             }
 
             var innerOp = continuation?.Invoke(_r);
@@ -361,8 +361,8 @@ namespace Axis.Luna.Operation
         public static LazyOperation<R> Try<R>(Func<Lazy<R>> operation) => new LazyOperation<R>(operation());
         public static LazyOperation<R> Try<R>(Lazy<R> operation) => new LazyOperation<R>(operation);
 
-        public static LazyOperation Fail(Exception ex) => new LazyOperation(() => { throw ex; });
-        public static LazyOperation<R> Fail<R>(Exception ex) => new LazyOperation<R>(() => { throw ex; });
+        public static LazyOperation Fail(Exception ex) => new LazyOperation(() => { throw new Exception("See Inner Exception", ex); });
+        public static LazyOperation<R> Fail<R>(Exception ex) => new LazyOperation<R>(() => { throw new Exception("See Inner Exception", ex); });
 
 
         #region Lazy<R> helpers

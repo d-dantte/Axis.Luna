@@ -43,7 +43,7 @@ namespace Axis.Luna.Operation
             {
                 var e = _t.GetInnerException();
                 error?.Invoke(e);
-                throw e;
+                throw new Exception("See Inner Exception", e);
             }
 
             continuation?.Invoke();
@@ -56,7 +56,7 @@ namespace Axis.Luna.Operation
             {
                 var e = _t.GetInnerException();
                 error?.Invoke(e);
-                throw e;
+                throw new Exception("See Inner Exception", e);
             }
 
             return continuation == null ? default(R) : continuation.Invoke();
@@ -70,7 +70,7 @@ namespace Axis.Luna.Operation
             {
                 var e = _t.GetInnerException();
                 error?.Invoke(e);
-                throw e;
+                throw new Exception("See Inner Exception", e);
             }
 
             continuation
@@ -85,7 +85,7 @@ namespace Axis.Luna.Operation
             {
                 var e = _t.GetInnerException();
                 error?.Invoke(e);
-                throw e;
+                throw new Exception("See Inner Exception", e);
             }
 
             var innerOp = continuation?.Invoke();
@@ -159,7 +159,7 @@ namespace Axis.Luna.Operation
             {
                 var e = _t.GetInnerException();
                 error?.Invoke(e);
-                throw e;
+                throw new Exception("See Inner Exception", e);
             }
 
             continuation?.Invoke(_t.Result);
@@ -172,7 +172,7 @@ namespace Axis.Luna.Operation
             {
                 var e = _t.GetInnerException();
                 error?.Invoke(e);
-                throw e;
+                throw new Exception("See Inner Exception", e);
             }
 
             return continuation == null? default(S): continuation.Invoke(_t.Result);
@@ -186,7 +186,7 @@ namespace Axis.Luna.Operation
             {
                 var e = _t.GetInnerException();
                 error?.Invoke(e);
-                throw e;
+                throw new Exception("See Inner Exception", e);
             }
 
             continuation
@@ -201,7 +201,7 @@ namespace Axis.Luna.Operation
             {
                 var e = _t.GetInnerException();
                 error?.Invoke(e);
-                throw e;
+                throw new Exception("See Inner Exception", e);
             }
 
             var innerOp = continuation?.Invoke(_t.Result);
@@ -250,8 +250,8 @@ namespace Axis.Luna.Operation
         public static AsyncOperation<R> Try<R>(Func<Task<R>> operation) => new AsyncOperation<R>(operation());
         public static AsyncOperation<R> Try<R>(Task<R> operation) => new AsyncOperation<R>(operation);
 
-        public static AsyncOperation Fail(Exception ex) => new AsyncOperation(() => { throw ex; });
-        public static AsyncOperation<R> Fail<R>(Exception ex) => new AsyncOperation<R>(() => { throw ex; });
+        public static AsyncOperation Fail(Exception ex) => new AsyncOperation(() => { throw new Exception("See Inner Exception", ex); });
+        public static AsyncOperation<R> Fail<R>(Exception ex) => new AsyncOperation<R>(() => { throw new Exception("See Inner Exception", ex); });
 
 
         public static Exception GetInnerException(this Task t)

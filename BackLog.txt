@@ -85,3 +85,7 @@
 
 -	Add "EnumerableExtensions.SelectWhen", a method that does selective projections based on a predicate condition
 	[Done]
+
+-   Remove the DynamicMethodInvoker class from here, as it has been placed in it's own project
+
+-	Get rid of Resolved Operations.

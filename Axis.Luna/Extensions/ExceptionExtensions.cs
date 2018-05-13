@@ -43,7 +43,6 @@ namespace Axis.Luna.Extensions
            memberAccess.Member.Cast<FieldInfo>().GetValue(memberAccess.Expression.Cast<ConstantExpression>().Value) :
            memberAccess.Expression.Cast<MemberExpression>().CapturedValue();
 
-
         public static void Throw(this Exception e)
         {
             throw new Exception("See inner exception", e);
@@ -132,12 +131,19 @@ namespace Axis.Luna.Extensions
 
 
         public static V ThrowIf<V>(this V test, V compare, string exceptionMessage = null) => test.ThrowIf(compare, new Exception(exceptionMessage));
-
         public static V ThrowIf<V>(this V test, V compare, Exception ex)
         {
             if (EqualityComparer<V>.Default.Equals(test, compare)) throw ex ?? new Exception($"value is: {compare}");
             else return test;
         }
+
+        public static T ThrowIfNot<T>(this T value, T compare, Exception ex)
+        {
+            if (!EqualityComparer<T>.Default.Equals(value, compare)) throw new Exception("See Inner Exception", ex);
+            else return value;
+        }
+        public static T ThrowIfNot<T>(this T value, T compare, string message = null) => value.ThrowIfNot(compare, new Exception(message));
+
 
         public static string FlattenMessage(this Exception e, string separator)
         => e.Enumerate(ex => ResolvedOp.Try(() => ex.InnerException.ThrowIfNull()))

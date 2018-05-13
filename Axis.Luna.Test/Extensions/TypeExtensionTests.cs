@@ -47,6 +47,9 @@ namespace Axis.Luna.Test
 
             result = typeof(HashSet<int>).ImplementsGenericInterface(typeof(IList<>));
             Assert.IsFalse(result);
+
+            result = typeof(HashSet<int>).HasGenericAncestor(typeof(HashSet<>));
+            Assert.IsTrue(result);
         }
     }
 
