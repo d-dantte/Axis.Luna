@@ -57,6 +57,8 @@ namespace Axis.Luna.Operation.Async
 
         public Exception GetException() => _exception;
 
+        internal Task<Result> GetTask() => _task;
+
         public Result Resolve()
         {
             if (_exception != null)
@@ -80,15 +82,6 @@ namespace Axis.Luna.Operation.Async
         private Exception _exception;
         private Task _task;
         private AsyncAwaiter _taskAwaiter;
-
-
-        //internal AsyncOperation(Action task)
-        //{
-        //    if (task == null) throw new NullReferenceException("Invalid delegate supplied");
-
-        //    _task = Task.Run(task);
-        //    _taskAwaiter = new AsyncAwaiter(_task.GetAwaiter());
-        //}
 
         internal AsyncOperation(Func<Task> task)
         {
@@ -133,6 +126,8 @@ namespace Axis.Luna.Operation.Async
         public IAwaiter GetAwaiter() => _taskAwaiter;
 
         public Exception GetException() => _exception;
+
+        internal Task GetTask() => _task;
 
         public void Resolve()
         {

@@ -1,0 +1,14 @@
+﻿{
+  "IsAutoAssemblyCopyEnabled": false,
+  "Includes": [
+    {
+      "Source": "$(OutputPath)$(AssemblyName).dll",
+      "TargetPath": "lib\\net452"
+    }
+  ],
+  "Versions": [
+    {
+      "Version": "1.0.0"
+    }
+  ]
+}

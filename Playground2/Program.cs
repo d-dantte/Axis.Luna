@@ -1,6 +1,7 @@
 ﻿using Axis.Luna.Operation;
 using Axis.Luna.Operation.Utils;
 using System;
+using System.Runtime.ExceptionServices;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -8,6 +9,20 @@ namespace Playground2
 {
     class Program
     {
+        public event Action<string> SomeEvent;
+
+        public void whatever()
+        {
+            SomeEvent += x => Console.WriteLine(x);
+        }
+
+        public static void Main(string[] args)
+        {
+            var p = new Program();
+            p.whatever();
+        }
+
+
         static void Main_(string[] args)
         {
 
@@ -38,7 +53,7 @@ namespace Playground2
             Console.ReadKey();
         }
 
-        static void Main(string[] args)
+        static void Main__(string[] args)
         {
             var t = AwaitThem();
 
@@ -51,6 +66,26 @@ namespace Playground2
 
             Console.ReadKey();
         }
+
+        static void Main___(string[] args)
+        {
+            var task = Task.Run(() => Console.WriteLine("task has run"));
+            task.GetAwaiter().OnCompleted(() => Console.WriteLine($"first task completed as: {task.Status}"));
+            //Console.WriteLine($"task's status after waiting: {task.Status}");
+
+            task = Task.Run(() => throw new Exception("faulted"));
+            task.GetAwaiter().OnCompleted(() => Console.WriteLine($"first task completed as: {task.Status}"));
+            try
+            {
+            }
+            catch(Exception e)
+            {
+            }
+
+            Console.ReadKey();
+        }
+
+        public static Exception Raise() => new NullReferenceException();
 
 
         static async Task<string> AwaitThem()

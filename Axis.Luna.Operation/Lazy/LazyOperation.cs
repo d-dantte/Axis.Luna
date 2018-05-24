@@ -10,9 +10,9 @@ namespace Axis.Luna.Operation.Lazy
 
         internal LazyOperation(Func<Result> func)
         {
-            if (func == null) throw new NullReferenceException("Invalid delegate supplied");
+            var lazy = new Lazy<Result>(func ?? throw new NullReferenceException("Invalid delegate supplied"), true);
 
-            _awaiter = new LazyAwaiter<Result>(new Lazy<Result>(func, true));
+            _awaiter = new LazyAwaiter<Result>(lazy);
         }
 
         internal LazyOperation(Lazy<Result> lazy)
@@ -20,9 +20,7 @@ namespace Axis.Luna.Operation.Lazy
             _awaiter = new LazyAwaiter<Result>(lazy ?? throw new NullReferenceException("Invalid Lazy factory supplied"));
         }
 
-        public bool? Succeeded => _awaiter.IsCompleted ? true :
-                                  _exception != null ? (bool?)false :
-                                  null;
+        public bool? Succeeded => !_awaiter.IsCompleted ? null : (bool?)(_exception != null);
 
         public IAwaiter<Result> GetAwaiter() => _awaiter;
 
@@ -63,9 +61,7 @@ namespace Axis.Luna.Operation.Lazy
             true));
         }
 
-        public bool? Succeeded => _awaiter.IsCompleted ? true :
-                                  _exception != null ? (bool?)false :
-                                  null;
+        public bool? Succeeded => !_awaiter.IsCompleted ? null : (bool?)(_exception != null);
 
         public IAwaiter GetAwaiter() => _awaiter;
 
