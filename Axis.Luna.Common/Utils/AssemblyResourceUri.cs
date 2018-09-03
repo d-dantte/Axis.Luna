@@ -1,15 +1,16 @@
-﻿using static Axis.Luna.Extensions.ObjectExtensions;
-
-using System;
+﻿using System;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
-using System.Diagnostics;
 
-namespace Axis.Luna.Utils
+using Axis.Luna.Extensions;
+
+namespace Axis.Luna.Common.Utils
 {
+
     public class AssemblyResourceUri : Uri
     {
         static AssemblyResourceUri()
@@ -19,7 +20,7 @@ namespace Axis.Luna.Utils
         }
 
         /// <summary>
-        /// Creates a new Assembly resource uri on the form 
+        /// Creates a new Assembly resource uri of the form 
         /// "rx|arx://{assembly-short-name}/{path-to-resource-file}#{ResouceName}"
         /// </summary>
         /// <param name="uri"></param>
@@ -33,17 +34,16 @@ namespace Axis.Luna.Utils
             var isCompactRelative = uri.StartsWith(";/");
             if (!isCompactRelative && !uri.StartsWith("/")) throw new Exception("invalid uri");
 
-            return assemblyName.ValidateAssemblyName()
-                               .Pipe(asn => $"arx://{asn}{uri}")
-                               .Pipe(_uri => new AssemblyResourceUri(_uri));
+            var asn = assemblyName.ValidateAssemblyName();
+            var _uri = $"arx://{asn}{uri}";
+            return new AssemblyResourceUri(_uri);
         }
 
 
         private AssemblyResourceUri(string uri) : base(uri)
         {
-            IsCompact = ARUParser.HostFormat
-                                 .Match(uri)
-                                 .Pipe(m => m.Success && m.Value.Contains(";/"));
+            var matcher = ARUParser.HostFormat.Match(uri);
+            IsCompact = matcher.Success && matcher.Value.Contains(";/");
         }
 
         public bool IsCompact { get; private set; }
@@ -99,85 +99,85 @@ namespace Axis.Luna.Utils
             switch (components)
             {
                 case UriComponents.AbsoluteUri:
-                {
-                    var scheme = SchemeFormat.Match(uris);
-                    var host = HostFormat.Match(uris);
-                    var path = PathFormat.Match(uris);
-                    var frag = FragmentFormat.Match(uris);
-
-                    if (scheme.Success && path.Success)
                     {
-                        return scheme.Value
-                             + host.Value //the host is optional and will be empty if absent
-                             + path.Value
-                             + frag.Value; //frag is also optional and will be empty
+                        var scheme = SchemeFormat.Match(uris);
+                        var host = HostFormat.Match(uris);
+                        var path = PathFormat.Match(uris);
+                        var frag = FragmentFormat.Match(uris);
+
+                        if (scheme.Success && path.Success)
+                        {
+                            return scheme.Value
+                                 + host.Value //the host is optional and will be empty if absent
+                                 + path.Value
+                                 + frag.Value; //frag is also optional and will be empty
+                        }
+                        else return "";
                     }
-                    else return "";
-                }
                 case UriComponents.Path:
                 case UriComponents.PathAndQuery:
                 case UriComponents.Path | UriComponents.KeepDelimiter:
                 case UriComponents.Path | UriComponents.Query | UriComponents.KeepDelimiter:
-                {
-                    var host = GetComponents(uri, UriComponents.Host | UriComponents.KeepDelimiter, format);
-                    var isCompact = host.Contains(";");
-                    host = host.Replace("/", "").Replace(";", "");
-                    var path = PathFormat.Match(uris);
-                    if (path.Success)
                     {
-                        var sb = new StringBuilder();
-                        if (isCompact)
-                            sb.Append(path.Value.StartsWith("/") ? "/" : "").Append(host).Append(path.Value.StartsWith("/") ? "" : "/");
-                        sb.Append(path.Value);
-                        return sb.ToString();
+                        var host = GetComponents(uri, UriComponents.Host | UriComponents.KeepDelimiter, format);
+                        var isCompact = host.Contains(";");
+                        host = host.Replace("/", "").Replace(";", "");
+                        var path = PathFormat.Match(uris);
+                        if (path.Success)
+                        {
+                            var sb = new StringBuilder();
+                            if (isCompact)
+                                sb.Append(path.Value.StartsWith("/") ? "/" : "").Append(host).Append(path.Value.StartsWith("/") ? "" : "/");
+                            sb.Append(path.Value);
+                            return sb.ToString();
+                        }
+                        else return "";
                     }
-                    else return "";
-                }
                 case UriComponents.Host:
                 case UriComponents.HostAndPort:
                 case UriComponents.Host | UriComponents.Port:
                 case UriComponents.Host | UriComponents.KeepDelimiter:
-                {
-                    var host = HostFormat.Match(uris);
-                    if (host.Success)
                     {
-                        if (components.HasFlag(UriComponents.KeepDelimiter)) return host.Value;
-                        else return host.Value.Replace("/", "").Replace(";", "");
+                        var host = HostFormat.Match(uris);
+                        if (host.Success)
+                        {
+                            if (components.HasFlag(UriComponents.KeepDelimiter)) return host.Value;
+                            else return host.Value.Replace("/", "").Replace(";", "");
+                        }
+                        else return "";
+                        //{
+                        //    var aruri = uri as AssemblyResourceUri;
+                        //    if (aruri != null && !string.IsNullOrWhiteSpace(aruri.DefaultAssembly)) return aruri.DefaultAssembly;
+                        //    else return Assembly.GetExecutingAssembly().GetName().Name;
+                        //}
                     }
-                    else return "";
-                    //{
-                    //    var aruri = uri as AssemblyResourceUri;
-                    //    if (aruri != null && !string.IsNullOrWhiteSpace(aruri.DefaultAssembly)) return aruri.DefaultAssembly;
-                    //    else return Assembly.GetExecutingAssembly().GetName().Name;
-                    //}
-                }
                 case UriComponents.Fragment:
                 case UriComponents.Fragment | UriComponents.KeepDelimiter:
-                {
-                    var frag = FragmentFormat.Match(uris);
-                    if (frag.Success)
                     {
-                        if (components.HasFlag(UriComponents.KeepDelimiter)) return frag.Value;
-                        else return frag.Value.Replace("#", "");
+                        var frag = FragmentFormat.Match(uris);
+                        if (frag.Success)
+                        {
+                            if (components.HasFlag(UriComponents.KeepDelimiter)) return frag.Value;
+                            else return frag.Value.Replace("#", "");
+                        }
+                        else return "";
                     }
-                    else return "";
-                }
                 case UriComponents.NormalizedHost:
-                {
-                    var host = GetComponents(uri, UriComponents.Host, format);
-                    return host.ToLower();
-                }
+                    {
+                        var host = GetComponents(uri, UriComponents.Host, format);
+                        return host.ToLower();
+                    }
                 case UriComponents.Scheme:
                 case UriComponents.Scheme | UriComponents.KeepDelimiter:
-                {
-                    var scheme = SchemeFormat.Match(uris);
-                    if (scheme.Success)
                     {
-                        if (components.HasFlag(UriComponents.KeepDelimiter)) return scheme.Value;
-                        else return scheme.Value.Replace(":", "");
+                        var scheme = SchemeFormat.Match(uris);
+                        if (scheme.Success)
+                        {
+                            if (components.HasFlag(UriComponents.KeepDelimiter)) return scheme.Value;
+                            else return scheme.Value.Replace(":", "");
+                        }
+                        else return "";
                     }
-                    else return "";
-                }
                 default: return "";
             }
         }

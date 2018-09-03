@@ -1,55 +1,70 @@
 ﻿using System;
 using System.Runtime.ExceptionServices;
+using System.Threading.Tasks;
 
 namespace Axis.Luna.Operation.Lazy
 {
-    public class LazyOperation<Result>: IOperation<Result>
+    //[DebuggerStepThrough]
+    public class LazyOperation<R> : Operation<R>
     {
-        private Exception _exception;
-        private LazyAwaiter<Result> _awaiter;
+        private OperationError _error;
+        private LazyAwaiter<R> _awaiter;
 
-        internal LazyOperation(Func<Result> func)
+        internal LazyOperation(Func<R> func, Func<Task> rollBack = null)
         {
-            var lazy = new Lazy<Result>(func ?? throw new NullReferenceException("Invalid delegate supplied"), true);
+            if (func == null) throw new NullReferenceException("Invalid delegate supplied");
 
-            _awaiter = new LazyAwaiter<Result>(lazy);
+            _awaiter = new LazyAwaiter<R>(new Lazy<R>(func, true), rollBack);
         }
 
-        internal LazyOperation(Lazy<Result> lazy)
+        internal LazyOperation(Lazy<R> lazy, Func<Task> rollBack = null)
         {
-            _awaiter = new LazyAwaiter<Result>(lazy ?? throw new NullReferenceException("Invalid Lazy factory supplied"));
+            _awaiter = new LazyAwaiter<R>(lazy ?? throw new NullReferenceException("Invalid Lazy factory supplied"), rollBack);
         }
 
-        public bool? Succeeded => !_awaiter.IsCompleted ? null : (bool?)(_exception != null);
+        public override bool? Succeeded => !_awaiter.IsCompleted ? null : (bool?)(_error == null);
 
-        public IAwaiter<Result> GetAwaiter() => _awaiter;
 
-        public Exception GetException() => _exception;
+        public override IAwaiter<R> GetAwaiter() => _awaiter;
 
-        public Result Resolve()
+        public override OperationError Error => _error;
+
+        public override R Resolve()
         {
-            if (_exception != null)
-                ExceptionDispatchInfo.Capture(GetException()).Throw();
+            if (_error?.GetException() != null)
+                ExceptionDispatchInfo.Capture(_error.GetException()).Throw();
 
             try
             {
                 return _awaiter.GetResult();
             }
+            catch (OperationException oe)
+            {
+                _error = oe.Error;
+                ExceptionDispatchInfo.Capture(_error.GetException()).Throw();
+
+                //never reached
+                throw oe;
+            }
             catch (Exception e)
             {
-                _exception = e;
+                _error = new OperationError(e)
+                {
+                    Message = e.Message,
+                    Code = "GeneralError"
+                };
                 throw;
             }
         }
     }
-    
 
-    public class LazyOperation : IOperation
+
+    public class LazyOperation : Operation
     {
-        private Exception _exception;
+        private OperationError _error;
         private LazyAwaiter _awaiter;
 
-        internal LazyOperation(Action action)
+        internal LazyOperation(Action action, Func<Task> rollBack = null)
         {
             if (action == null) throw new NullReferenceException("Invalid delegate supplied");
 
@@ -57,28 +72,40 @@ namespace Axis.Luna.Operation.Lazy
             {
                 action.Invoke();
                 return true;
-            }, 
-            true));
+            },
+            true), rollBack);
         }
 
-        public bool? Succeeded => !_awaiter.IsCompleted ? null : (bool?)(_exception != null);
+        public override bool? Succeeded => !_awaiter.IsCompleted ? null : (bool?)(_error == null);
 
-        public IAwaiter GetAwaiter() => _awaiter;
+        public override OperationError Error => _error;
 
-        public Exception GetException() => _exception;
+        public override IAwaiter GetAwaiter() => _awaiter;
 
-        public void Resolve()
+        public override void Resolve()
         {
-            if (_exception != null)
-                ExceptionDispatchInfo.Capture(_exception).Throw();
+            if (_error?.GetException() != null)
+                ExceptionDispatchInfo.Capture(_error.GetException()).Throw();
 
             try
             {
                 _awaiter.GetResult();
             }
+            catch (OperationException oe)
+            {
+                _error = oe.Error;
+                ExceptionDispatchInfo.Capture(_error.GetException()).Throw();
+
+                //never reached
+                throw oe;
+            }
             catch (Exception e)
             {
-                _exception = e;
+                _error = new OperationError(e)
+                {
+                    Message = e.Message,
+                    Code = "GeneralError"
+                };
                 throw;
             }
         }

@@ -67,12 +67,6 @@
     <Compile Include="Extensions\TypeExtensionTests.cs" />
     <Compile Include="Utils\RandomAlphaNumericGeneratorTests.cs" />
   </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\Axis.Luna\Axis.Luna.csproj">
-      <Project>{dc15dc69-5965-4769-9cfd-f7917fac5dd9}</Project>
-      <Name>Axis.Luna</Name>
-    </ProjectReference>
-  </ItemGroup>
   <ItemGroup />
   <Choose>
     <When Condition="'$(VisualStudioVersion)' == '10.0' And '$(IsCodedUITest)' == 'True'">

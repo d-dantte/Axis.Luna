@@ -1,113 +1,97 @@
 ﻿using System;
 using System.Runtime.ExceptionServices;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Axis.Luna.Operation.Async
 {
-    public class AsyncOperation<Result> : IOperation<Result>
+
+    public class AsyncOperation<R> : Operation<R>
     {
-        private Exception _exception;
-        private Task<Result> _task;
-        private AsyncAwaiter<Result> _taskAwaiter;
+        private OperationError _error;
+        private Task<R> _task;
+        private AsyncAwaiter<R> _taskAwaiter;
 
 
-        internal AsyncOperation(Func<Task<Result>> task)
+        internal AsyncOperation(Func<Task<R>> taskProducer, Func<Task> rollBack = null)
         {
+            if (taskProducer == null)
+                throw new NullReferenceException("Invalid Task Producer Supplied");
+
+            var cxt = SynchronizationContext.Current;
             try
             {
-                _task = task?.Invoke() ?? throw new NullReferenceException("Invalid delegate supplied");
+                SynchronizationContext.SetSynchronizationContext(null);
+
+                _task = taskProducer?.Invoke();
                 if (_task.Status == TaskStatus.Created) _task.Start();
+                _taskAwaiter = new AsyncAwaiter<R>(_task.GetAwaiter());
 
-                _taskAwaiter = new AsyncAwaiter<Result>(_task.GetAwaiter());
-            }
-            catch(Exception e)
-            {
-                _exception = e;
-                _task = Task.FromException<Result>(e);
-                _taskAwaiter = new AsyncAwaiter<Result>(_task.GetAwaiter());
-            }
-        }
-
-        internal AsyncOperation(Task<Result> task)
-        {
-            _task = task ?? throw new NullReferenceException("Invalid task upplied");
-            if (_task.Status == TaskStatus.Created) _task.Start();
-
-            _taskAwaiter = new AsyncAwaiter<Result>(task.GetAwaiter());
-        }
-
-
-        public bool? Succeeded
-        {
-            get
-            {
-                switch(_task.Status)
+                if (rollBack != null) _task.ContinueWith(_t =>
                 {
-                    case TaskStatus.RanToCompletion: return true;
-
-                    case TaskStatus.Faulted:
-                    case TaskStatus.Canceled: return false;
-
-                    default: return null;
-                }
+                    if(_t.Status != TaskStatus.RanToCompletion)
+                    {
+                        var rollbackTask = rollBack.Invoke();
+                        if (rollbackTask.Status == TaskStatus.Created) rollbackTask.Start(); // or .RunSynchroniously() ?
+                        rollbackTask.Wait(); //wait till it finishes
+                    }
+                });
             }
-        }
 
-        public IAwaiter<Result> GetAwaiter() => _taskAwaiter;
-
-        public Exception GetException() => _exception;
-
-        internal Task<Result> GetTask() => _task;
-
-        public Result Resolve()
-        {
-            if (_exception != null)
-                ExceptionDispatchInfo.Capture(_exception).Throw();
-
-            try
+            #region Exceptions thrown from the producer
+            catch (OperationException oe)
             {
-                return _task.Result;
-            }
-            catch(Exception e)
-            {
-                _exception = e;
-                throw;
-            }
-        }
-    }
-
-
-    public class AsyncOperation: IOperation
-    {
-        private Exception _exception;
-        private Task _task;
-        private AsyncAwaiter _taskAwaiter;
-
-        internal AsyncOperation(Func<Task> task)
-        {
-            _task = task?.Invoke() ?? throw new NullReferenceException("Invalid delegate supplied");
-            if (_task.Status == TaskStatus.Created) _task.Start();
-
-            _taskAwaiter = new AsyncAwaiter(_task.GetAwaiter());
-        }
-
-        internal AsyncOperation(Task task)
-        {
-            try
-            {
-                _task = task ?? throw new NullReferenceException("Invalid task upplied");
-                _taskAwaiter = new AsyncAwaiter(task.GetAwaiter());
+                _error = oe.Error;
+                _task = Task.FromException<R>(_error.GetException());
+                _taskAwaiter = new AsyncAwaiter<R>(_task.GetAwaiter());
             }
             catch (Exception e)
             {
-                _exception = e;
-                _task = Task.FromException(e);
-                _taskAwaiter = new AsyncAwaiter(_task.GetAwaiter());
+                _error = new OperationError(e)
+                {
+                    Code = "GeneralError",
+                    Message = e.Message
+                };
+                _task = Task.FromException<R>(e);
+                _taskAwaiter = new AsyncAwaiter<R>(_task.GetAwaiter());
+            }
+            #endregion
+
+            finally
+            {
+                SynchronizationContext.SetSynchronizationContext(cxt);
+            }
+        }
+
+        internal AsyncOperation(Task<R> task, Func<Task> rollBack = null)
+        {
+            var cxt = SynchronizationContext.Current;
+            try
+            {
+                SynchronizationContext.SetSynchronizationContext(null);
+                _task = task ?? throw new NullReferenceException("Invalid task supplied");
+                if (_task.Status == TaskStatus.Created) _task.Start();
+
+                _taskAwaiter = new AsyncAwaiter<R>(task.GetAwaiter());
+
+                if (rollBack != null) _task.ContinueWith(_t =>
+                {
+                    if (_t.Status != TaskStatus.RanToCompletion)
+                    {
+                        var rollbackTask = rollBack.Invoke();
+                        if (rollbackTask.Status == TaskStatus.Created) rollbackTask.Start(); // or .RunSynchroniously() ?
+                        rollbackTask.Wait(); //wait till it finishes
+                    }
+                });
+            }
+            finally
+            {
+                SynchronizationContext.SetSynchronizationContext(cxt);
             }
         }
 
 
-        public bool? Succeeded
+        public override bool? Succeeded
         {
             get
             {
@@ -123,24 +107,171 @@ namespace Axis.Luna.Operation.Async
             }
         }
 
-        public IAwaiter GetAwaiter() => _taskAwaiter;
+        public override OperationError Error => _error;
 
-        public Exception GetException() => _exception;
 
-        internal Task GetTask() => _task;
+        public override IAwaiter<R> GetAwaiter() => _taskAwaiter;
 
-        public void Resolve()
+        internal Task<R> GetTask() => _task;
+
+        public override R Resolve()
         {
-            if (_exception != null)
-                ExceptionDispatchInfo.Capture(_exception).Throw();
+            if (_error?.GetException() != null)
+                ExceptionDispatchInfo.Capture(_error.GetException()).Throw();
 
             try
             {
-                _task.GetAwaiter().GetResult();
+                return _taskAwaiter.GetResult();
+            }
+            catch(OperationException oe)
+            {
+                _error = oe.Error;
+                ExceptionDispatchInfo.Capture(_error.GetException()).Throw();
+
+                //never reached
+                throw oe;
             }
             catch (Exception e)
             {
-                _exception = e;
+                _error = new OperationError(e)
+                {
+                    Message = e.Message,
+                    Code = "GeneralError"
+                };
+                throw;
+            }
+        }
+    }
+
+
+    public class AsyncOperation : Operation
+    {
+        private OperationError _error;
+        private Task _task;
+        private AsyncAwaiter _taskAwaiter;
+
+        internal AsyncOperation(Func<Task> taskProducer, Func<Task> rollBack = null)
+        {
+            if (taskProducer == null)
+                throw new NullReferenceException("Invalid Task Producer Supplied");
+
+            var cxt = SynchronizationContext.Current;
+            try
+            {
+                SynchronizationContext.SetSynchronizationContext(null);
+
+                _task = taskProducer?.Invoke() ?? throw new NullReferenceException("Invalid delegate supplied");
+                if (_task.Status == TaskStatus.Created) _task.Start();
+                _taskAwaiter = new AsyncAwaiter(_task.GetAwaiter());
+
+                if (rollBack != null) _task.ContinueWith(_t =>
+                {
+                    if (_t.Status != TaskStatus.RanToCompletion)
+                    {
+                        var rollbackTask = rollBack.Invoke();
+                        if (rollbackTask.Status == TaskStatus.Created) rollbackTask.Start(); // or .RunSynchroniously() ?
+                        rollbackTask.Wait(); //wait till it finishes
+                    }
+                });
+            }
+
+            #region Exceptions thrown from the producer
+            catch (OperationException oe)
+            {
+                _error = oe.Error;
+                _task = Task.FromException(_error.GetException());
+                _taskAwaiter = new AsyncAwaiter(_task.GetAwaiter());
+            }
+            catch (Exception e)
+            {
+                _error = new OperationError(e)
+                {
+                    Code = "GeneralError",
+                    Message = e.Message
+                };
+                _task = Task.FromException(e);
+                _taskAwaiter = new AsyncAwaiter(_task.GetAwaiter());
+            }
+            #endregion
+
+            finally
+            {
+                SynchronizationContext.SetSynchronizationContext(cxt);
+            }
+        }
+
+        internal AsyncOperation(Task task, Func<Task> rollBack = null)
+        {
+            var cxt = SynchronizationContext.Current;
+            try
+            {
+                SynchronizationContext.SetSynchronizationContext(null);
+                _task = task ?? throw new NullReferenceException("Invalid task upplied");
+                _taskAwaiter = new AsyncAwaiter(task.GetAwaiter());
+
+                if (rollBack != null) _task.ContinueWith(_t =>
+                {
+                    if (_t.Status != TaskStatus.RanToCompletion)
+                    {
+                        var rollbackTask = rollBack.Invoke();
+                        if (rollbackTask.Status == TaskStatus.Created) rollbackTask.Start(); // or .RunSynchroniously() ?
+                        rollbackTask.Wait(); //wait till it finishes
+                    }
+                });
+            }
+            finally
+            {
+                SynchronizationContext.SetSynchronizationContext(cxt);
+            }
+        }
+
+
+        public override bool? Succeeded
+        {
+            get
+            {
+                switch (_task.Status)
+                {
+                    case TaskStatus.RanToCompletion: return true;
+
+                    case TaskStatus.Faulted:
+                    case TaskStatus.Canceled: return false;
+
+                    default: return null;
+                }
+            }
+        }
+
+        public override IAwaiter GetAwaiter() => _taskAwaiter;
+
+        public override OperationError Error => _error;
+
+        internal Task GetTask() => _task;
+
+        public override void Resolve()
+        {
+            if (_error?.GetException() != null)
+                ExceptionDispatchInfo.Capture(_error.GetException()).Throw();
+
+            try
+            {
+                _taskAwaiter.GetResult();
+            }
+            catch (OperationException oe)
+            {
+                _error = oe.Error;
+                ExceptionDispatchInfo.Capture(_error.GetException()).Throw();
+
+                //never reached
+                throw oe;
+            }
+            catch (Exception e)
+            {
+                _error = new OperationError(e)
+                {
+                    Message = e.Message,
+                    Code = "GeneralError"
+                };
                 throw;
             }
         }

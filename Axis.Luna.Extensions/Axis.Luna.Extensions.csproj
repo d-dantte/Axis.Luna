@@ -3,6 +3,11 @@
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <AssemblyVersion>4.0.0.0</AssemblyVersion>
+    <FileVersion>4.0.0.0</FileVersion>
+    <Authors>Dantte</Authors>
+    <Company>Axiis</Company>
+    <PackageTags>common extensions</PackageTags>
     <Version>4.0.0</Version>
   </PropertyGroup>
 
