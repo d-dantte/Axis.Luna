@@ -7,8 +7,8 @@ namespace Axis.Luna.Operation.Lazy
 
     public struct LazyAwaiter : IAwaiter
     {
-        private Lazy<object> _lazy;
-        private Func<Task> _rollBack;
+        private readonly Lazy<object> _lazy;
+        private readonly Func<Task> _rollBack;
 
         public LazyAwaiter(Lazy<object> lazy, Func<Task> rollBack)
         {
@@ -56,8 +56,8 @@ namespace Axis.Luna.Operation.Lazy
 
     public struct LazyAwaiter<Result> : IAwaiter<Result>
     {
-        private Lazy<Result> _lazy;
-        private Func<Task> _rollBack;
+        private readonly Lazy<Result> _lazy;
+        private readonly Func<Task> _rollBack;
 
         public LazyAwaiter(Lazy<Result> lazy, Func<Task> rollBack)
         {

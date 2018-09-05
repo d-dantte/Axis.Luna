@@ -5,9 +5,9 @@ namespace Axis.Luna.Operation.Sync
 
     public class SyncOperation<R> : Operation<R>
     {
-        private SyncAwaiter<R> _awaiter;
         private OperationError _error;
-        private bool _succeeded;
+        private readonly SyncAwaiter<R> _awaiter;
+        private readonly bool _succeeded;
 
         internal SyncOperation(R value)
         {
