@@ -7,7 +7,7 @@ using System.Runtime.ExceptionServices;
 
 namespace Axis.Luna.Extensions
 {
-    public static class Exception
+    public static class ExceptionExtension
     {
         public static void ThrowNullArguments(this IEnumerable<Expression<Func<object>>> expressions)
         => ThrowNullArguments(expressions.ToArray());
