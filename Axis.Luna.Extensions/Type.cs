@@ -79,7 +79,7 @@ namespace Axis.Luna.Extensions
 
         public static bool HasGenericAncestor(this Type type, Type genericDefinitionAncestorType)
         {
-            if (!genericDefinitionAncestorType.IsGenericTypeDefinition) throw new Exception("ancestor is not a generic type definition");
+            if (!genericDefinitionAncestorType.IsGenericTypeDefinition) throw new System.Exception("ancestor is not a generic type definition");
             return type
                 .BaseTypes()
                 .Where(_bt => _bt != type)
@@ -160,7 +160,7 @@ namespace Axis.Luna.Extensions
         public static object PropertyValue(this object obj, string property)
         {
             object val = null;
-            if (!obj.TryPropertyValue(property, ref val)) throw new Exception();
+            if (!obj.TryPropertyValue(property, ref val)) throw new System.Exception();
             else return val;
         }
 
@@ -247,7 +247,7 @@ namespace Axis.Luna.Extensions
         public static object FieldValue(this object obj, string field)
         {
             object val = null;
-            if (!obj.TryFieldValue(field, ref val)) throw new Exception();
+            if (!obj.TryFieldValue(field, ref val)) throw new System.Exception();
             else return val;
         }
         public static V FieldValue<V>(this object obj, string field) => (V)obj.FieldValue(field);

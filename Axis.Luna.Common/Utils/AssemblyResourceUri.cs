@@ -32,7 +32,7 @@ namespace Axis.Luna.Common.Utils
             var assemblyName = callerAssembly ?? new StackFrame(1).GetMethod().DeclaringType.Assembly.GetName().Name;
             uri = uri.Trim();
             var isCompactRelative = uri.StartsWith(";/");
-            if (!isCompactRelative && !uri.StartsWith("/")) throw new Exception("invalid uri");
+            if (!isCompactRelative && !uri.StartsWith("/")) throw new System.Exception("invalid uri");
 
             var asn = assemblyName.ValidateAssemblyName();
             var _uri = $"arx://{asn}{uri}";
@@ -197,7 +197,7 @@ namespace Axis.Luna.Common.Utils
 
         internal static string ValidateAssemblyName(this string defaultAssembly)
         {
-            if (defaultAssembly == null) throw new Exception("null assembly root");
+            if (defaultAssembly == null) throw new System.Exception("null assembly root");
 
             else if (string.Empty.Equals(defaultAssembly.Trim()))
                 throw new ArgumentException(nameof(defaultAssembly));
