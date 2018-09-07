@@ -13,10 +13,10 @@ namespace Axis.Luna.Extensions
     [DebuggerStepThrough]
     public static class TypeExtensions
     {
-        private static ConcurrentDictionary<Type, object> TypeDefaults = new ConcurrentDictionary<Type, object>();
-        private static ConcurrentDictionary<Type, string> MinimalAQNames = new ConcurrentDictionary<Type, string>();
-        private static ConcurrentDictionary<string, Func<object, object>> AccessorCache = new ConcurrentDictionary<string, Func<object, object>>();
-        private static ConcurrentDictionary<string, Action<object, object>> MutatorCache = new ConcurrentDictionary<string, Action<object, object>>();
+        private static readonly ConcurrentDictionary<Type, Func<object>> TypeDefaultsProducer = new ConcurrentDictionary<Type, Func<object>>();
+        private static readonly ConcurrentDictionary<Type, string> MinimalAQNames = new ConcurrentDictionary<Type, string>();
+        //private static ConcurrentDictionary<string, Func<object, object>> AccessorCache = new ConcurrentDictionary<string, Func<object, object>>();
+        //private static ConcurrentDictionary<string, Action<object, object>> MutatorCache = new ConcurrentDictionary<string, Action<object, object>>();
 
         #region Helpers
         private static string AccessorSignature(this PropertyInfo pinfo)
@@ -28,6 +28,9 @@ namespace Axis.Luna.Extensions
         private static string AccessorSignature(this FieldInfo finfo)
         => $"[{finfo.DeclaringType.MinimalAQName()}].@{finfo.Name}";
         #endregion
+
+
+        #region Attributes
 
         public static bool HasAttribute(this Type type, Type attributeType)
         => type.GetCustomAttribute(attributeType) != null;
@@ -41,8 +44,8 @@ namespace Axis.Luna.Extensions
         public static bool HasAttribute<A>(this MemberInfo member)
         where A : Attribute => member.GetCustomAttribute<A>() != null;
 
-        public static object DefaultValue(this Type type)
-        => type.IsValueType ? TypeDefaults.GetOrAdd(type, t => Activator.CreateInstance(t)) : null;
+        #endregion
+
 
         #region Type Names
         public static string MinimalAQName(this Type type)
@@ -77,6 +80,9 @@ namespace Axis.Luna.Extensions
         }
         #endregion
 
+
+        #region Inheritance
+
         public static bool HasGenericAncestor(this Type type, Type genericDefinitionAncestorType)
         {
             if (!genericDefinitionAncestorType.IsGenericTypeDefinition) throw new System.Exception("ancestor is not a generic type definition");
@@ -90,6 +96,15 @@ namespace Axis.Luna.Extensions
 
         public static bool ImplementsGenericInterface(this Type type, Type genericDefinitionInterfaceType)
         => type.GetInterfaces().Any(_i => _i.IsGenericType && _i.GetGenericTypeDefinition() == genericDefinitionInterfaceType);
+
+        public static bool Implements(this Type type, Type firstInterface, params Type[] implementedInterfaces)
+        {
+            var interfaces = type.GetInterfaces();
+            return firstInterface.Enumerate()
+                .Union(implementedInterfaces)
+                .Where(intf => intf.IsInterface)
+                .All(interfaces.Contains);
+        }
 
         public static IEnumerable<Type> TypeLineage(this Type type) => type.GetInterfaces().Concat(type.BaseTypes());
 
@@ -105,8 +120,7 @@ namespace Axis.Luna.Extensions
 
         public static MemberInfo Member(Expression<Func<object>> expr)
         {
-            var lambda = expr as LambdaExpression;
-            if (lambda == null) return null;
+            if (!(expr is LambdaExpression lambda)) return null;
             else if (lambda.Body is UnaryExpression)
             {
                 var member = (lambda.Body as UnaryExpression).Operand as MemberExpression;
@@ -124,8 +138,7 @@ namespace Axis.Luna.Extensions
 
         public static MemberInfo Member<V>(Expression<Func<V>> expr)
         {
-            var lambda = expr as LambdaExpression;
-            if (lambda == null) return null;
+            if (!(expr is LambdaExpression lambda)) return null;
             else if (lambda.Body is UnaryExpression)
             {
                 var member = (lambda.Body as UnaryExpression).Operand as MemberExpression;
@@ -141,159 +154,164 @@ namespace Axis.Luna.Extensions
             else return null;
         }
 
+        #endregion
+
+
+        #region Property access
+
+        public static PropertyInfo Property<V>(Expression<Func<V>> expr) => Member(expr).Cast<PropertyInfo>();
+
+        public static PropertyInfo Property(this object obj, string property) => obj?.GetType()?.GetProperty(property);
+
+
+        public static V PropertyValue<V>(this object obj, string property)
+        {
+            if (!obj.TryGetPropertyValue<V>(property, out V val)) throw new System.Exception("Property value could not be retrieved");
+            else return val;
+        }
+
+        public static object PropertyValue(this object obj, string property)
+        {
+            if (!obj.TryGetPropertyValue(property, out object val)) throw new System.Exception("Property value could not be retrieved");
+            else return val;
+        }
+
+
+        public static bool TryGetPropertyValue<V>(this object obj, string property, out V val)
+        {
+            val = default(V); //<-- initial value
+            var propInfo = obj.Property(property);
+            if (propInfo == null) return false;
+            else
+            {
+                try
+                {
+                    val = propInfo.GetGetMethod().CallFunc<V>(obj);
+                    return true;
+                }
+                catch
+                {
+                    return false;
+                }
+            }
+        }
+
+        public static bool TryGetPropertyValue(this object obj, string property, out object val)
+        {
+            val = null; //<-- initial value
+            var propInfo = obj.Property(property);
+            if (propInfo == null) return false;
+            else
+            {
+                try
+                {
+                    val = propInfo.GetGetMethod().CallFunc(obj);
+                    return true;
+                }
+                catch
+                {
+                    return false;
+                }
+            }
+        }
+
+
+        public static object SetPropertyValue(this object obj, string propertyName, object value)
+        {
+            var propInfo = obj.Property(propertyName);
+            propInfo.GetSetMethod().CallAction(obj, value);
+
+            return value;
+        }
+
+        public static V SetPropertyValue<V>(this object obj, Expression<Func<V>> propertyExpression, V value)
+        => obj.SetPropertyValue(Property(propertyExpression).Name, value);
+
+        public static V SetPropertyValue<V>(this object obj, string propertyName, V value) 
+        => (V)obj.SetPropertyValue(propertyName, (object)value);
+
+        #endregion
+
+
+        #region Field access
+
+        //public static FieldInfo Field(Expression<Func<object>> expr)
+        //=> Member(expr).Cast<FieldInfo>();
+
+        //public static FieldInfo Field(this object obj, string fieldName)
+        //=> obj.GetType().GetField(fieldName);
+
+        //public static object FieldVaue(this object obj, Expression<Func<object>> expr)
+        //=> obj.FieldValue(Field(expr).Name);
+
+        //public static object FieldValue(this object obj, string field)
+        //{
+        //    if (!obj.TryGetFieldValue(field, out object val)) throw new System.Exception("Could not retrieve Field Value");
+        //    else return val;
+        //}
+
+        //public static V FieldValue<V>(this object obj, string field)
+        //{
+        //    if (!obj.TryGetFieldValue(field, out V val)) throw new System.Exception("Could not retrieve Field Value");
+        //    else return val;
+        //}
+
+        //public static bool TryGetFieldValue(this object obj, string field, out object val)
+        //{
+        //    val = null;
+        //    var f = obj.Field(field);
+        //    if (f == null) return false;
+        //    else
+        //    {
+        //        try
+        //        {
+        //            val = AccessorCache.GetOrAdd(f.AccessorSignature(), _sig =>
+        //            {
+        //                var objParam = Expression.Parameter(typeof(object), "obj");
+        //                var exp = Expression.Convert(Expression.PropertyOrField(Expression.Convert(objParam, f.DeclaringType), f.Name), typeof(object));
+        //                var lambda = Expression.Lambda(exp, objParam);
+        //                return (Func<object, object>)lambda.Compile();
+        //            })
+        //            .Invoke(obj);
+        //            return true;
+        //        }
+        //        catch
+        //        {
+        //            return false;
+        //        }
+        //    }
+        //}
+
+        //public static bool TryGetFieldValue<V>(this object obj, string field, out V val)
+        //{
+        //    var r = obj.TryGetFieldValue(field, out object oval);
+        //    val = r ? (V)oval : default(V);
+        //    return r;
+        //}
+
+        #endregion
+
+
+        #region Misc
+
+        public static object DefaultValue(this Type type)
+        {
+            var producer = TypeDefaultsProducer.GetOrAdd(type, _t =>
+            {
+                var @default = Expression.Default(_t);
+                var cast = Expression.Convert(@default, typeof(object));
+                var lambda = Expression.Lambda(typeof(Func<object>), cast);
+                return lambda.Compile().Cast<Func<object>>();
+            });
+
+            return producer.Invoke();
+        }
+
         public static bool IsPropertyAccessor(this MethodInfo method)
         => method.DeclaringType.GetProperties().Any(prop => prop.GetGetMethod() == method);
 
         public static bool IsPropertyMutator(this MethodInfo method)
         => method.DeclaringType.GetProperties().Any(prop => prop.GetSetMethod() == method);
-
-
-        #region Property access
-        public static PropertyInfo Property(Expression<Func<object>> expr) => Member(expr).Cast<PropertyInfo>();
-
-        public static PropertyInfo Property<V>(Expression<Func<V>> expr) => Member(expr).Cast<PropertyInfo>();
-
-        public static object PropertyValue(this object obj, Expression<Func<object>> expr) => Property(expr).GetValue(obj);
-
-        public static PropertyInfo Property(this object obj, string property) => obj?.GetType()?.GetProperty(property);
-
-        public static object PropertyValue(this object obj, string property)
-        {
-            object val = null;
-            if (!obj.TryPropertyValue(property, ref val)) throw new System.Exception();
-            else return val;
-        }
-
-        public static V PropertyValue<V>(this object obj, string property) => (V)obj.PropertyValue(property);
-
-        public static bool TryPropertyValue(this object obj, string property, ref object val)
-        {
-            var t = obj.GetType();
-            var prop = t.GetProperty(property);
-            if (prop == null) return false;
-            else
-            {
-                try
-                {
-                    val = AccessorCache.GetOrAdd(prop.AccessorSignature(), _sig =>
-                    {
-                        var objParam = Expression.Parameter(typeof(object), "obj");
-                        var exp = Expression.Convert(Expression.PropertyOrField(Expression.Convert(objParam, prop.DeclaringType), prop.Name), typeof(object));
-                        var lambda = Expression.Lambda(exp, objParam);
-                        return (Func<object, object>)lambda.Compile();
-                    })
-                    .Invoke(obj);
-                    return true;
-                }
-                catch
-                {
-                    return false;
-                }
-            }
-        }
-
-        public static bool TryPropertyValue<V>(this object obj, string property, ref V val)
-        {
-            object oval = val;
-            var r = obj.TryPropertyValue(property, ref oval);
-            val = (V)oval;
-            return r;
-        }
-
-        public static object SetPropertyValue(this object obj, Expression<Func<object>> propertyExpression, object value)
-        => obj.SetPropertyValue(Property(propertyExpression).Name, value);
-
-        public static object SetPropertyValue(this object obj, string propertyName, object value)
-        {
-            var property = obj.GetType().GetProperty(propertyName);
-
-            var mutator = MutatorCache.GetOrAdd(property.MutatorSignature(), _msig =>
-            {
-                //create a method that assigns the property: ((Model)obj).Property = (PropertyType)val;
-                ParameterExpression pmodel = Expression.Parameter(typeof(object), "obj"),
-                                    pvalue = Expression.Parameter(typeof(object), "val");
-                var lambda = Expression.Lambda(
-                    Expression.Block(
-                        Expression.Assign(
-                            Expression.MakeMemberAccess(
-                                Expression.Convert(pmodel, property.DeclaringType),
-                                property
-                            ),
-                            Expression.Convert(pvalue, property.PropertyType)
-                        ),
-                        Expression.Empty()
-                    ),
-                    pmodel, pvalue);
-
-                return (Action<object, object>)lambda.Compile();
-            });
-
-            mutator.Invoke(obj, value);
-
-            return value;
-        }
-
-
-        public static V SetPropertyValue<V>(this object obj, Expression<Func<V>> propertyExpression, V value)
-        => obj.SetPropertyValue(Property(propertyExpression).Name, value);
-        public static V SetPropertyValue<V>(this object obj, string propertyName, V value) => (V)obj.SetPropertyValue(propertyName, (object)value);
-        #endregion
-
-        #region Field access
-        public static FieldInfo Field(Expression<Func<object>> expr)
-            => Member(expr).Cast<FieldInfo>();
-        public static object FieldVaue(this object obj, Expression<Func<object>> expr)
-            => Field(expr).GetValue(obj);
-        public static object FieldValue(this object obj, string field)
-        {
-            object val = null;
-            if (!obj.TryFieldValue(field, ref val)) throw new System.Exception();
-            else return val;
-        }
-        public static V FieldValue<V>(this object obj, string field) => (V)obj.FieldValue(field);
-        public static bool TryFieldValue(this object obj, string field, ref object val)
-        {
-            var t = obj.GetType();
-            var f = t.GetField(field);
-            if (f == null) return false;
-            else
-            {
-                try
-                {
-                    val = AccessorCache.GetOrAdd(f.AccessorSignature(), _sig =>
-                    {
-                        var objParam = Expression.Parameter(typeof(object), "obj");
-                        var exp = Expression.Convert(Expression.PropertyOrField(Expression.Convert(objParam, f.DeclaringType), f.Name), typeof(object));
-                        var lambda = Expression.Lambda(exp, objParam);
-                        return (Func<object, object>)lambda.Compile();
-                    })
-                    .Invoke(obj);
-                    return true;
-                }
-                catch
-                {
-                    return false;
-                }
-            }
-        }
-        public static bool TryFieldValue<V>(this object obj, string field, ref V val)
-        {
-            object oval = val;
-            var r = obj.TryFieldValue(field, ref oval);
-            val = (V)oval;
-            return r;
-        }
-        #endregion
-
-        public static bool Implements(this Type type, Type firstInterface, params Type[] implementedInterfaces)
-        {
-            var interfaces = type.GetInterfaces();
-            return firstInterface.Enumerate()
-                .Union(implementedInterfaces)
-                .Where(intf => intf.IsInterface)
-                .All(interfaces.Contains);
-        }
-
 
         public static bool IsIntegral(this Type type) => Integrals.Contains(type);
 
@@ -317,5 +335,7 @@ namespace Axis.Luna.Extensions
             typeof(float),
             typeof(double)
         };
+
+        #endregion
     }
 }

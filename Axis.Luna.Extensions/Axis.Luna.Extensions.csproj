@@ -3,12 +3,12 @@
   <PropertyGroup>
     <TargetFrameworks>netstandard2.0;net461;netcoreapp2.0</TargetFrameworks>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-    <AssemblyVersion>4.0.0.0</AssemblyVersion>
-    <FileVersion>4.0.0.0</FileVersion>
+    <AssemblyVersion>4.0.1.0</AssemblyVersion>
+    <FileVersion>4.0.1.0</FileVersion>
     <Authors>Dantte</Authors>
     <Company>Axiis</Company>
     <PackageTags>common extensions</PackageTags>
-    <Version>4.0.0</Version>
+    <Version>4.0.1</Version>
   </PropertyGroup>
 
 </Project>

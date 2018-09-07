@@ -77,8 +77,15 @@ namespace Axis.Luna.Extensions
         /// <returns></returns>
         public static bool ExactlyAll<V>(this IEnumerable<V> enumerable, Func<V, bool> predicate)
         {
+            long count = 0;
+            Func<V, bool> xpredicate = _v =>
+            {
+                count++;
+                return predicate(_v);
+            };
+
             if (enumerable == null) return false;
-            else return enumerable.All(predicate);
+            else return enumerable.All(xpredicate) && count > 0;
         }
 
         public static IEnumerable<KeyValuePair<K, V>> PairWith<K, V>(this IEnumerable<K> keys, IEnumerable<V> values)
@@ -141,7 +148,7 @@ namespace Axis.Luna.Extensions
                 yield return generator.Invoke(cnt);
         }
 
-        public static IEnumerable<Task<V>> GenerateSequence<V>(this long repetitions, Func<long, Task<V>> generator)
+        public static IEnumerable<Task<V>> GenerateSequenceAsync<V>(this long repetitions, Func<long, Task<V>> generator)
         {
             for (long cnt = 0; cnt < repetitions; cnt++)
                 yield return generator.Invoke(cnt);
@@ -149,32 +156,26 @@ namespace Axis.Luna.Extensions
 
         public static T GetOrAdd<T>(this ICollection<T> collection, Func<T, bool> predicate, Func<T> generator)
         {
-            lock (collection)
-            {
-                var value = collection.FirstOrDefault(predicate);
-                if (EqualityComparer<T>.Default.Equals(value, default(T))) collection.Add(value = generator.Invoke());
-                return value;
-            }
+            var value = collection.FirstOrDefault(predicate);
+            if (EqualityComparer<T>.Default.Equals(value, default(T))) collection.Add(value = generator.Invoke());
+            return value;
         }
 
         public static async Task<T> GetOrAddAsync<T>(this ICollection<T> collection, Func<T, bool> predicate, Func<Task<T>> generator)
         {
-            return await AsyncLock(async () =>
+            T value;
+            if (collection.Any(predicate)) return collection.First(predicate);
+            else
             {
-                T value;
-                if (collection.Any(predicate)) return collection.First(predicate);
-                else
-                {
-                    collection.Add(value = await generator.Invoke());
-                    return value;
-                }
-            });
+                collection.Add(value = await generator.Invoke());
+                return value;
+            }
         }
 
         //convert the args to an enumerable
         public static IEnumerable<T> Enumerate<T>(this T value, params T[] args) => new T[] { value }.Concat(args);
 
-        public static IEnumerable<T> Enumerate<T>(params T[] values) => new List<T>(values ?? new T[0]);
+        public static IEnumerable<T> Enumerate<T>(params T[] values) => values ?? new T[0];
 
         public static int PositionOf<T>(this IEnumerable<T> enumerable, T item, IEqualityComparer<T> equalityComparer = null)
         {
@@ -292,16 +293,16 @@ namespace Axis.Luna.Extensions
         /// <typeparam name="T"></typeparam>
         /// <param name="sequence"></param>
         /// <param name="skipCount"></param>
-        /// <param name="until"></param>
+        /// <param name="whilenot">a condition that must be false for the skip process to happen</param>
         /// <returns></returns>
-        public static IEnumerable<T> SkipEvery<T>(this IEnumerable<T> sequence, int skipCount, Func<long, T, bool> until = null)
+        public static IEnumerable<T> SkipEvery<T>(this IEnumerable<T> sequence, int skipCount, Func<long, T, bool> whilenot = null)
         {
             var count = -1L;
             var mod = skipCount + 1;
             foreach (var t in sequence)
             {
                 ++count;
-                if (until?.Invoke(count, t) ?? false) yield return t;
+                if (whilenot?.Invoke(count, t) ?? false) yield return t;
                 else if ((count + 1) % mod == 0) yield return t;
             }
         }
@@ -312,16 +313,16 @@ namespace Axis.Luna.Extensions
         /// <typeparam name="T"></typeparam>
         /// <param name="sequence"></param>
         /// <param name="takeCount"></param>
-        /// <param name="until"></param>
+        /// <param name="whilenot">a condition that must be false for the skip process to happen</param>
         /// <returns></returns>
-        public static IEnumerable<T> TakeEvery<T>(this IEnumerable<T> sequence, int takeCount, Func<long, T, bool> until = null)
+        public static IEnumerable<T> TakeEvery<T>(this IEnumerable<T> sequence, int takeCount, Func<long, T, bool> whilenot = null)
         {
             var count = -1L;
             var mod = takeCount + 1;
             foreach (var t in sequence)
             {
                 ++count;
-                if (until?.Invoke(count, t) ?? false) yield return t;
+                if (whilenot?.Invoke(count, t) ?? false) yield return t;
                 else if ((count + 1) % mod != 0) yield return t;
             }
         }

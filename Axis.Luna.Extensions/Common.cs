@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 namespace Axis.Luna.Extensions
 {
 
-    [DebuggerStepThrough]
+    //[DebuggerStepThrough]
     public static class Common
     {
         /// <summary>
@@ -68,16 +68,30 @@ namespace Axis.Luna.Extensions
 
         public static T Cast<T>(this object value)
         {
-            if (value is IConvertible && typeof(IConvertible).IsAssignableFrom(typeof(T)))
-                return (T)Convert.ChangeType(value, typeof(T));
-            else return (T)value;
+            try
+            {
+                if (value is IConvertible && typeof(IConvertible).IsAssignableFrom(typeof(T)))
+                    return (T)Convert.ChangeType(value, typeof(T));
+                else return (T)value;
+            }
+            catch
+            {
+                return default(T);
+            }
         }
 
         public static T Cast<S, T>(this S value)
         {
-            if (value is IConvertible && typeof(IConvertible).IsAssignableFrom(typeof(T)))
-                return (T)Convert.ChangeType(value, typeof(T));
-            else return (T)(object)value;
+            try
+            {
+                if (value is IConvertible && typeof(IConvertible).IsAssignableFrom(typeof(T)))
+                    return (T)Convert.ChangeType(value, typeof(T));
+                else return (T)(object)value;
+            }
+            catch
+            {
+                return default(T);
+            }
         }
 
         public static dynamic AsDynamic(this object value) => value;
@@ -142,12 +156,12 @@ namespace Axis.Luna.Extensions
 
             foreach (var prop in tobj.GetProperties().Where(_p => !ignoredProperties.Contains(_p.Name)))
             {
-                var svalue = prop.GetValue(source);
+                var svalue = source.PropertyValue(prop.Name);
                 if (mode == ObjectCopyMode.Replace
                     || (mode == ObjectCopyMode.IgnoreNulls && svalue != null)
                     || (mode == ObjectCopyMode.IgnoreNullsAndDefaults && svalue != prop.PropertyType.DefaultValue())
                     || (mode == ObjectCopyMode.CopyModified && !(svalue?.Equals(prop.GetValue(dest)) ?? false)))
-                    prop.SetValue(dest, svalue);
+                    dest.SetPropertyValue(prop.Name, svalue);
             }
             return source;
         }
