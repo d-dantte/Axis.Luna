@@ -66,7 +66,7 @@ namespace Axis.Luna.Extensions
 
         public static KeyValuePair<K, V> ValuePair<K, V>(this K key, V value) => new KeyValuePair<K, V>(key, value);
 
-        public static T Cast<T>(this object value)
+        public static T As<T>(this object value)
         {
             try
             {
@@ -80,7 +80,7 @@ namespace Axis.Luna.Extensions
             }
         }
 
-        public static T Cast<S, T>(this S value)
+        public static T As<S, T>(this S value)
         {
             try
             {
@@ -314,7 +314,7 @@ namespace Axis.Luna.Extensions
 
         public override bool Equals(object obj)
         {
-            var other = obj.Cast<CastVector>();
+            var other = obj.As<CastVector>();
 
             return other != null &&
                    other.From == From &&

@@ -54,7 +54,7 @@ namespace Axis.Luna.Extensions
                     _actionInvoker = Expression
                         .Lambda(typeof(Action<object, object[]>), callExp, instanceParam, argsParamExp)
                         .Compile()
-                        .Cast<Action<object, object[]>>();
+                        .As<Action<object, object[]>>();
 
                 else
                 {
@@ -64,7 +64,7 @@ namespace Axis.Luna.Extensions
                     _funcInvoker = Expression
                         .Lambda(typeof(Func<object, object[], object>), lambdaExpression, instanceParam, argsParamExp)
                         .Compile()
-                        .Cast<Func<object, object[], object>>();
+                        .As<Func<object, object[], object>>();
                 }
             }
             #endregion
@@ -93,7 +93,7 @@ namespace Axis.Luna.Extensions
                     _staticActionInvoker = Expression
                         .Lambda(typeof(Action<object[]>), callExp, argsParamExp)
                         .Compile()
-                        .Cast<Action<object[]>>();
+                        .As<Action<object[]>>();
 
                 else
                 {
@@ -103,7 +103,7 @@ namespace Axis.Luna.Extensions
                     _staticFuncInvoker = Expression
                         .Lambda(typeof(Func<object[], object>), lambdaExpression, argsParamExp)
                         .Compile()
-                        .Cast<Func<object[], object>>();
+                        .As<Func<object[], object>>();
                 }
             }
             #endregion

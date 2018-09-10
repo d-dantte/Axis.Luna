@@ -344,7 +344,7 @@ namespace Axis.Luna.Extensions
                 {
                     //cache the items before loading the kvp
                     var l = enumerator.enumerateSome(batchSize).ToList();
-                    yield return (indx++).ValuePair(l.Cast<IEnumerable<T>>());
+                    yield return (indx++).ValuePair(l.As<IEnumerable<T>>());
                 }
             }
         }

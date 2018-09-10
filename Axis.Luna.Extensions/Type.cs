@@ -159,7 +159,7 @@ namespace Axis.Luna.Extensions
 
         #region Property access
 
-        public static PropertyInfo Property<V>(Expression<Func<V>> expr) => Member(expr).Cast<PropertyInfo>();
+        public static PropertyInfo Property<V>(Expression<Func<V>> expr) => Member(expr).As<PropertyInfo>();
 
         public static PropertyInfo Property(this object obj, string property) => obj?.GetType()?.GetProperty(property);
 
@@ -301,7 +301,7 @@ namespace Axis.Luna.Extensions
                 var @default = Expression.Default(_t);
                 var cast = Expression.Convert(@default, typeof(object));
                 var lambda = Expression.Lambda(typeof(Func<object>), cast);
-                return lambda.Compile().Cast<Func<object>>();
+                return lambda.Compile().As<Func<object>>();
             });
 
             return producer.Invoke();

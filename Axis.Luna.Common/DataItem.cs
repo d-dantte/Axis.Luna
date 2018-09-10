@@ -15,7 +15,7 @@ namespace Axis.Luna.Common
         public override int GetHashCode() => ValueHash(Name.Enumerate());
 
         public override bool Equals(object obj)
-        => obj.Cast<DataItem>()
+        => obj.As<DataItem>()
               .Pipe(_da => _da.Name == Name && _da.Data == Data);
 
         public override string ToString() => $"[{Name}: {this.DisplayData()}]";
