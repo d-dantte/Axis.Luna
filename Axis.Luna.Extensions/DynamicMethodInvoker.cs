@@ -121,44 +121,92 @@ namespace Axis.Luna.Extensions
 
     public static class DynamicInvokerHelper
     {
-        private static ConcurrentDictionary<MethodInfo, DynamicMethodInvoker> _Invokers = new ConcurrentDictionary<MethodInfo, DynamicMethodInvoker>();
+        private static ConcurrentDictionary<MethodInfo, DynamicMethodInvoker> _InvokerCache = new ConcurrentDictionary<MethodInfo, DynamicMethodInvoker>();
 
-        public static object CallFunc(this MethodInfo method, object instance, params object[] args)
+        /// <summary>
+        /// Creates and caches (statically) a dynamic invoker for the given method.
+        /// </summary>
+        /// <param name="method"></param>
+        /// <returns></returns>
+        public static DynamicMethodInvoker Invoker(this MethodInfo method) => _InvokerCache.GetOrAdd(method, _method => new DynamicMethodInvoker(_method));
+
+        public static object CallFunc(this object instance, MethodInfo method,params object[] args)
         {
-            var invoker = _Invokers.GetOrAdd(method.ThrowIfNull("Invalid method"), _m => new DynamicMethodInvoker(method));
+            var invoker = _InvokerCache.GetOrAdd(method.ThrowIfNull("Invalid method"), _m => new DynamicMethodInvoker(method));
 
             return invoker.InvokeFunc(instance, args);
         }
         public static object CallStaticFunc(this MethodInfo method, params object[] args)
         {
-            var invoker = _Invokers.GetOrAdd(method.ThrowIfNull("Invalid method"), _m => new DynamicMethodInvoker(method));
+            var invoker = _InvokerCache.GetOrAdd(method.ThrowIfNull("Invalid method"), _m => new DynamicMethodInvoker(method));
 
             return invoker.InvokeStaticFunc(args);
         }
-        public static T CallFunc<T>(this MethodInfo method, object instance, params object[] args)
+
+        public static T CallFunc<T>(this object instance, MethodInfo method, params object[] args)
         {
-            var invoker = _Invokers.GetOrAdd(method.ThrowIfNull("Invalid method"), _m => new DynamicMethodInvoker(method));
+            var invoker = _InvokerCache.GetOrAdd(method.ThrowIfNull("Invalid method"), _m => new DynamicMethodInvoker(method));
 
             return invoker.InvokeFunc<T>(instance, args);
         }
-        public static T CallStaticFunc<T>(this MethodInfo method, object instance, params object[] args)
+        public static T CallStaticFunc<T>(this MethodInfo method, params object[] args)
         {
-            var invoker = _Invokers.GetOrAdd(method.ThrowIfNull("Invalid method"), _m => new DynamicMethodInvoker(method));
+            var invoker = _InvokerCache.GetOrAdd(method.ThrowIfNull("Invalid method"), _m => new DynamicMethodInvoker(method));
 
             return invoker.InvokeStaticFunc<T>(args);
         }
 
-        public static void CallAction(this MethodInfo method, object instance, params object[] args)
+        public static void CallAction(this object instance, MethodInfo method, params object[] args)
         {
-            var invoker = _Invokers.GetOrAdd(method.ThrowIfNull("Invalid method"), _m => new DynamicMethodInvoker(method));
+            var invoker = _InvokerCache.GetOrAdd(method.ThrowIfNull("Invalid method"), _m => new DynamicMethodInvoker(method));
 
             invoker.InvokeAction(instance, args);
         }
-        public static void CallStaticAction(this MethodInfo method, object instance, params object[] args)
+        public static void CallStaticAction(this MethodInfo method, params object[] args)
         {
-            var invoker = _Invokers.GetOrAdd(method.ThrowIfNull("Invalid method"), _m => new DynamicMethodInvoker(method));
+            var invoker = _InvokerCache.GetOrAdd(method.ThrowIfNull("Invalid method"), _m => new DynamicMethodInvoker(method));
 
             invoker.InvokeStaticAction(args);
         }
+
+
+        public static object ReboxAs<ValueType>(this object value) where ValueType : struct => value.ReboxAs(typeof(ValueType));
+        public static object ReboxAs(this object value, Type valueType)
+        {
+            if (!valueType.IsValueType) throw new Exception("the given value must be reboxed into a value-type");
+            if (!value.GetType().IsValueType) throw new Exception("the given value must be a value-type");
+
+            return Convert.ChangeType(value, valueType);
+        }
+
+
+        /// <summary>
+        /// Ensures that (for now) value-types are boxed in the exact type that the method is expecting.
+        /// </summary>
+        /// <param name="method"></param>
+        /// <param name="argValues"></param>
+        /// <returns></returns>
+        public static object[] NormalizeArguments(this MethodInfo method, object[] argValues)
+        {
+            var argTypes = method.GetParameters().Select(_p => _p.ParameterType).ToArray();
+            if (argTypes.Length != argValues.Length) throw new Exception("Invalid Argument Count");
+            for (int cnt = 0; cnt < argTypes.Length; cnt++)
+            {
+                if (!argTypes[cnt].IsValueType) continue;
+                else if (argTypes[cnt] == argValues[cnt].GetType()) continue;
+                else argValues[cnt] = argValues[cnt].ReboxAs(argTypes[cnt]);
+            }
+
+            return argValues;
+        }
+
+        public static object CallNormalizedFunc(this object instance, MethodInfo method, params object[] methodArgs) => instance.CallFunc(method, method.NormalizeArguments(methodArgs));
+        public static object CallStaticNormalizedFunc(this MethodInfo method, params object[] methodArgs) => method.CallStaticFunc(method.NormalizeArguments(methodArgs));
+
+        public static T CallNormalizedFunc<T>(this object instance, MethodInfo method, params object[] methodArgs) => instance.CallFunc<T>(method, method.NormalizeArguments(methodArgs));
+        public static T CallStaticNormalizedFunc<T>(this MethodInfo method, params object[] methodArgs) => method.CallStaticFunc<T>(method.NormalizeArguments(methodArgs));
+
+        public static void CallNormalizedAction(this object instance, MethodInfo method, params object[] methodArgs) => instance.CallAction(method, method.NormalizeArguments(methodArgs));
+        public static void CallStaticNormalizedAction(this MethodInfo method, params object[] methodArgs) => method.CallStaticAction(method.NormalizeArguments(methodArgs));
     }
 }

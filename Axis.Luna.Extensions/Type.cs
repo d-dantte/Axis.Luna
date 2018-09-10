@@ -186,7 +186,7 @@ namespace Axis.Luna.Extensions
             {
                 try
                 {
-                    val = propInfo.GetGetMethod().CallFunc<V>(obj);
+                    val = obj.CallFunc<V>(propInfo.GetGetMethod());
                     return true;
                 }
                 catch
@@ -205,7 +205,7 @@ namespace Axis.Luna.Extensions
             {
                 try
                 {
-                    val = propInfo.GetGetMethod().CallFunc(obj);
+                    val = obj.CallFunc(propInfo.GetGetMethod());
                     return true;
                 }
                 catch
@@ -219,7 +219,7 @@ namespace Axis.Luna.Extensions
         public static object SetPropertyValue(this object obj, string propertyName, object value)
         {
             var propInfo = obj.Property(propertyName);
-            propInfo.GetSetMethod().CallAction(obj, value);
+            obj.CallAction(propInfo.GetSetMethod(), value);
 
             return value;
         }
