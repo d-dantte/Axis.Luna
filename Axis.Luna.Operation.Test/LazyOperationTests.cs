@@ -54,7 +54,7 @@ namespace Axis.Luna.Operation.Test
 
         private async Task SomeOperation()
         {
-            await Operation.Create(() =>
+            await Operation.Try(() =>
             {
                 //lazy operation
                 Console.WriteLine("Lazy op");
@@ -62,7 +62,7 @@ namespace Axis.Luna.Operation.Test
         }
         private async Task<int> SomeOperation2()
         {
-            var op = Operation.Create(() =>
+            var op = Operation.Try(() =>
             {
                 //lazy operation
                 Console.WriteLine("Lazy op");
@@ -74,7 +74,7 @@ namespace Axis.Luna.Operation.Test
 
         private async Task FailedOperation()
         {
-            await Operation.Create(() =>
+            await Operation.Try(() =>
             {
                 var t = true;
                 if (t)
@@ -85,7 +85,7 @@ namespace Axis.Luna.Operation.Test
         }
         private async Task FailedOperationWithRollback(Dictionary<string,int> value)
         {   
-            await Operation.Create(() =>
+            await Operation.Try(() =>
             {
                 value["value"] = 1;
                 var t = true;

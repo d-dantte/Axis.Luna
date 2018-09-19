@@ -54,20 +54,20 @@ namespace Axis.Luna.Operation
         public static Operation<Result> FromResult<Result>(Result result) => new Sync.SyncOperation<Result>(result);
         #endregion
 
-        #region Create
-        public static Operation<Result> Create<Result>(Func<Result> func, Func<Task> rollBack = null) => new Lazy.LazyOperation<Result>(func, rollBack);
-        public static Operation Create(Action action, Func<Task> rollBack = null) => new Lazy.LazyOperation(action, rollBack);
+        #region Try
+        public static Operation<Result> Try<Result>(Func<Result> func, Func<Task> rollBack = null) => new Lazy.LazyOperation<Result>(func, rollBack);
+        public static Operation Try(Action action, Func<Task> rollBack = null) => new Lazy.LazyOperation(action, rollBack);
 
 
-        public static Operation<Result> Create<Result>(Func<Task<Result>> func, Func<Task> rollBack = null) => new Async.AsyncOperation<Result>(func, rollBack);
-        public static Operation Create(Func<Task> action, Func<Task> rollBack = null) => new Async.AsyncOperation(action, rollBack);
+        public static Operation<Result> Try<Result>(Func<Task<Result>> func, Func<Task> rollBack = null) => new Async.AsyncOperation<Result>(func, rollBack);
+        public static Operation Try(Func<Task> action, Func<Task> rollBack = null) => new Async.AsyncOperation(action, rollBack);
 
-        public static Operation<Result> Create<Result>(Task<Result> task, Func<Task> rollBack = null) => new Async.AsyncOperation<Result>(task, rollBack);
-        public static Operation Create(Task task, Func<Task> rollBack = null) => new Async.AsyncOperation(task, rollBack);
+        public static Operation<Result> Try<Result>(Task<Result> task, Func<Task> rollBack = null) => new Async.AsyncOperation<Result>(task, rollBack);
+        public static Operation Try(Task task, Func<Task> rollBack = null) => new Async.AsyncOperation(task, rollBack);
 
 
-        public static Operation<Result> Create<Result>(Func<Operation<Result>> op) => op.Invoke();
-        public static Operation Create(Func<Operation> op) => op.Invoke();
+        public static Operation<Result> Try<Result>(Func<Operation<Result>> op) => op.Invoke();
+        public static Operation Try(Func<Operation> op) => op.Invoke();
         #endregion
 
         #region Fail

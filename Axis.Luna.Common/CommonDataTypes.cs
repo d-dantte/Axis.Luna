@@ -30,6 +30,7 @@ namespace Axis.Luna.Common
         UnknownType,
 
         //others
-        Tags
+        Tags,
+        CSV
     }
 }

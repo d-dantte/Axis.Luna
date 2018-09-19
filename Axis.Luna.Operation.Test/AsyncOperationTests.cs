@@ -54,7 +54,7 @@ namespace Axis.Luna.Operation.Test
         {
             AsyncContext.Run(async () =>
             {
-                var op = Operation.Create(async () =>
+                var op = Operation.Try(async () =>
                 {
                     await Task.Delay(500);
                 });
@@ -69,7 +69,7 @@ namespace Axis.Luna.Operation.Test
         {
             AsyncContext.Run(async () =>
             {
-                var op = Operation.Create(async () =>
+                var op = Operation.Try(async () =>
                 {
                     await Task.Delay(500);
                     return 5;
@@ -83,14 +83,14 @@ namespace Axis.Luna.Operation.Test
 
         private async Task SomeOperation()
         {
-            await Operation.Create(async () =>
+            await Operation.Try(async () =>
             {
                 await Task.Run(() => { });
             });
         }
         private async Task<int> SomeOperation2()
         {
-            return await Operation.Create(async () =>
+            return await Operation.Try(async () =>
             {
                 var t = await Task.Run(() => 5);
                 return t;
@@ -99,14 +99,14 @@ namespace Axis.Luna.Operation.Test
 
         private async Task FailedOperation()
         {
-            await Operation.Create(async () =>
+            await Operation.Try(async () =>
             {
                 await Task.Run(() => throw new Exception("stuff"));
             });
         }
         private async Task<int> FailedResultOperation()
         {
-            return await Operation.Create(async () =>
+            return await Operation.Try(async () =>
             {
                 return await Task.Run(() =>
                 {

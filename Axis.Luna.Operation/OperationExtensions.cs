@@ -115,7 +115,7 @@ namespace Axis.Luna.Operation
         });
 
         public static Operation<Out> Fold<In, Out>(this IEnumerable<Operation<In>> operations, Out seed, Func<Out, In, Out> reducer)
-        => Operation.Create(async () =>
+        => Operation.Try(async () =>
         {
             var accumulator = seed;
             foreach (var op in operations)
@@ -125,7 +125,7 @@ namespace Axis.Luna.Operation
         });
 
         public static Operation<Out> Fold<In, Out>(this IEnumerable<Operation<In>> operations, Out seed, Func<Out, In, Task<Out>> reducer)
-        => Operation.Create(async () =>
+        => Operation.Try(async () =>
         {
             var accumulator = seed;
             foreach (var op in operations)
