@@ -76,6 +76,33 @@ namespace Axis.Luna.Common
                 yield return ConvertValue<V>(valueString.ToString());
         }
 
+        public static Type ClrType(this CommonDataType type)
+        {
+            switch(type)
+            {
+                case CommonDataType.Binary: return typeof(byte);
+                case CommonDataType.Boolean: return typeof(bool);
+                case CommonDataType.CSV: return typeof(IEnumerable<object>);
+                case CommonDataType.DateTime: return typeof(DateTimeOffset);
+                case CommonDataType.Decimal: return typeof(decimal);
+                case CommonDataType.Email: return typeof(string);
+                case CommonDataType.Guid: return typeof(string);
+                case CommonDataType.Integer: return typeof(long);
+                case CommonDataType.IPV4: return typeof(string);
+                case CommonDataType.IPV6: return typeof(string);
+                case CommonDataType.JsonObject: return typeof(string);
+                case CommonDataType.Location: return typeof(string);
+                case CommonDataType.Phone: return typeof(string);
+                case CommonDataType.Real: return typeof(double);
+                case CommonDataType.String: return typeof(string);
+                case CommonDataType.Tags: return typeof(string);
+                case CommonDataType.TimeSpan: return typeof(TimeSpan);
+                case CommonDataType.UnknownType: return typeof(string);
+                case CommonDataType.Url: return typeof(Uri);
+                default: throw new Exception($"unknown type {type}");
+            }
+        }
+
         private static object ConvertValue(string value)
         {
             value = value?.Trim('\'');
