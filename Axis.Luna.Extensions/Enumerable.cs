@@ -18,6 +18,22 @@ namespace Axis.Luna.Extensions
             return enumerable.Intersect(items).Count() == items.Count();
         }
 
+        public static bool IsSubsetOf<V>(this IEnumerable<V> subset, IEnumerable<V> enumerable)
+        {
+            var subsetArr = subset.ToArray(); //inevitable
+            if (subsetArr.Length == 0) return true;
+            var searchIndex = 0;
+            var comparer = EqualityComparer<V>.Default;
+            foreach (var t in enumerable)
+            {
+                if (searchIndex == subsetArr.Length) return true;
+                else if (comparer.Equals(t, subsetArr[searchIndex])) searchIndex++;
+                else searchIndex = 0;
+            }
+
+            return false;
+        }
+
         /// <summary>
         /// Snips the enumerable at the specified POSITIVE index, making it the head of the enumerable, splicing the old head at the tail
         /// e.g
