@@ -1,5 +1,8 @@
-﻿using System;
+﻿using Axis.Luna.Common.Contracts;
+using Axis.Luna.Extensions;
+using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 
 namespace Axis.Luna.Common
@@ -76,6 +79,22 @@ namespace Axis.Luna.Common
                 yield return ConvertValue<V>(valueString.ToString());
         }
 
+        public static string ToCSV(this IEnumerable<object> objects)
+        {
+            return objects
+                .Select(_obj =>
+                {
+                    if (_obj.GetType().IsNumeric()
+                     || _obj is bool)
+                        return _obj.ToString();
+
+                    else
+                        return $"'{_obj}'";
+                })
+                .JoinUsing(",")
+                .Pipe(_line => $"[{_line}]");
+        }
+
         public static Type ClrType(this CommonDataType type)
         {
             switch(type)
@@ -103,6 +122,34 @@ namespace Axis.Luna.Common
             }
         }
 
+        public static object ClrValue(this IDataItem dataItem)
+        {
+            if (dataItem == null) return null;
+            switch(dataItem.Type)
+            {
+                case CommonDataType.Binary: return Convert.FromBase64String(dataItem.Data);
+                case CommonDataType.Boolean: return bool.Parse(dataItem.Data);
+                case CommonDataType.CSV: return dataItem.Data.ParseLineAsCSV();
+                case CommonDataType.DateTime: return DateTimeOffset.Parse(dataItem.Data);
+                case CommonDataType.Decimal: return decimal.Parse(dataItem.Data);
+                case CommonDataType.Email: return dataItem.Data;
+                case CommonDataType.Guid: return Guid.Parse(dataItem.Data);
+                case CommonDataType.Integer: return long.Parse(dataItem.Data);
+                case CommonDataType.IPV4:
+                case CommonDataType.IPV6: return dataItem.Data;
+                case CommonDataType.JsonObject: return dataItem.Data;
+                case CommonDataType.Location: return dataItem.Data;
+                case CommonDataType.Phone: return dataItem.Data;
+                case CommonDataType.Real: return double.Parse(dataItem.Data);
+                case CommonDataType.String: return dataItem.Data;
+                case CommonDataType.Tags: return dataItem.SerializeTag();
+                case CommonDataType.TimeSpan: return TimeSpan.Parse(dataItem.Data);
+                case CommonDataType.Url: return new Uri(dataItem.Data?.Trim());
+                case CommonDataType.UnknownType:
+                default: return dataItem.Data;
+            }
+        }
+
         private static object ConvertValue(string value)
         {
             value = value?.Trim('\'');
@@ -117,5 +164,94 @@ namespace Axis.Luna.Common
         }
 
         private static V ConvertValue<V>(string value) => (V) ConvertValue(value);
+
+        #region Tags
+        private static string EncodeTagValue(string decoded)
+        {
+            return decoded
+                .Replace(";", "&scol")
+                .Replace(":", "&col");
+        }
+        private static string DecodeTagValue(string encoded)
+        {
+            return encoded
+                .Replace("&scol", ";")
+                .Replace("&col", ":");
+        }
+
+        public static IEnumerable<Tag> ParseTags<Tag>(string serializedTags)
+        where Tag: IDataItem, new()
+        {
+            var tagType = typeof(Tag);
+
+            var tagProperties = tagType
+                .GetProperties()
+                .Select(_prop => _prop.Name.ValuePair(_prop))
+                .ToDictionary();
+
+            return serializedTags?
+                .Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries)
+                .Select(ParseTag<Tag>);
+        }
+        public static bool TryParseTags<Tag>(string serializedTags, out IEnumerable<Tag> tags)
+        where Tag: IDataItem, new()
+        {
+            try
+            {
+                tags = ParseTags<Tag>(serializedTags);
+                return true;
+            }
+            catch
+            {
+                tags = null;
+                return false;
+            }
+        }
+
+        public static Tag ParseTag<Tag>(string serializedTag)
+        where Tag: IDataItem, new()
+        {
+            var tuples = serializedTag
+                .TrimEnd(";")
+                .Split(new[] { ':' }, StringSplitOptions.RemoveEmptyEntries)
+                .Select(DecodeTagValue)
+                .ToArray();
+
+            var tag = new Tag();
+            tag.Initialize(tuples);
+
+            return tag;
+        }
+        public static bool TryParseTag<Tag>(string serializedTag, out IDataItem tag)
+        where Tag: IDataItem, new()
+        {
+            try
+            {
+                tag = ParseTag<Tag>(serializedTag);
+                return true;
+            }
+            catch
+            {
+                tag = null;
+                return false;
+            }
+        }
+
+        public static string SerializeTag(this IDataItem dataItem)
+        {
+            return dataItem
+                .Tupulize()
+                .Select(EncodeTagValue)
+                .JoinUsing(":")
+                + ";";
+        }
+
+        public static string SerializeTags(this IEnumerable<IDataItem> dataItems)
+        {
+            return dataItems
+                .Select(SerializeTag)
+                .JoinUsing("");
+        }
+        #endregion
     }
 }

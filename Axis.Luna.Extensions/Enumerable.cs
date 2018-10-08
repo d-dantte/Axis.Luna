@@ -10,7 +10,7 @@ using static Axis.Luna.Extensions.Async;
 namespace Axis.Luna.Extensions
 {
 
-    [DebuggerStepThrough]
+    //[DebuggerStepThrough]
     public static class EnumerableExtensions
     {
         public static bool ContainsAll<V>(this IEnumerable<V> enumerable, IEnumerable<V> items)
@@ -26,12 +26,13 @@ namespace Axis.Luna.Extensions
             var comparer = EqualityComparer<V>.Default;
             foreach (var t in enumerable)
             {
-                if (searchIndex == subsetArr.Length) return true;
+                if (searchIndex == subsetArr.Length) break;
                 else if (comparer.Equals(t, subsetArr[searchIndex])) searchIndex++;
                 else searchIndex = 0;
             }
 
-            return false;
+            if (searchIndex == subsetArr.Length) return true;
+            else return false;
         }
 
         /// <summary>
@@ -250,6 +251,8 @@ namespace Axis.Luna.Extensions
             foreach (var v in values) dict.Add(v.Key, v.Value);
             return dict;
         }
+
+        public static Dictionary<K, V> ToDictionary<K, V>(this IEnumerable<KeyValuePair<K, V>> values) => new Dictionary<K, V>().AddAll(values);
 
         /// <summary>
         /// https://stackoverflow.com/a/33336576

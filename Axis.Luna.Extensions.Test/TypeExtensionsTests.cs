@@ -78,6 +78,12 @@ namespace Axis.Luna.Extensions.Test
             Assert.IsTrue(23.43.Equals(abcd.PropertyValue(nameof(ABCD.Weight))));
             Assert.AreEqual(23.43, abcd.PropertyValue<double>(nameof(ABCD.Weight)));
         }
+
+        [TestMethod]
+        public void ImplementationTests()
+        {
+            Assert.IsTrue(typeof(List<int>).ImplementsGenericInterface(typeof(IList<>)));
+        }
     }
 
     public class ABCD
@@ -87,4 +93,6 @@ namespace Axis.Luna.Extensions.Test
 
         public double Weight { get; set; }
     }
+
+
 }

@@ -42,6 +42,9 @@ namespace Axis.Luna.Extensions.Test
 
             subset = Enumerable.Range(0, 101).Reverse().ToArray();
             Assert.IsFalse(subset.IsSubsetOf(sequence));
+
+            subset = Enumerable.Range(0, 100).Reverse().ToArray();
+            Assert.IsTrue(subset.IsSubsetOf(sequence));
         }
     }
 }
