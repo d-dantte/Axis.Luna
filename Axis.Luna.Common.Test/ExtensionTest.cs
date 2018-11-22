@@ -30,7 +30,7 @@ namespace Axis.Luna.Common.Test
             Assert.AreEqual(1, values.Length);
             Assert.AreEqual(typeof(bool), values[0].GetType());
 
-            values = "9/19/2018 12:11:09 PM +01:00".ParseLineAsCSV().ToArray();
+            values = "19/9/2018 12:11:09 PM +01:00".ParseLineAsCSV().ToArray();
             Assert.AreEqual(1, values.Length);
             Assert.AreEqual(typeof(DateTimeOffset), values[0].GetType());
 

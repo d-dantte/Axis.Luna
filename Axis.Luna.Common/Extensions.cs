@@ -153,13 +153,13 @@ namespace Axis.Luna.Common
         private static object ConvertValue(string value)
         {
             value = value?.Trim('\'');
-            if (long.TryParse(value, out long lval)) return lval;
-            else if (decimal.TryParse(value, out decimal dval)) return dval;
-            else if (double.TryParse(value, out double ddval)) return ddval;
-            else if (Guid.TryParse(value, out Guid gval)) return gval;
-            else if (DateTimeOffset.TryParse(value, out DateTimeOffset dtoval)) return dtoval;
-            else if (TimeSpan.TryParse(value, out TimeSpan tsval)) return tsval;
-            else if (bool.TryParse(value, out bool bval)) return bval;
+            if (long.TryParse(value, out var longValue)) return longValue;
+            else if (decimal.TryParse(value, out var decimalValue)) return decimalValue;
+            else if (double.TryParse(value, out var doubleValue)) return doubleValue;
+            else if (Guid.TryParse(value, out var guidValue)) return guidValue;
+            else if (DateTimeOffset.TryParse(value, out var dateTimeOffsetValue)) return dateTimeOffsetValue;
+            else if (TimeSpan.TryParse(value, out var timespanValue)) return timespanValue;
+            else if (bool.TryParse(value, out var boolValue)) return boolValue;
             else return value;
         }
 
