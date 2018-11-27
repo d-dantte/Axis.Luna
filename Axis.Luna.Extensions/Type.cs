@@ -15,8 +15,6 @@ namespace Axis.Luna.Extensions
     {
         private static readonly ConcurrentDictionary<Type, Func<object>> TypeDefaultsProducer = new ConcurrentDictionary<Type, Func<object>>();
         private static readonly ConcurrentDictionary<Type, string> MinimalAQNames = new ConcurrentDictionary<Type, string>();
-        //private static ConcurrentDictionary<string, Func<object, object>> AccessorCache = new ConcurrentDictionary<string, Func<object, object>>();
-        //private static ConcurrentDictionary<string, Action<object, object>> MutatorCache = new ConcurrentDictionary<string, Action<object, object>>();
 
         #region Helpers
         private static string AccessorSignature(this PropertyInfo pinfo)
@@ -102,7 +100,7 @@ namespace Axis.Luna.Extensions
             var interfaces = type.GetInterfaces();
             return firstInterface.Enumerate()
                 .Union(implementedInterfaces)
-                .Where(intf => intf.IsInterface)
+                .Where(@interface => @interface.IsInterface)
                 .All(interfaces.Contains);
         }
 

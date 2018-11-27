@@ -117,17 +117,16 @@ namespace Axis.Luna.Extensions
 
         public static IEnumerable<KeyValuePair<K, V>> PairWith<K, V>(this IEnumerable<K> keys, IEnumerable<V> values, bool padWithDefault)
         {
-            if (!padWithDefault) return keys.PairWith(values);
-            else
+            return !padWithDefault ? keys.PairWith(values) : keys.PairWithPad(values);
+        }
+
+        private static IEnumerable<KeyValuePair<K, V>> PairWithPad<K, V>(this IEnumerable<K> keys, IEnumerable<V> values)
+        {
+            using (var ktor = keys.GetEnumerator())
+            using (var vtor = values.GetEnumerator())
             {
-                var list = new List<KeyValuePair<K, V>>();
-                using (var ktor = keys.GetEnumerator())
-                using (var vtor = values.GetEnumerator())
-                {
-                    while (ktor.MoveNext())
-                        list.Add(ktor.Current.ValuePair(vtor.MoveNext() ? vtor.Current : default(V)));
-                }
-                return list;
+                while (ktor.MoveNext())
+                    yield return ktor.Current.ValuePair(vtor.MoveNext() ? vtor.Current : default(V));
             }
         }
 
