@@ -9,8 +9,8 @@ namespace Axis.Luna.Operation.Async
     public class AsyncOperation<R> : Operation<R>
     {
         private OperationError _error;
-        private Task<R> _task;
-        private AsyncAwaiter<R> _taskAwaiter;
+        private readonly Task<R> _task;
+        private readonly AsyncAwaiter<R> _taskAwaiter;
 
 
         internal AsyncOperation(Func<Task<R>> taskProducer, Func<Task> rollBack = null)
@@ -147,8 +147,8 @@ namespace Axis.Luna.Operation.Async
     public class AsyncOperation : Operation
     {
         private OperationError _error;
-        private Task _task;
-        private AsyncAwaiter _taskAwaiter;
+        private readonly Task _task;
+        private readonly AsyncAwaiter _taskAwaiter;
 
         internal AsyncOperation(Func<Task> taskProducer, Func<Task> rollBack = null)
         {

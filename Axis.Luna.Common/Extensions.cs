@@ -114,7 +114,7 @@ namespace Axis.Luna.Common
                 case CommonDataType.Phone: return typeof(string);
                 case CommonDataType.Real: return typeof(double);
                 case CommonDataType.String: return typeof(string);
-                case CommonDataType.Tags: return typeof(string);
+                case CommonDataType.NVP: return typeof(string);
                 case CommonDataType.TimeSpan: return typeof(TimeSpan);
                 case CommonDataType.UnknownType: return typeof(string);
                 case CommonDataType.Url: return typeof(Uri);
@@ -142,9 +142,9 @@ namespace Axis.Luna.Common
                 case CommonDataType.Phone: return dataItem.Data;
                 case CommonDataType.Real: return double.Parse(dataItem.Data);
                 case CommonDataType.String: return dataItem.Data;
-                case CommonDataType.Tags: return dataItem.SerializeTag();
+                case CommonDataType.NVP: return dataItem.SerializeTag();
                 case CommonDataType.TimeSpan: return TimeSpan.Parse(dataItem.Data);
-                case CommonDataType.Url: return new Uri(dataItem.Data?.Trim());
+                case CommonDataType.Url: return new Uri(dataItem.Data?.Trim() ?? throw new Exception("Invalid Uri"));
                 case CommonDataType.UnknownType:
                 default: return dataItem.Data;
             }
@@ -179,7 +179,7 @@ namespace Axis.Luna.Common
                 .Replace("&col", ":");
         }
 
-        public static IEnumerable<Tag> ParseTags<Tag>(string serializedTags)
+        public static IEnumerable<Tag> ParseTags<Tag>(this string serializedTags)
         where Tag: IDataItem, new()
         {
             var tagType = typeof(Tag);
@@ -193,7 +193,7 @@ namespace Axis.Luna.Common
                 .Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries)
                 .Select(ParseTag<Tag>);
         }
-        public static bool TryParseTags<Tag>(string serializedTags, out IEnumerable<Tag> tags)
+        public static bool TryParseTags<Tag>(this string serializedTags, out IEnumerable<Tag> tags)
         where Tag: IDataItem, new()
         {
             try
@@ -208,12 +208,11 @@ namespace Axis.Luna.Common
             }
         }
 
-        public static Tag ParseTag<Tag>(string serializedTag)
+        public static Tag ParseTag<Tag>(this string serializedTag)
         where Tag: IDataItem, new()
         {
             var tuples = serializedTag
-                .TrimEnd(";")
-                .Split(new[] { ':' }, StringSplitOptions.RemoveEmptyEntries)
+                .Split(new[] { '|' }, StringSplitOptions.RemoveEmptyEntries)
                 .Select(DecodeTagValue)
                 .ToArray();
 
@@ -222,7 +221,7 @@ namespace Axis.Luna.Common
 
             return tag;
         }
-        public static bool TryParseTag<Tag>(string serializedTag, out IDataItem tag)
+        public static bool TryParseTag<Tag>(this string serializedTag, out IDataItem tag)
         where Tag: IDataItem, new()
         {
             try
@@ -242,8 +241,7 @@ namespace Axis.Luna.Common
             return dataItem
                 .Tupulize()
                 .Select(EncodeTagValue)
-                .JoinUsing(":")
-                + ";";
+                .JoinUsing("|");
         }
 
         public static string SerializeTags(this IEnumerable<IDataItem> dataItems)

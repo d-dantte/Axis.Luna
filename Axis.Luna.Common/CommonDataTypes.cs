@@ -29,8 +29,14 @@ namespace Axis.Luna.Common
 
         UnknownType,
 
-        //others
-        Tags,
+        /// <summary>
+        /// Name Value Pair(s)
+        /// </summary>
+        NVP,
+
+        /// <summary>
+        /// Comma Separated Values
+        /// </summary>
         CSV
     }
 }
