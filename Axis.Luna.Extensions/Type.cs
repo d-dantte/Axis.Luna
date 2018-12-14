@@ -63,18 +63,23 @@ namespace Axis.Luna.Extensions
 
         public static string MinimalAQSignature(this MethodInfo m)
         {
-            var t = new StringBuilder();
-            t.Append(m.DeclaringType.MinimalAQName()).Append(".")
+            var builder = new StringBuilder();
+            builder
+                .Append("[")
+                .Append(m.DeclaringType.MinimalAQName())
+                .Append("]")
+                .Append(".")
+                .Append(m.Name)
                 .Append(!m.IsGenericMethod ? "" :
                         "<" + m.GetGenericArguments().Aggregate("", (@params, param) => @params += (@params == "" ? "" : ", ") + "[" + param.MinimalAQName() + "]") + ">")
                 .Append("(")
                 .Append(m.GetParameters()
-                         .Aggregate("", (@params, param) => @params += (@params == "" ? "" : ", ") + "[" + param.ParameterType.MinimalAQName() + "] " + param.Name))
+                         .Aggregate("", (@params, param) => @params += (@params == "" ? "" : ", ") + "[" + param.ParameterType.MinimalAQName() + "] "))
                 .Append(")")
                 .Append("::")
                 .Append("[").Append(m.ReturnType.MinimalAQName()).Append("]");
 
-            return t.ToString();
+            return builder.ToString();
         }
         #endregion
 

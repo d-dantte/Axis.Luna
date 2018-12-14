@@ -15,22 +15,22 @@ namespace Axis.Luna.Common.Utils
             '0','1','2','3','4','5','6','7','8','9'
         };
 
-        private RNGCryptoServiceProvider cryptoProvider = new RNGCryptoServiceProvider();
+        private readonly RNGCryptoServiceProvider _cryptoProvider = new RNGCryptoServiceProvider();
 
-        public void Dispose() => cryptoProvider.Dispose();
+        public void Dispose() => _cryptoProvider.Dispose();
 
         public byte[] NextBytes(int length) => NextBytes(new byte[length]);
 
         public byte[] NextBytes(byte[] bytes)
         {
-            cryptoProvider.GetBytes(bytes);
+            _cryptoProvider.GetBytes(bytes);
             return bytes;
         }
 
         public int NextInt(int maxExclusive = -1)
         {
             var intByte = new byte[4];
-            cryptoProvider.GetBytes(intByte);
+            _cryptoProvider.GetBytes(intByte);
             var @int = Math.Abs(BitConverter.ToInt32(intByte, 0));
             if (maxExclusive > 0) return @int % maxExclusive;
             else return @int;
@@ -39,7 +39,7 @@ namespace Axis.Luna.Common.Utils
         public int NextSignedInt()
         {
             var intByte = new byte[4];
-            cryptoProvider.GetBytes(intByte);
+            _cryptoProvider.GetBytes(intByte);
             return BitConverter.ToInt32(intByte, 0);
         }
 

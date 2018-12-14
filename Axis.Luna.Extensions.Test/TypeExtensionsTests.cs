@@ -80,6 +80,16 @@ namespace Axis.Luna.Extensions.Test
         }
 
         [TestMethod]
+        public void MinimumAQSignatureTest()
+        {
+            Delegate d = (Func<string, bool>) string.IsNullOrEmpty;
+            Func<string, bool> func = string.IsNullOrWhiteSpace;
+            var aqs = func.MinimalAQSignature();
+            aqs = func.MinimalAQSignature();
+            Console.WriteLine(aqs);
+        }
+
+        [TestMethod]
         public void ImplementationTests()
         {
             Assert.IsTrue(typeof(List<int>).ImplementsGenericInterface(typeof(IList<>)));
