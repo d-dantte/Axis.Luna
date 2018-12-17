@@ -5,9 +5,11 @@
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <AssemblyVersion>4.2.0.0</AssemblyVersion>
     <FileVersion>4.2.0.0</FileVersion>
-    <Version>4.2.0</Version>
+    <Version>4.2.1</Version>
     <Description>Operation libarary that enables railway oriented programming for c# similar to javascript's promises.</Description>
     <PackageTags>ROP railway oriented programming operation result asyncop lazop syncop</PackageTags>
+    <Company>Axiis</Company>
+    <Authors>Dantte</Authors>
   </PropertyGroup>
 
   <ItemGroup>
