@@ -12,6 +12,8 @@
     <Description>Commonly used Extensions methods for c# types</Description>
     <PackageReleaseNotes>Refined the parameter conversion mechanism for DynamicMethodInvoker, thus obviating the need for "CallNormalizedxxx".  Got rid of the "CallNormalizedxxx" group of extension functions</PackageReleaseNotes>
     <PackageProjectUrl>https://github.com/d-dantte/Axis.Luna</PackageProjectUrl>
+    <PackageLicenseUrl>https://licenses.nuget.org/MIT</PackageLicenseUrl>
+    <RepositoryUrl>https://github.com/d-dantte/Axis.Luna</RepositoryUrl>
   </PropertyGroup>
 
 </Project>
