@@ -8,7 +8,7 @@
     <Authors>Dantte</Authors>
     <Company>Axiis</Company>
     <PackageTags>common extensions</PackageTags>
-    <Version>4.2.0</Version>
+    <Version>4.2.1</Version>
     <Description>Commonly used Extensions methods for c# types</Description>
     <PackageReleaseNotes>Refined the parameter conversion mechanism for DynamicMethodInvoker, thus obviating the need for "CallNormalizedxxx".  Got rid of the "CallNormalizedxxx" group of extension functions</PackageReleaseNotes>
     <PackageProjectUrl>https://github.com/d-dantte/Axis.Luna</PackageProjectUrl>

@@ -56,6 +56,11 @@ namespace Axis.Luna.Operation
         #endregion
 
         #region Wait
+        /// <summary>
+        /// Returns a resolved operation whose "Successful" property will never be null
+        /// </summary>
+        /// <param name="prev"></param>
+        /// <returns></returns>
         public static Operation Wait(this Operation prev)
         {
             if (prev == null) return Operation.Fail(new NullReferenceException());
@@ -69,6 +74,13 @@ namespace Axis.Luna.Operation
                 return prev;
             }
         }
+
+        /// <summary>
+        /// Returns a resolved operation whose "Successful" property will never be null
+        /// </summary>
+        /// <typeparam name="Result"></typeparam>
+        /// <param name="prev"></param>
+        /// <returns></returns>
         public static Operation<Result> Wait<Result>(this Operation<Result> prev)
         {
             if (prev == null) return Operation.Fail<Result>(new NullReferenceException());
