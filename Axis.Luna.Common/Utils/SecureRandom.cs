@@ -62,5 +62,9 @@ namespace Axis.Luna.Common.Utils
             .JoinUsing("");
 
         public char NextChar() => CharacterMap[NextInt() % 26];
+
+        public V NextValue<V>(V[] values) => values[NextInt() % values.Length];
+
+        public char NextChar(string values) => NextValue(values.ToCharArray());
     }
 }

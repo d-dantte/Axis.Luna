@@ -15,7 +15,8 @@ namespace Axis.Luna.Extensions
     {
         public static bool ContainsAll<V>(this IEnumerable<V> enumerable, IEnumerable<V> items)
         {
-            return enumerable.Intersect(items).Count() == items.Count();
+            var itemArray = items.ToArray();
+            return enumerable.Intersect(itemArray).Count() == itemArray.Length;
         }
 
         public static bool IsSubsetOf<V>(this IEnumerable<V> subset, IEnumerable<V> enumerable)
@@ -31,9 +32,11 @@ namespace Axis.Luna.Extensions
                 else searchIndex = 0;
             }
 
-            if (searchIndex == subsetArr.Length) return true;
-            else return false;
+            return searchIndex == subsetArr.Length;
         }
+
+        public static IEnumerable<TOut> SelectMany<TOut>(this IEnumerable<IEnumerable<TOut>> enumerable) 
+        => enumerable.SelectMany(enm => enm);
 
         /// <summary>
         /// Snips the enumerable at the specified POSITIVE index, making it the head of the enumerable, splicing the old head at the tail
@@ -47,7 +50,10 @@ namespace Axis.Luna.Extensions
         /// <param name="spliceIndex"></param>
         /// <returns></returns>
         public static IEnumerable<V> SnipSplice<V>(this IEnumerable<V> enumerable, int spliceIndex)
-        => enumerable.Skip(Math.Abs(spliceIndex)).Concat(enumerable.Take(Math.Abs(spliceIndex)));
+        {
+            var array = enumerable.ToArray();
+            return array.Skip(Math.Abs(spliceIndex)).Concat(array.Take(Math.Abs(spliceIndex)));
+        }
 
         public static IEnumerable<V> AppendAt<V>(this IEnumerable<V> enumerable, int position, V value)
         {
@@ -60,9 +66,7 @@ namespace Axis.Luna.Extensions
                 yield return v;
             }
         }
-
-        public static IEnumerable<V> Append<V>(this IEnumerable<V> enumerable, V value) => enumerable.Concat(value.Enumerate());
-
+        
         public static IEnumerable<V> WithEach<V>(this IEnumerable<V> enumerable, Action<V> action)
         {
             foreach (var v in enumerable)
@@ -323,6 +327,34 @@ namespace Axis.Luna.Extensions
                 if (whilenot?.Invoke(count, t) ?? false) yield return t;
                 else if ((count + 1) % mod == 0) yield return t;
             }
+        }
+
+        /// <summary>
+        /// Skips the last <c>count</c> elements of a sequence
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="source"></param>
+        /// <param name="count"></param>
+        /// <returns></returns>
+        public static IEnumerable<T> SkipLast<T>(this IEnumerable<T> source, int count = 1)
+        {
+            if (source == null)
+                throw new ArgumentNullException(nameof(source));
+
+            //else
+            var sourceEnumerator = source.GetEnumerator();
+            bool hasRemainingItems = false;
+            var cache = new Queue<T>(count + 1);
+
+            do
+            {
+                if (hasRemainingItems = sourceEnumerator.MoveNext())
+                {
+                    cache.Enqueue(sourceEnumerator.Current);
+                    if (cache.Count > count)
+                        yield return cache.Dequeue();
+                }
+            } while (hasRemainingItems);
         }
 
         /// <summary>

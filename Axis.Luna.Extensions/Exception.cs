@@ -34,6 +34,13 @@ namespace Axis.Luna.Extensions
             }
         }
 
+        public static void ThrowNullArguments(params KeyValuePair<string, object>[] @params)
+        {
+            foreach(var kvp in @params)
+                if (kvp.Value == null)
+                    throw new ArgumentNullException(kvp.Key);
+        }
+
         private static object CapturedValue(this MemberExpression memberAccess)
         => (memberAccess.Expression is ConstantExpression) ?
            memberAccess.Member.As<FieldInfo>().GetValue(memberAccess.Expression.As<ConstantExpression>().Value) :

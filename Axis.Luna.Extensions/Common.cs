@@ -1,4 +1,6 @@
-﻿using System;
+﻿using static Axis.Luna.Extensions.ExceptionExtension;
+
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -65,6 +67,7 @@ namespace Axis.Luna.Extensions
         }
 
         public static KeyValuePair<K, V> ValuePair<K, V>(this K key, V value) => new KeyValuePair<K, V>(key, value);
+        public static KeyValuePair<K, object> ObjectPair<K>(this K key, object obj) => new KeyValuePair<K, object>(key, obj);
 
         public static T As<T>(this object value)
         {
@@ -244,6 +247,37 @@ namespace Axis.Luna.Extensions
 
         public static string JoinUsing(this IEnumerable<char> subStrings, string separator) => string.Join(separator, subStrings.ToArray());
 
+        public static string WrapIn(this string @string, string left, string right)
+        {
+            ThrowNullArguments(
+                nameof(@string).ObjectPair(@string),
+                nameof(left).ObjectPair(left),
+                nameof(right).ObjectPair(right));
+
+            return $"{left}{@string}{right}";
+        }
+        public static string UnwrapFrom(this string @string, string left, string right)
+        {
+            ThrowNullArguments(
+                nameof(@string).ObjectPair(@string),
+                nameof(left).ObjectPair(left),
+                nameof(right).ObjectPair(right));
+
+            if (@string.IsWrappedIn(left, right))
+                return @string.TrimStart(left).TrimEnd(right);
+
+            else return @string;
+        }
+        public static bool IsWrappedIn(this string @string, string left, string right)
+        {
+            ThrowNullArguments(
+                nameof(@string).ObjectPair(@string),
+                nameof(left).ObjectPair(left),
+                nameof(right).ObjectPair(right));
+
+            return @string.StartsWith(left) && @string.EndsWith(right);
+        }
+
         public static int SubstringCount(this string source, string subString)
         {
             if (string.IsNullOrWhiteSpace(source) || string.IsNullOrWhiteSpace(subString)) return 0;
@@ -267,8 +301,15 @@ namespace Axis.Luna.Extensions
 
             return count;
         }
-        public static bool ContainsAny(this string source, params string[] substrings) => substrings.Any(s => source.Contains(s));
-        public static bool ContainsAll(this string source, params string[] substrings) => substrings.All(s => source.Contains(s));
+        public static bool ContainsAny(this string source, params string[] substrings) => substrings.Any(source.Contains);
+        public static bool ContainsAll(this string source, params string[] substrings) => substrings.All(source.Contains);
+        public static bool ContainsOne(this string source, params string[] substrings)
+        {
+            var finds = substrings
+                .Aggregate(0, (count, sub) => source.Contains(sub) ? count + 1 : count);
+
+            return finds == 1;
+        }
 
         public static string SplitCamelCase(this string source, string separator = " ")
         => source.Aggregate(new StringBuilder(), (acc, ch) => acc.Append(char.IsUpper(ch) ? separator : "").Append(ch)).ToString().Trim();

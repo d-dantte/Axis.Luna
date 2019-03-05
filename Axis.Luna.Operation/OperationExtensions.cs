@@ -97,7 +97,6 @@ namespace Axis.Luna.Operation
         #endregion
 
         #region Fold
-
         /// <summary>
         /// Folds multiple operations into a single one
         /// </summary>
@@ -145,6 +144,41 @@ namespace Axis.Luna.Operation
 
             return accumulator;
         });
+        #endregion
+
+        #region Reduce
+        /// <summary>
+        /// Use these functions in favor or <c>Operation.Result</c> & <c>Operation.Resole()</c>, except in the case of a faulted operation
+        /// and the encapsulated exception is needed.
+        /// </summary>
+        /// <typeparam name="V"></typeparam>
+        /// <typeparam name="R"></typeparam>
+        /// <param name="operation"></param>
+        /// <param name="default"></param>
+        /// <param name="reducer"></param>
+        /// <returns></returns>
+        public static R Reduce<V, R>(this Operation<V> operation, V @default, Func<V, R> reducer)
+        {
+            if (operation == null)
+                throw new ArgumentNullException(nameof(operation));
+
+            else if(reducer == null)
+                throw new ArgumentNullException(nameof(reducer));
+
+            else
+            {
+                //operation = operation.Wait();
+                //return operation.Succeeded == true? 
+                //    reducer.Invoke(operation.Result):
+                //    reducer.Invoke(@default);
+
+                return operation
+                    .Then(reducer)
+                    .Catch(ex => reducer.Invoke(@default))
+                    .Resolve();
+            }
+        }
+        public static R Reduce<V, R>(this Operation<V> operation, Func<V, R> reducer) => Reduce(operation, default(V), reducer);
         #endregion
 
         #region Catch
@@ -266,7 +300,7 @@ namespace Axis.Luna.Operation
         }
         #endregion
 
-        #region Then
+        #region Then/Map
         public static Operation Then(this Operation prev, Action next, Action<Exception> error = null, Func<Task> rollback = null)
         => new Lazy.LazyOperation(() =>
         {

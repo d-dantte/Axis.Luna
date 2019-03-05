@@ -109,6 +109,22 @@ namespace Axis.Luna.Extensions
                 .All(interfaces.Contains);
         }
 
+        /// <summary>
+        /// Ensures that a type inherits from all the listed types
+        /// </summary>
+        /// <param name="type"></param>
+        /// <param name="baseType"></param>
+        /// <param name="otherBases"></param>
+        /// <returns></returns>
+        public static bool Extends(this Type type, Type baseType, params Type[] otherBases)
+        => type
+            .ThrowIfNull(new ArgumentNullException(nameof(type)))
+            .ThrowIf(t => t.IsInterface, new ArgumentException($"argument '{nameof(type)}' cannot be an interface"))
+            .BaseTypes()
+            .ContainsAll(otherBases
+                .Concat(baseType.Enumerate())
+                .Where(t => !t.IsInterface));
+
         public static IEnumerable<Type> TypeLineage(this Type type) => type.GetInterfaces().Concat(type.BaseTypes());
 
         public static IEnumerable<Type> BaseTypes(this Type type)
@@ -127,14 +143,12 @@ namespace Axis.Luna.Extensions
             else if (lambda.Body is UnaryExpression)
             {
                 var member = (lambda.Body as UnaryExpression).Operand as MemberExpression;
-                if (member == null) return null;
-                else return member.Member as MemberInfo;
+                return member?.Member as MemberInfo;
             }
             else if (lambda.Body is MemberExpression)
             {
                 var member = (lambda.Body as MemberExpression);
-                if (member == null) return null;
-                else return member.Member as MemberInfo;
+                return member?.Member as MemberInfo;
             }
             else return null;
         }

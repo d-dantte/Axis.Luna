@@ -89,8 +89,7 @@ namespace Axis.Luna.Operation.Async
                 SynchronizationContext.SetSynchronizationContext(cxt);
             }
         }
-
-
+        
         public override bool? Succeeded
         {
             get
@@ -108,8 +107,7 @@ namespace Axis.Luna.Operation.Async
         }
 
         public override OperationError Error => _error;
-
-
+        
         public override IAwaiter<R> GetAwaiter() => _taskAwaiter;
 
         internal Task<R> GetTask() => _task;
