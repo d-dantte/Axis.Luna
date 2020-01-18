@@ -1,18 +1,20 @@
 ﻿using System;
 using System.Runtime.CompilerServices;
+using static System.Runtime.CompilerServices.ConfiguredTaskAwaitable;
 
 namespace Axis.Luna.Operation.Async
 {
     public class AsyncAwaiter : IAwaiter, ICriticalNotifyCompletion
     {
+        public ConfiguredTaskAwaiter TaskAwaiter => TaskAwaitable.GetAwaiter();
 
-        public TaskAwaiter TaskAwaiter { get; private set; }
+        public ConfiguredTaskAwaitable TaskAwaitable { get; }
 
         public bool IsCompleted => TaskAwaiter.IsCompleted;
 
-        public AsyncAwaiter(TaskAwaiter awaiter)
+        public AsyncAwaiter(ConfiguredTaskAwaitable awaitable)
         {
-            TaskAwaiter = awaiter;
+            TaskAwaitable = awaitable;
         }
 
         public void GetResult() => TaskAwaiter.GetResult();
@@ -24,15 +26,15 @@ namespace Axis.Luna.Operation.Async
 
     public class AsyncAwaiter<Result> : IAwaiter<Result>, ICriticalNotifyCompletion
     {
-
-        public TaskAwaiter<Result> TaskAwaiter { get; private set; }
+        public ConfiguredTaskAwaitable<Result>.ConfiguredTaskAwaiter TaskAwaiter => TaskAwaitable.GetAwaiter();
+        public ConfiguredTaskAwaitable<Result> TaskAwaitable { get; }
 
         public bool IsCompleted => TaskAwaiter.IsCompleted;
 
 
-        public AsyncAwaiter(TaskAwaiter<Result> awaiter)
+        public AsyncAwaiter(ConfiguredTaskAwaitable<Result> awaitable)
         {
-            TaskAwaiter = awaiter;
+            TaskAwaitable = awaitable;
         }
 
         public Result GetResult() => TaskAwaiter.GetResult();

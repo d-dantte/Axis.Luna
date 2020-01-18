@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Text;
 
 namespace Axis.Luna.Extensions
@@ -36,10 +37,10 @@ namespace Axis.Luna.Extensions
         private static readonly String[] OrdinalSuffixes = { "th", "st", "nd", "rd", "th", "th", "th", "th", "th", "th" };
         private static HashSet<Type> _numerics = new HashSet<Type>
         {
-            typeof(short), typeof(int), typeof(long),
-            typeof(ushort), typeof(uint), typeof(ulong),
-            typeof(decimal), typeof(float), typeof(double),
-            typeof(byte), typeof(sbyte)
+            typeof(short?), typeof(int?), typeof(long?),
+            typeof(ushort?), typeof(uint?), typeof(ulong?),
+            typeof(decimal?), typeof(float?), typeof(double?),
+            typeof(byte?), typeof(sbyte?)
         };
 
         public static string OrdinalSuffix(this int value)
@@ -53,7 +54,8 @@ namespace Axis.Luna.Extensions
 
         public static string AsOrdinal(this int n) => $"{n}{n.OrdinalSuffix()}";
 
-        public static bool IsNumeric(this Type type) => _numerics.Contains(type);
+        public static bool IsNumeric(this Type type) => _numerics.Any(_n => _n.IsAssignableFrom(type));
+
     }
 
     public class Fraction

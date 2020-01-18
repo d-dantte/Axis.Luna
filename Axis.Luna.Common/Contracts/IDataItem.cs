@@ -26,5 +26,11 @@ namespace Axis.Luna.Common.Contracts
         /// </summary>
         /// <returns></returns>
         string[] Tupulize();
+
+
+        #region Forced Overrides
+        bool Eqals(object item);
+        int GetHashCode();
+        #endregion
     }
 }

@@ -10,16 +10,16 @@ namespace Axis.Luna.Operation.Lazy
         private OperationError _error;
         private LazyAwaiter<R> _awaiter;
 
-        internal LazyOperation(Func<R> func, Func<Task> rollBack = null)
+        internal LazyOperation(Func<R> func)
         {
             if (func == null) throw new NullReferenceException("Invalid delegate supplied");
 
-            _awaiter = new LazyAwaiter<R>(new Lazy<R>(func, true), rollBack);
+            _awaiter = new LazyAwaiter<R>(new Lazy<R>(func, true));
         }
 
         internal LazyOperation(Lazy<R> lazy, Func<Task> rollBack = null)
         {
-            _awaiter = new LazyAwaiter<R>(lazy ?? throw new NullReferenceException("Invalid Lazy factory supplied"), rollBack);
+            _awaiter = new LazyAwaiter<R>(lazy ?? throw new NullReferenceException("Invalid Lazy factory supplied"));
         }
 
         public override bool? Succeeded => !_awaiter.IsCompleted ? null : (bool?)(_error == null);
@@ -48,14 +48,19 @@ namespace Axis.Luna.Operation.Lazy
             }
             catch (Exception e)
             {
-                _error = new OperationError(e)
-                {
-                    Message = e.Message,
-                    Code = "GeneralError"
-                };
+                _error = new OperationError(
+                    message: e.Message,
+                    code: "GeneralError",
+                    exception: e);
+
                 throw;
             }
         }
+
+
+        public static implicit operator LazyOperation<R>(Func<R> func) => new LazyOperation<R>(func);
+
+        public static implicit operator LazyOperation<R>(Lazy<R> lazy) => new LazyOperation<R>(lazy);
     }
 
 
@@ -64,16 +69,18 @@ namespace Axis.Luna.Operation.Lazy
         private OperationError _error;
         private LazyAwaiter _awaiter;
 
-        internal LazyOperation(Action action, Func<Task> rollBack = null)
+        internal LazyOperation(Action action)
         {
             if (action == null) throw new NullReferenceException("Invalid delegate supplied");
 
-            _awaiter = new LazyAwaiter(new Lazy<object>(() =>
-            {
-                action.Invoke();
-                return true;
-            },
-            true), rollBack);
+            _awaiter = new LazyAwaiter(
+                new Lazy<object>(
+                    isThreadSafe: true,
+                    valueFactory: () =>
+                    {
+                        action.Invoke();
+                        return true;
+                    }));
         }
 
         public override bool? Succeeded => !_awaiter.IsCompleted ? null : (bool?)(_error == null);
@@ -101,13 +108,16 @@ namespace Axis.Luna.Operation.Lazy
             }
             catch (Exception e)
             {
-                _error = new OperationError(e)
-                {
-                    Message = e.Message,
-                    Code = "GeneralError"
-                };
+                _error = new OperationError(
+                    message: e.Message,
+                    code: "GeneralError",
+                    exception: e);
+
                 throw;
             }
         }
+
+        
+        public static implicit operator LazyOperation(Action action) => new LazyOperation(action);
     }
 }

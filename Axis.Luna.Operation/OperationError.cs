@@ -19,17 +19,17 @@ namespace Axis.Luna.Operation
     {
         private Exception _exception;
 
-        public string Message { get; set; }
-        public string Code { get; set; }
-        public object Data { get; set; }
+        public string Message { get; }
+        public string Code { get; }
+        public object Data { get; }
 
 
         public Exception GetException() => _exception ?? (_exception = new Exception(Message ?? "Unknown Error"));
 
 
-        public OperationError(Exception ex = null)
+        public OperationError(Exception ex)
+            :this(null, null, null, ex)
         {
-            _exception = ex;
         }
 
         public OperationError(string message, string code = null, object data = null, Exception exception = null)
@@ -41,6 +41,7 @@ namespace Axis.Luna.Operation
         }
 
         public OperationError()
+            :this(null, null, null, null)
         { }
 
         public void Throw() => throw new OperationException(this);

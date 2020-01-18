@@ -83,20 +83,19 @@ namespace Axis.Luna.Operation.Test
                 else return;
             });
         }
-        private async Task FailedOperationWithRollback(Dictionary<string,int> value)
+        private Operation FailedOperationWithRollback(Dictionary<string,int> value)
         {   
-            await Operation.Try(() =>
-            {
-                value["value"] = 1;
-                var t = true;
-                if (t)
-                    throw new Exception("stuff");
+            return Operation
+                .Try(() =>
+                {
+                    value["value"] = 1;
+                    var t = true;
+                    if (t)
+                        throw new Exception("stuff");
 
-                else return;
-            }, async () =>
-            {
-                value["value"] = 2;
-            });
+                    else return;
+                })
+                .Catch(e => value["value"] = 2);
         }
     }
 }

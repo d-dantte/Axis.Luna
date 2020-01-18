@@ -17,6 +17,9 @@ namespace Axis.Luna.Operation
 
         public abstract OperationError Error { get; }
 
+        /// <summary>
+        /// Safely Resovle the operation and return it's result, returning a default value if the operation was faulted
+        /// </summary>
         public R Result
         {
             get
@@ -55,15 +58,15 @@ namespace Axis.Luna.Operation
         #endregion
 
         #region Try
-        public static Operation<Result> Try<Result>(Func<Result> func, Func<Task> rollBack = null) => new Lazy.LazyOperation<Result>(func, rollBack);
-        public static Operation Try(Action action, Func<Task> rollBack = null) => new Lazy.LazyOperation(action, rollBack);
+        public static Operation<Result> Try<Result>(Func<Result> func) => new Lazy.LazyOperation<Result>(func);
+        public static Operation Try(Action action) => new Lazy.LazyOperation(action);
 
 
-        public static Operation<Result> Try<Result>(Func<Task<Result>> func, Func<Task> rollBack = null) => new Async.AsyncOperation<Result>(func, rollBack);
-        public static Operation Try(Func<Task> action, Func<Task> rollBack = null) => new Async.AsyncOperation(action, rollBack);
+        public static Operation<Result> Try<Result>(Func<Task<Result>> func) => new Async.AsyncOperation<Result>(func);
+        public static Operation Try(Func<Task> action) => new Async.AsyncOperation(action);
 
-        public static Operation<Result> Try<Result>(Task<Result> task, Func<Task> rollBack = null) => new Async.AsyncOperation<Result>(task, rollBack);
-        public static Operation Try(Task task, Func<Task> rollBack = null) => new Async.AsyncOperation(task, rollBack);
+        public static Operation<Result> Try<Result>(Task<Result> task) => new Async.AsyncOperation<Result>(task);
+        public static Operation Try(Task task) => new Async.AsyncOperation(task);
 
 
         public static Operation<Result> Try<Result>(Func<Operation<Result>> op) => op.Invoke();
@@ -71,17 +74,17 @@ namespace Axis.Luna.Operation
         #endregion
 
         #region Fail
-        public static Operation Fail(Exception exception = null) => new Sync.SyncOperation(new OperationError(exception)
-        {
-            Code = "GeneralError",
-            Message = exception?.Message
-        });
+        public static Operation Fail(Exception exception = null) => new Sync.SyncOperation(
+            new OperationError(
+                code: "GeneralError",
+                message: exception?.Message,
+                exception: exception));
 
-        public static Operation<Result> Fail<Result>(Exception exception = null) => new Sync.SyncOperation<Result>(new OperationError(exception)
-        {
-            Code = "GeneralError",
-            Message = exception?.Message
-        });
+        public static Operation<Result> Fail<Result>(Exception exception = null) => new Sync.SyncOperation<Result>(
+            new OperationError(
+                code: "GeneralError",
+                message: exception?.Message,
+                exception: exception));
 
         public static Operation Fail(string message) => Fail(new Exception(message));
 

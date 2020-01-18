@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -10,23 +9,13 @@ using System.Text;
 namespace Axis.Luna.Extensions
 {
 
-    [DebuggerStepThrough]
+    //[DebuggerStepThrough]
     public static class TypeExtensions
     {
         private static readonly ConcurrentDictionary<Type, Func<object>> TypeDefaultsProducer = new ConcurrentDictionary<Type, Func<object>>();
         private static readonly ConcurrentDictionary<Type, string> MinimalAQNames = new ConcurrentDictionary<Type, string>();
-
-        #region Helpers
-        private static string AccessorSignature(this PropertyInfo pinfo)
-        => $"[{pinfo.DeclaringType.MinimalAQName()}].Get{pinfo.Name}";
-
-        private static string MutatorSignature(this PropertyInfo pinfo)
-        => $"[{pinfo.DeclaringType.MinimalAQName()}].Set{pinfo.Name}";
-
-        private static string AccessorSignature(this FieldInfo finfo)
-        => $"[{finfo.DeclaringType.MinimalAQName()}].@{finfo.Name}";
-        #endregion
-
+        private static readonly ConcurrentDictionary<string, Delegate> PropertyAccessors = new ConcurrentDictionary<string, Delegate>();
+        
 
         #region Attributes
 
@@ -45,7 +34,7 @@ namespace Axis.Luna.Extensions
         #endregion
 
 
-        #region Type Names
+        #region Type Names and Signatures
         public static string MinimalAQName(this Type type)
         => MinimalAQNames.GetOrAdd(type, t =>
         {
@@ -81,6 +70,15 @@ namespace Axis.Luna.Extensions
 
             return builder.ToString();
         }
+
+        private static string AccessorSignature(this PropertyInfo pinfo)
+        => $"[{pinfo.DeclaringType.MinimalAQName()}].Get{pinfo.Name}";
+
+        private static string MutatorSignature(this PropertyInfo pinfo)
+        => $"[{pinfo.DeclaringType.MinimalAQName()}].Set{pinfo.Name}";
+
+        private static string AccessorSignature(this FieldInfo finfo)
+        => $"[{finfo.DeclaringType.MinimalAQName()}].@{finfo.Name}";
         #endregion
 
 
@@ -196,14 +194,14 @@ namespace Axis.Luna.Extensions
 
         public static bool TryGetPropertyValue<V>(this object obj, string property, out V val)
         {
-            val = default(V); //<-- initial value
+            val = default; //<-- initial value
             var propInfo = obj.Property(property);
             if (propInfo == null) return false;
             else
             {
                 try
                 {
-                    val = obj.CallFunc<V>(propInfo.GetGetMethod());
+                    val = (V)GetPropertyAccessorDelegate(obj, propInfo.Name).Invoke(obj);
                     return true;
                 }
                 catch
@@ -222,10 +220,10 @@ namespace Axis.Luna.Extensions
             {
                 try
                 {
-                    val = obj.CallFunc(propInfo.GetGetMethod());
+                    val = GetPropertyAccessorDelegate(obj, propInfo.Name).Invoke(obj);
                     return true;
                 }
-                catch
+                catch(Exception e)
                 {
                     return false;
                 }
@@ -236,7 +234,7 @@ namespace Axis.Luna.Extensions
         public static object SetPropertyValue(this object obj, string propertyName, object value)
         {
             var propInfo = obj.Property(propertyName);
-            obj.CallAction(propInfo.GetSetMethod(), value);
+            GetPropertyMutatorDelegate(obj, propertyName).Invoke(obj, value);
 
             return value;
         }
@@ -249,66 +247,7 @@ namespace Axis.Luna.Extensions
 
         #endregion
 
-
-        #region Field access
-
-        //public static FieldInfo Field(Expression<Func<object>> expr)
-        //=> Member(expr).Cast<FieldInfo>();
-
-        //public static FieldInfo Field(this object obj, string fieldName)
-        //=> obj.GetType().GetField(fieldName);
-
-        //public static object FieldVaue(this object obj, Expression<Func<object>> expr)
-        //=> obj.FieldValue(Field(expr).Name);
-
-        //public static object FieldValue(this object obj, string field)
-        //{
-        //    if (!obj.TryGetFieldValue(field, out object val)) throw new System.Exception("Could not retrieve Field Value");
-        //    else return val;
-        //}
-
-        //public static V FieldValue<V>(this object obj, string field)
-        //{
-        //    if (!obj.TryGetFieldValue(field, out V val)) throw new System.Exception("Could not retrieve Field Value");
-        //    else return val;
-        //}
-
-        //public static bool TryGetFieldValue(this object obj, string field, out object val)
-        //{
-        //    val = null;
-        //    var f = obj.Field(field);
-        //    if (f == null) return false;
-        //    else
-        //    {
-        //        try
-        //        {
-        //            val = AccessorCache.GetOrAdd(f.AccessorSignature(), _sig =>
-        //            {
-        //                var objParam = Expression.Parameter(typeof(object), "obj");
-        //                var exp = Expression.Convert(Expression.PropertyOrField(Expression.Convert(objParam, f.DeclaringType), f.Name), typeof(object));
-        //                var lambda = Expression.Lambda(exp, objParam);
-        //                return (Func<object, object>)lambda.Compile();
-        //            })
-        //            .Invoke(obj);
-        //            return true;
-        //        }
-        //        catch
-        //        {
-        //            return false;
-        //        }
-        //    }
-        //}
-
-        //public static bool TryGetFieldValue<V>(this object obj, string field, out V val)
-        //{
-        //    var r = obj.TryGetFieldValue(field, out object oval);
-        //    val = r ? (V)oval : default(V);
-        //    return r;
-        //}
-
-        #endregion
-
-
+               
         #region Misc
 
         public static object DefaultValue(this Type type)
@@ -334,7 +273,7 @@ namespace Axis.Luna.Extensions
 
         public static bool IsDecimal(this Type type) => Decimals.Contains(type);
 
-        public static IEnumerable<Type> Integrals = new HashSet<Type>()
+        internal static readonly IEnumerable<Type> Integrals = new HashSet<Type>()
         {
             typeof(byte),
             typeof(sbyte),
@@ -346,7 +285,7 @@ namespace Axis.Luna.Extensions
             typeof(ulong)
         };
 
-        public static IEnumerable<Type> Decimals = new HashSet<Type>()
+        internal static readonly IEnumerable<Type> Decimals = new HashSet<Type>()
         {
             typeof(decimal),
             typeof(float),
@@ -354,5 +293,52 @@ namespace Axis.Luna.Extensions
         };
 
         #endregion
+
+        private static Func<object, object> GetPropertyAccessorDelegate(object obj, string propertyName)
+        {
+            var targetType = obj.GetType();
+            var property = targetType
+                .GetProperty(propertyName)
+                ?? throw new ArgumentException($"Invalid property name: {propertyName}");
+
+            return PropertyAccessors
+                .GetOrAdd($"{property.AccessorSignature()}", _sig =>
+                {
+                    var targetArg = Expression.Parameter(typeof(object), "target");
+                    var targetCast = Expression.Convert(targetArg, targetType);
+                    var propertyAccessor = Expression.MakeMemberAccess(targetCast, property);
+                    Expression body = property.PropertyType.IsValueType
+                        ? Expression.Convert(propertyAccessor, typeof(object))
+                        : propertyAccessor.As<Expression>();
+                    var lambda = Expression.Lambda(typeof(Func<object, object>), body, targetArg);
+                    var @delegate = lambda.Compile();
+
+                    return @delegate;
+                })
+                .As<Func<object, object>>();
+        }
+
+        private static Action<object, object> GetPropertyMutatorDelegate(object obj, string propertyName)
+        {
+            var targetType = obj.GetType();
+            var property = targetType
+                .GetProperty(propertyName)
+                ?? throw new ArgumentException($"Invalid property name: {propertyName}");
+
+            return PropertyAccessors
+                .GetOrAdd($"{property.MutatorSignature()}", _sig =>
+                {
+                    var targetArg = Expression.Parameter(typeof(object), "target");
+                    var valueArg = Expression.Parameter(typeof(object), "value");
+                    var targetCast = Expression.Convert(targetArg, targetType);
+                    var valueCast = Expression.Convert(valueArg, property.PropertyType);
+                    var propertyMutatorFunction = Expression.Call(targetCast, property.GetSetMethod(), valueCast);
+                    var lambda = Expression.Lambda(typeof(Action<object, object>), propertyMutatorFunction, targetArg, valueArg);
+                    var @delegate = lambda.Compile();
+
+                    return @delegate;
+                })
+                .As<Action<object, object>>();
+        }
     }
 }

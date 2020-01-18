@@ -73,13 +73,15 @@ namespace Axis.Luna.Extensions
         {
             try
             {
-                if (value is IConvertible && typeof(IConvertible).IsAssignableFrom(typeof(T)))
+                if (value is IConvertible 
+                    && typeof(IConvertible).IsAssignableFrom(typeof(T)))
                     return (T)Convert.ChangeType(value, typeof(T));
+
                 else return (T)value;
             }
             catch
             {
-                return default(T);
+                return default;
             }
         }
 
@@ -103,6 +105,8 @@ namespace Axis.Luna.Extensions
         public static bool IsPrimitive(this object value) => value?.GetType().IsPrimitive == true;
         public static bool IsIntegral(this object value) => value?.GetType().IsIntegral() ?? false;
         public static bool IsDecimal(this object value) => value?.GetType().IsDecimal() ?? false;
+        public static bool hanIsNull(this object value) => value == null;
+        public static bool IsNotNull(this object value) => value != null;
 
         public enum ObjectCopyMode
         {
@@ -247,35 +251,31 @@ namespace Axis.Luna.Extensions
 
         public static string JoinUsing(this IEnumerable<char> subStrings, string separator) => string.Join(separator, subStrings.ToArray());
 
-        public static string WrapIn(this string @string, string left, string right)
+        public static string WrapIn(this string @string, string left, string right = null) => $"{left}{@string}{right ?? left}";
+        public static string WrapIf(this string @string, Func<string, bool> predicate, string left, string right = null)
         {
-            ThrowNullArguments(
-                nameof(@string).ObjectPair(@string),
-                nameof(left).ObjectPair(left),
-                nameof(right).ObjectPair(right));
-
-            return $"{left}{@string}{right}";
-        }
-        public static string UnwrapFrom(this string @string, string left, string right)
-        {
-            ThrowNullArguments(
-                nameof(@string).ObjectPair(@string),
-                nameof(left).ObjectPair(left),
-                nameof(right).ObjectPair(right));
-
-            if (@string.IsWrappedIn(left, right))
-                return @string.TrimStart(left).TrimEnd(right);
+            if (predicate.Invoke(@string))
+                return @string.WrapIn(left, right);
 
             else return @string;
         }
-        public static bool IsWrappedIn(this string @string, string left, string right)
+        public static string UnwrapFrom(this string @string, string left, string right = null)
         {
-            ThrowNullArguments(
-                nameof(@string).ObjectPair(@string),
-                nameof(left).ObjectPair(left),
-                nameof(right).ObjectPair(right));
+            if (@string.IsWrappedIn(left, right))
+                return @string.TrimStart(left).TrimEnd(right ?? left);
 
-            return @string.StartsWith(left) && @string.EndsWith(right);
+            else return @string;
+        }
+        public static string UnwrapIf(this string @string, Func<string, bool> predicate, string left, string right = null)
+        {
+            if (predicate.Invoke(@string))
+                return @string.UnwrapFrom(left, right);
+
+            else return @string;
+        }
+        public static bool IsWrappedIn(this string @string, string left, string right = null)
+        {
+            return @string.StartsWith(left) && @string.EndsWith(right ?? left);
         }
 
         public static int SubstringCount(this string source, string subString)

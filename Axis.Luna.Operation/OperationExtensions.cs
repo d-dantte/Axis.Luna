@@ -5,6 +5,14 @@ using System.Threading.Tasks;
 
 namespace Axis.Luna.Operation
 {
+    /// <summary>
+    /// NOTE: With respect to the <c>Then*</c> methods, the <c>errorHandler</c> function/action gives the opportunity to handle the error.
+    /// If this invocation completes without any exceptions, the Operation is once again placed on the "successful" path. To propagate
+    /// A faulted/failed operation, this function has to throw an exception.
+    /// 
+    /// NOTE: For all of the methods, find a way to detect failed operations that doesn't rely on catching an exception as the exception catching
+    /// mechanism is EXTREMELY SLOW
+    /// </summary>
     public static class OperationExtensions
     {
 
@@ -63,7 +71,9 @@ namespace Axis.Luna.Operation
         /// <returns></returns>
         public static Operation Wait(this Operation prev)
         {
-            if (prev == null) return Operation.Fail(new NullReferenceException());
+            if (prev == null) 
+                return Operation.Fail(new NullReferenceException());
+
             else
             {
                 try
@@ -83,7 +93,9 @@ namespace Axis.Luna.Operation
         /// <returns></returns>
         public static Operation<Result> Wait<Result>(this Operation<Result> prev)
         {
-            if (prev == null) return Operation.Fail<Result>(new NullReferenceException());
+            if (prev == null) 
+                return Operation.Fail<Result>(new NullReferenceException());
+
             else
             {
                 try
@@ -103,17 +115,14 @@ namespace Axis.Luna.Operation
         /// <param name="oplist"></param>
         /// <returns></returns>
         public static Operation Fold(this IEnumerable<Operation> oplist)
-        => new Async.AsyncOperation(async () =>
+        => Operation.Try(async () =>
         {
-            var ops = oplist
-                .Select(async _op => await _op)
-                .ToArray();
-
-            await Task.WhenAll(ops); //ensures all operations have been executed
+            foreach (var op in oplist)
+                await op;
         });
 
         public static Operation<IEnumerable<In>> Fold<In>(this IEnumerable<Operation<In>> oplist)
-        => new Async.AsyncOperation<IEnumerable<In>>(async () =>
+        => Operation.Try(async () =>
         {
             var list = new List<In>();
 
@@ -125,7 +134,10 @@ namespace Axis.Luna.Operation
             return list.Cast<In>();
         });
 
-        public static Operation<Out> Fold<In, Out>(this IEnumerable<Operation<In>> operations, Out seed, Func<Out, In, Out> reducer)
+        public static Operation<Out> Fold<In, Out>(this 
+            IEnumerable<Operation<In>> operations, 
+            Out seed, 
+            Func<Out, In, Out> reducer)
         => Operation.Try(async () =>
         {
             var accumulator = seed;
@@ -135,7 +147,9 @@ namespace Axis.Luna.Operation
             return accumulator;
         });
 
-        public static Operation<Out> Fold<In, Out>(this IEnumerable<Operation<In>> operations, Out seed, Func<Out, In, Task<Out>> reducer)
+        public static Operation<Out> Fold<In, Out>(this 
+            IEnumerable<Operation<In>> operations, 
+            Out seed, Func<Out, In, Task<Out>> reducer)
         => Operation.Try(async () =>
         {
             var accumulator = seed;
@@ -166,35 +180,31 @@ namespace Axis.Luna.Operation
                 throw new ArgumentNullException(nameof(reducer));
 
             else
-            {
-                //operation = operation.Wait();
-                //return operation.Succeeded == true? 
-                //    reducer.Invoke(operation.Result):
-                //    reducer.Invoke(@default);
-
                 return operation
                     .Then(reducer)
                     .Catch(ex => reducer.Invoke(@default))
                     .Resolve();
-            }
         }
+
         public static R Reduce<V, R>(this Operation<V> operation, Func<V, R> reducer) => Reduce(operation, default(V), reducer);
         #endregion
 
         #region Catch
         public static Operation Catch(this Operation op, Action<Exception> action)
         {
-            if (op is Lazy.LazyOperation || op is Sync.SyncOperation) return new Lazy.LazyOperation(() =>
-            {
-                try
+            if (op is Lazy.LazyOperation || op is Sync.SyncOperation) 
+                return new Lazy.LazyOperation(() =>
                 {
-                    op.Resolve();
-                }
-                catch (Exception e)
-                {
-                    action.Invoke(e);
-                }
-            });
+                    try
+                    {
+                        op.Resolve();
+                    }
+                    catch (Exception e)
+                    {
+                        action.Invoke(e);
+                    }
+                });
+
             else
             {
                 var t = (op as Async.AsyncOperation).GetTask().ContinueWith(async _t =>
@@ -213,17 +223,19 @@ namespace Axis.Luna.Operation
         }
         public static Operation Catch(this Operation op, Func<Exception, Task> action)
         {
-            if (op is Lazy.LazyOperation || op is Sync.SyncOperation) return new Async.AsyncOperation(async () =>
-            {
-                try
+            if (op is Lazy.LazyOperation || op is Sync.SyncOperation) 
+                return new Async.AsyncOperation(async () =>
                 {
-                    op.Resolve();
-                }
-                catch (Exception e)
-                {
-                    await action.Invoke(e);
-                }
-            });
+                    try
+                    {
+                        op.Resolve();
+                    }
+                    catch (Exception e)
+                    {
+                        await action.Invoke(e);
+                    }
+                });
+
             else
             {
                 var t = (op as Async.AsyncOperation).GetTask().ContinueWith(async _t =>
@@ -242,17 +254,19 @@ namespace Axis.Luna.Operation
         }
         public static Operation<R> Catch<R>(this Operation<R> op, Func<Exception, R> action)
         {
-            if (op is Lazy.LazyOperation<R>) return new Lazy.LazyOperation<R>(() =>
-            {
-                try
+            if (op is Lazy.LazyOperation<R>) 
+                return new Lazy.LazyOperation<R>(() =>
                 {
-                    return op.Resolve();
-                }
-                catch (Exception e)
-                {
-                    return action.Invoke(e);
-                }
-            });
+                    try
+                    {
+                        return op.Resolve();
+                    }
+                    catch (Exception e)
+                    {
+                        return action.Invoke(e);
+                    }
+                });
+
             else
             {
                 var t = (op as Async.AsyncOperation<R>).GetTask().ContinueWith(async _t =>
@@ -271,17 +285,19 @@ namespace Axis.Luna.Operation
         }
         public static Operation<R> Catch<R>(this Operation<R> op, Func<Exception, Task<R>> action)
         {
-            if (op is Lazy.LazyOperation<R> || op is Sync.SyncOperation<R>) return new Async.AsyncOperation<R>(async () =>
-            {
-                try
+            if (op is Lazy.LazyOperation<R> || op is Sync.SyncOperation<R>) 
+                return new Async.AsyncOperation<R>(async () =>
                 {
-                    return op.Resolve();
-                }
-                catch (Exception e)
-                {
-                    return await action.Invoke(e);
-                }
-            });
+                    try
+                    {
+                        return op.Resolve();
+                    }
+                    catch (Exception e)
+                    {
+                        return await action.Invoke(e);
+                    }
+                });
+
             else
             {
                 var t = (op as Async.AsyncOperation<R>).GetTask().ContinueWith(async _t =>
@@ -301,7 +317,7 @@ namespace Axis.Luna.Operation
         #endregion
 
         #region Then/Map
-        public static Operation Then(this Operation prev, Action next, Action<Exception> error = null, Func<Task> rollback = null)
+        public static Operation Then(this Operation prev, Action next, Action<Exception> errorHandler = null)
         => new Lazy.LazyOperation(() =>
         {
             try
@@ -311,11 +327,15 @@ namespace Axis.Luna.Operation
             }
             catch (Exception e)
             {
-                error?.Invoke(e);
-                throw;
+                if (errorHandler == null)
+                    throw;
+
+                else 
+                    errorHandler.Invoke(e);
             }
-        }, rollback);
-        public static Operation Then<In>(this Operation<In> prev, Action next, Action<Exception> error = null, Func<Task> rollback = null)
+        });
+
+        public static Operation Then<In>(this Operation<In> prev, Action next, Action<Exception> errorHandler = null)
         => new Lazy.LazyOperation(() =>
         {
             try
@@ -325,11 +345,15 @@ namespace Axis.Luna.Operation
             }
             catch (Exception e)
             {
-                error?.Invoke(e);
-                throw;
+                if (errorHandler == null)
+                    throw;
+
+                else
+                    errorHandler.Invoke(e);
             }
-        }, rollback);
-        public static Operation Then<In>(this Operation<In> prev, Action<In> next, Action<Exception> error = null, Func<Task> rollback = null)
+        });
+
+        public static Operation Then<In>(this Operation<In> prev, Action<In> next, Action<Exception> errorHandler = null)
         => new Lazy.LazyOperation(() =>
         {
             try
@@ -339,13 +363,16 @@ namespace Axis.Luna.Operation
             }
             catch (Exception e)
             {
-                error?.Invoke(e);
-                throw;
+                if (errorHandler == null)
+                    throw;
+
+                else
+                    errorHandler.Invoke(e);
             }
-        }, rollback);
+        });
 
 
-        public static Operation<Out> Then<Out>(this Operation prev, Func<Out> next, Action<Exception> error = null, Func<Task> rollback = null)
+        public static Operation<Out> Then<Out>(this Operation prev, Func<Out> next, Func<Exception, Out> errorHandler = null)
         => new Lazy.LazyOperation<Out>(() =>
         {
             try
@@ -355,45 +382,65 @@ namespace Axis.Luna.Operation
             }
             catch (Exception e)
             {
-                error?.Invoke(e);
-                throw;
+                if (errorHandler == null)
+                    throw;
+
+                else
+                    return errorHandler.Invoke(e);
             }
-        }, rollback);
-        public static Operation<Out> Then<In, Out>(this Operation<In> prev, Func<Out> next, Action<Exception> error = null, Func<Task> rollback = null)
-        => new Lazy.LazyOperation<Out>(() =>
-        {
-            try
+        });
+
+        public static Operation<Out> Then<In, Out>(this 
+            Operation<In> prev, 
+            Func<Out> next, 
+            Func<Exception, Out> errorHandler = null)
+            => new Lazy.LazyOperation<Out>(() =>
             {
-                prev.Resolve();
-                return next.Invoke();
-            }
-            catch (Exception e)
+                try
+                {
+                    prev.Resolve();
+                    return next.Invoke();
+                }
+                catch (Exception e)
+                {
+                    if (errorHandler == null)
+                        throw;
+
+                    else
+                        return errorHandler.Invoke(e);
+                }
+            });
+
+        public static Operation<Out> Then<In, Out>(this 
+            Operation<In> prev, 
+            Func<In, Out> next, 
+            Func<Exception, Out> errorHandler = null)
+            => new Lazy.LazyOperation<Out>(() =>
             {
-                error?.Invoke(e);
-                throw;
-            }
-        }, rollback);
-        public static Operation<Out> Then<In, Out>(this Operation<In> prev, Func<In, Out> next, Action<Exception> error = null, Func<Task> rollback = null)
-        => new Lazy.LazyOperation<Out>(() =>
-        {
-            try
-            {
-                var _in = prev.Resolve();
-                return next.Invoke(_in);
-            }
-            catch (Exception e)
-            {
-                error?.Invoke(e);
-                throw;
-            }
-        }, rollback);
+                try
+                {
+                    var _in = prev.Resolve();
+                    return next.Invoke(_in);
+                }
+                catch (Exception e)
+                {
+                    if (errorHandler == null)
+                        throw;
+
+                    else
+                        return errorHandler.Invoke(e);
+                }
+            });
 
 
-        public static Operation Then(this Operation prev, Func<Task> taskProducer, Action<Exception> error = null, Func<Task> rollback = null)
+        public static Operation Then(this 
+            Operation prev, 
+            Func<Task> taskProducer, 
+            Action<Exception> errorHandler = null)
         {
-            if (prev is Async.AsyncOperation)
+            if (prev is Async.AsyncOperation asyncop)
             {
-                var t = (prev as Async.AsyncOperation).GetTask().ContinueWith(async _t =>
+                var t = asyncop.GetTask().ContinueWith(async _t =>
                 {
                     try
                     {
@@ -402,11 +449,14 @@ namespace Axis.Luna.Operation
                     }
                     catch (Exception e)
                     {
-                        error?.Invoke(e);
-                        throw;
+                        if (errorHandler == null)
+                            throw;
+
+                        else
+                            errorHandler.Invoke(e);
                     }
                 });
-                return new Async.AsyncOperation(t.Unwrap(), rollback);
+                return new Async.AsyncOperation(t.Unwrap());
             }
             else return new Async.AsyncOperation(async () =>
             {
@@ -417,12 +467,19 @@ namespace Axis.Luna.Operation
                 }
                 catch (Exception e)
                 {
-                    error?.Invoke(e);
-                    throw;
+                    if (errorHandler == null)
+                        throw;
+
+                    else
+                        errorHandler.Invoke(e);
                 }
-            }, rollback);
+            });
         }
-        public static Operation Then<In>(this Operation<In> prev, Func<Task> taskProducer, Action<Exception> error = null, Func<Task> rollback = null)
+
+        public static Operation Then<In>(this 
+            Operation<In> prev, 
+            Func<Task> taskProducer, 
+            Action<Exception> errorHandler = null)
         {
             if (prev is Async.AsyncOperation<In>)
             {
@@ -435,11 +492,14 @@ namespace Axis.Luna.Operation
                     }
                     catch (Exception e)
                     {
-                        error?.Invoke(e);
-                        throw;
+                        if (errorHandler == null)
+                            throw;
+
+                        else
+                            errorHandler.Invoke(e);
                     }
                 });
-                return new Async.AsyncOperation(t.Unwrap(), rollback);
+                return new Async.AsyncOperation(t.Unwrap());
             }
             else return new Async.AsyncOperation(Task.Run(() =>
             {
@@ -450,12 +510,19 @@ namespace Axis.Luna.Operation
                 }
                 catch (Exception e)
                 {
-                    error?.Invoke(e);
-                    throw;
+                    if (errorHandler == null)
+                        throw;
+
+                    else
+                        errorHandler.Invoke(e);
                 }
-            }), rollback);
+            }));
         }
-        public static Operation Then<In>(this Operation<In> prev, Func<In, Task> taskProducer, Action<Exception> error = null, Func<Task> rollback = null)
+
+        public static Operation Then<In>(this 
+            Operation<In> prev, 
+            Func<In, Task> taskProducer, 
+            Action<Exception> errorHandler = null)
         {
             if (prev is Async.AsyncOperation<In>)
             {
@@ -468,11 +535,14 @@ namespace Axis.Luna.Operation
                     }
                     catch (Exception e)
                     {
-                        error?.Invoke(e);
-                        throw;
+                        if (errorHandler == null)
+                            throw;
+
+                        else
+                            errorHandler.Invoke(e);
                     }
                 });
-                return new Async.AsyncOperation(t.Unwrap(), rollback);
+                return new Async.AsyncOperation(t.Unwrap());
             }
             else return new Async.AsyncOperation(Task.Run(() =>
             {
@@ -483,14 +553,20 @@ namespace Axis.Luna.Operation
                 }
                 catch (Exception e)
                 {
-                    error?.Invoke(e);
-                    throw;
+                    if (errorHandler == null)
+                        throw;
+
+                    else
+                        errorHandler.Invoke(e);
                 }
-            }), rollback);
+            }));
         }
 
 
-        public static Operation<Out> Then<Out>(this Operation prev, Func<Task<Out>> taskProducer, Action<Exception> error = null, Func<Task> rollback = null)
+        public static Operation<Out> Then<Out>(this 
+            Operation prev, 
+            Func<Task<Out>> taskProducer, 
+            Func<Exception, Out> errorHandler = null)
         {
             if (prev is Async.AsyncOperation)
             {
@@ -503,11 +579,14 @@ namespace Axis.Luna.Operation
                     }
                     catch (Exception e)
                     {
-                        error?.Invoke(e);
-                        throw;
+                        if (errorHandler == null)
+                            throw;
+
+                        else
+                            return errorHandler.Invoke(e);
                     }
                 });
-                return new Async.AsyncOperation<Out>(t.Unwrap(), rollback);
+                return new Async.AsyncOperation<Out>(t.Unwrap());
             }
             else return new Async.AsyncOperation<Out>(Task.Run(() =>
             {
@@ -520,12 +599,19 @@ namespace Axis.Luna.Operation
                 }
                 catch (Exception e)
                 {
-                    error?.Invoke(e);
-                    throw;
+                    if (errorHandler == null)
+                        throw;
+
+                    else
+                        return errorHandler.Invoke(e);
                 }
-            }), rollback);
+            }));
         }
-        public static Operation<Out> Then<In, Out>(this Operation<In> prev, Func<Task<Out>> taskProducer, Action<Exception> error = null, Func<Task> rollback = null)
+
+        public static Operation<Out> Then<In, Out>(this 
+            Operation<In> prev, 
+            Func<Task<Out>> taskProducer, 
+            Func<Exception, Out> errorHandler = null)
         {
             if (prev is Async.AsyncOperation<In>)
             {
@@ -538,11 +624,14 @@ namespace Axis.Luna.Operation
                     }
                     catch (Exception e)
                     {
-                        error?.Invoke(e);
-                        throw;
+                        if (errorHandler == null)
+                            throw;
+
+                        else
+                            return errorHandler.Invoke(e);
                     }
                 });
-                return new Async.AsyncOperation<Out>(t.Unwrap(), rollback);
+                return new Async.AsyncOperation<Out>(t.Unwrap());
             }
             else return new Async.AsyncOperation<Out>(Task.Run(() =>
             {
@@ -555,12 +644,19 @@ namespace Axis.Luna.Operation
                 }
                 catch (Exception e)
                 {
-                    error?.Invoke(e);
-                    throw;
+                    if (errorHandler == null)
+                        throw;
+
+                    else
+                        return errorHandler.Invoke(e);
                 }
-            }), rollback);
+            }));
         }
-        public static Operation<Out> Then<In, Out>(this Operation<In> prev, Func<In, Task<Out>> taskProducer, Action<Exception> error = null, Func<Task> rollback = null)
+
+        public static Operation<Out> Then<In, Out>(this 
+            Operation<In> prev, 
+            Func<In, Task<Out>> taskProducer, 
+            Func<Exception, Out> errorHandler = null)
         {
             if (prev is Async.AsyncOperation<In>)
             {
@@ -573,11 +669,14 @@ namespace Axis.Luna.Operation
                     }
                     catch (Exception e)
                     {
-                        error?.Invoke(e);
-                        throw;
+                        if (errorHandler == null)
+                            throw;
+
+                        else
+                            return errorHandler.Invoke(e);
                     }
                 });
-                return new Async.AsyncOperation<Out>(t.Unwrap(), rollback);
+                return new Async.AsyncOperation<Out>(t.Unwrap());
             }
             else return new Async.AsyncOperation<Out>(Task.Run(() =>
             {
@@ -590,14 +689,20 @@ namespace Axis.Luna.Operation
                 }
                 catch (Exception e)
                 {
-                    error?.Invoke(e);
-                    throw;
+                    if (errorHandler == null)
+                        throw;
+
+                    else
+                        return errorHandler.Invoke(e);
                 }
-            }), rollback);
+            }));
         }
 
 
-        public static Operation Then(this Operation prev, Func<Operation> next, Action<Exception> error = null, Func<Task> rollback = null)
+        public static Operation Then(this 
+            Operation prev, 
+            Func<Operation> next, 
+            Action<Exception> errorHandler = null)
         => new Lazy.LazyOperation(() =>
         {
             try
@@ -607,11 +712,18 @@ namespace Axis.Luna.Operation
             }
             catch (Exception e)
             {
-                error?.Invoke(e);
-                throw;
+                if (errorHandler == null)
+                    throw;
+
+                else
+                    errorHandler.Invoke(e);
             }
-        }, rollback);
-        public static Operation Then<In>(this Operation<In> prev, Func<Operation> next, Action<Exception> error = null, Func<Task> rollback = null)
+        });
+
+        public static Operation Then<In>(this 
+            Operation<In> prev, 
+            Func<Operation> next, 
+            Action<Exception> errorHandler = null)
         => new Lazy.LazyOperation(() =>
         {
             try
@@ -621,11 +733,18 @@ namespace Axis.Luna.Operation
             }
             catch (Exception e)
             {
-                error?.Invoke(e);
-                throw;
+                if (errorHandler == null)
+                    throw;
+
+                else
+                    errorHandler.Invoke(e);
             }
-        }, rollback);
-        public static Operation Then<In>(this Operation<In> prev, Func<In, Operation> next, Action<Exception> error = null, Func<Task> rollback = null)
+        });
+
+        public static Operation Then<In>(this 
+            Operation<In> prev, 
+            Func<In, Operation> next, 
+            Action<Exception> errorHandler = null)
         => new Lazy.LazyOperation(() =>
         {
             try
@@ -635,11 +754,18 @@ namespace Axis.Luna.Operation
             }
             catch (Exception e)
             {
-                error?.Invoke(e);
-                throw;
+                if (errorHandler == null)
+                    throw;
+
+                else
+                    errorHandler.Invoke(e);
             }
-        }, rollback);
-        public static Operation<Out> Then<Out>(this Operation prev, Func<Operation<Out>> next, Action<Exception> error = null, Func<Task> rollback = null)
+        });
+
+        public static Operation<Out> Then<Out>(this 
+            Operation prev, 
+            Func<Operation<Out>> next, 
+            Func<Exception, Out> errorHandler = null)
         => new Lazy.LazyOperation<Out>(() =>
         {
             try
@@ -649,11 +775,18 @@ namespace Axis.Luna.Operation
             }
             catch (Exception e)
             {
-                error?.Invoke(e);
-                throw;
+                if (errorHandler == null)
+                    throw;
+
+                else
+                    return errorHandler.Invoke(e);
             }
-        }, rollback);
-        public static Operation<Out> Then<In, Out>(this Operation<In> prev, Func<Operation<Out>> next, Action<Exception> error = null, Func<Task> rollback = null)
+        });
+
+        public static Operation<Out> Then<In, Out>(this 
+            Operation<In> prev, 
+            Func<Operation<Out>> next, 
+            Func<Exception, Out> errorHandler = null)
         => new Lazy.LazyOperation<Out>(() =>
         {
             try
@@ -663,11 +796,18 @@ namespace Axis.Luna.Operation
             }
             catch (Exception e)
             {
-                error?.Invoke(e);
-                throw;
+                if (errorHandler == null)
+                    throw;
+
+                else
+                    return errorHandler.Invoke(e);
             }
-        }, rollback);
-        public static Operation<Out> Then<In, Out>(this Operation<In> prev, Func<In, Operation<Out>> next, Action<Exception> error = null, Func<Task> rollback = null)
+        });
+
+        public static Operation<Out> Then<In, Out>(this 
+            Operation<In> prev, 
+            Func<In, Operation<Out>> next, 
+            Func<Exception, Out> errorHandler = null)
         => new Lazy.LazyOperation<Out>(() =>
         {
             try
@@ -677,13 +817,19 @@ namespace Axis.Luna.Operation
             }
             catch (Exception e)
             {
-                error?.Invoke(e);
-                throw;
+                if (errorHandler == null)
+                    throw;
+
+                else
+                    return errorHandler.Invoke(e);
             }
-        },rollback);
+        });
 
 
-        public static Operation Then(this Operation prev, Func<Task<Operation>> next, Action<Exception> error = null, Func<Task> rollback = null)
+        public static Operation Then(this 
+            Operation prev, 
+            Func<Task<Operation>> next, 
+            Action<Exception> errorHandler = null)
         => new Async.AsyncOperation(async () =>
         {
             try
@@ -693,11 +839,18 @@ namespace Axis.Luna.Operation
             }
             catch (Exception e)
             {
-                error?.Invoke(e);
-                throw;
+                if (errorHandler == null)
+                    throw;
+
+                else
+                    errorHandler.Invoke(e);
             }
-        }, rollback);
-        public static Operation Then<In>(this Operation<In> prev, Func<Task<Operation>> next, Action<Exception> error = null, Func<Task> rollback = null)
+        });
+
+        public static Operation Then<In>(this 
+            Operation<In> prev, 
+            Func<Task<Operation>> next, 
+            Action<Exception> errorHandler = null)
         => new Async.AsyncOperation(async () =>
         {
             try
@@ -707,11 +860,18 @@ namespace Axis.Luna.Operation
             }
             catch (Exception e)
             {
-                error?.Invoke(e);
-                throw;
+                if (errorHandler == null)
+                    throw;
+
+                else
+                    errorHandler.Invoke(e);
             }
-        }, rollback);
-        public static Operation Then<In>(this Operation<In> prev, Func<In, Task<Operation>> next, Action<Exception> error = null, Func<Task> rollback = null)
+        });
+
+        public static Operation Then<In>(this 
+            Operation<In> prev, 
+            Func<In, Task<Operation>> next, 
+            Action<Exception> errorHandler = null)
         => new Async.AsyncOperation(async () =>
         {
             try
@@ -721,11 +881,18 @@ namespace Axis.Luna.Operation
             }
             catch (Exception e)
             {
-                error?.Invoke(e);
-                throw;
+                if (errorHandler == null)
+                    throw;
+
+                else
+                    errorHandler.Invoke(e);
             }
-        }, rollback);
-        public static Operation<Out> Then<Out>(this Operation prev, Func<Task<Operation<Out>>> next, Action<Exception> error = null, Func<Task> rollback = null)
+        });
+
+        public static Operation<Out> Then<Out>(this 
+            Operation prev, 
+            Func<Task<Operation<Out>>> next, 
+            Func<Exception, Out> errorHandler = null)
         => new Async.AsyncOperation<Out>(async () =>
         {
             try
@@ -735,11 +902,18 @@ namespace Axis.Luna.Operation
             }
             catch (Exception e)
             {
-                error?.Invoke(e);
-                throw;
+                if (errorHandler == null)
+                    throw;
+
+                else
+                    return errorHandler.Invoke(e);
             }
-        }, rollback);
-        public static Operation<Out> Then<In, Out>(this Operation<In> prev, Func<Task<Operation<Out>>> next, Action<Exception> error = null, Func<Task> rollback = null)
+        });
+
+        public static Operation<Out> Then<In, Out>(this 
+            Operation<In> prev, 
+            Func<Task<Operation<Out>>> next, 
+            Func<Exception, Out> errorHandler = null)
         => new Async.AsyncOperation<Out>(async () =>
         {
             try
@@ -749,11 +923,18 @@ namespace Axis.Luna.Operation
             }
             catch (Exception e)
             {
-                error?.Invoke(e);
-                throw;
+                if (errorHandler == null)
+                    throw;
+
+                else
+                    return errorHandler.Invoke(e);
             }
-        }, rollback);
-        public static Operation<Out> Then<In, Out>(this Operation<In> prev, Func<In, Task<Operation<Out>>> next, Action<Exception> error = null, Func<Task> rollback = null)
+        });
+
+        public static Operation<Out> Then<In, Out>(this 
+            Operation<In> prev, 
+            Func<In, Task<Operation<Out>>> next, 
+            Func<Exception, Out> errorHandler = null)
         => new Async.AsyncOperation<Out>(async () =>
         {
             try
@@ -763,10 +944,13 @@ namespace Axis.Luna.Operation
             }
             catch (Exception e)
             {
-                error?.Invoke(e);
-                throw;
+                if (errorHandler == null)
+                    throw;
+
+                else
+                    return errorHandler.Invoke(e);
             }
-        }, rollback);
+        });
         #endregion
     }
 }

@@ -29,6 +29,11 @@ namespace Axis.Luna.Operation.Sync
         public override IAwaiter<R> GetAwaiter() => _awaiter;
 
         public override R Resolve() => _awaiter.GetResult();
+
+
+        public static implicit operator SyncOperation<R>(R value) => new SyncOperation<R>(value);
+
+        public static implicit operator SyncOperation<R>(OperationError error) => new SyncOperation<R>(error);
     }
 
     public class SyncOperation : Operation
@@ -49,5 +54,8 @@ namespace Axis.Luna.Operation.Sync
         public override IAwaiter GetAwaiter() => _awaiter;
 
         public override void Resolve() => _awaiter.GetResult();
+
+
+        public static implicit operator SyncOperation(OperationError error) => new SyncOperation(error);
     }
 }

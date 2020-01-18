@@ -22,14 +22,16 @@ namespace Axis.Luna.Extensions
                     var maccess = uexp.Operand as MemberExpression;
                     //(maccess.Member as FieldInfo).GetValue((maccess.Expression as ConstantExpression).Value)
                     //                             .ThrowIfNull(new ArgumentException(maccess.Member.Name));
-                    maccess.CapturedValue().ThrowIfNull(new ArgumentNullException(maccess.Member.Name));
+                    if (maccess.CapturedValue() == null)
+                        throw new ArgumentNullException(maccess.Member.Name);
                 }
                 else if (expr.Body is MemberExpression)
                 {
                     var maccess = expr.Body as MemberExpression;
                     //(maccess.Member as FieldInfo).GetValue((maccess.Expression as ConstantExpression).Value)
                     //                             .ThrowIfNull(new ArgumentException(maccess.Member.Name));
-                    maccess.CapturedValue().ThrowIfNull(new ArgumentNullException(maccess.Member.Name));
+                    if (maccess.CapturedValue() == null)
+                        throw new ArgumentNullException(maccess.Member.Name);
                 }
             }
         }

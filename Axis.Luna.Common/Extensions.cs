@@ -3,6 +3,7 @@ using Axis.Luna.Extensions;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Text;
 
 namespace Axis.Luna.Common
@@ -84,8 +85,10 @@ namespace Axis.Luna.Common
             return objects
                 .Select(_obj =>
                 {
-                    if (_obj.GetType().IsNumeric()
-                     || _obj is bool)
+                    var objType = _obj.GetType();
+                    if (objType.IsNumeric()
+                     || typeof(bool?).IsAssignableFrom(objType)
+                     || typeof(Guid?).IsAssignableFrom(objType))
                         return _obj.ToString();
 
                     else
@@ -108,7 +111,7 @@ namespace Axis.Luna.Common
                 case CommonDataType.Guid: return typeof(string);
                 case CommonDataType.Integer: return typeof(long);
                 case CommonDataType.IPV4: return typeof(string);
-                case CommonDataType.IPV6: return typeof(string);
+                case CommonDataType.IPV6: return typeof(IPAddress);
                 case CommonDataType.JsonObject: return typeof(string);
                 case CommonDataType.Location: return typeof(string);
                 case CommonDataType.Phone: return typeof(string);
@@ -136,7 +139,7 @@ namespace Axis.Luna.Common
                 case CommonDataType.Guid: return Guid.Parse(dataItem.Data);
                 case CommonDataType.Integer: return long.Parse(dataItem.Data);
                 case CommonDataType.IPV4:
-                case CommonDataType.IPV6: return dataItem.Data;
+                case CommonDataType.IPV6: return IPAddress.Parse(dataItem.Data);
                 case CommonDataType.JsonObject: return dataItem.Data;
                 case CommonDataType.Location: return dataItem.Data;
                 case CommonDataType.Phone: return dataItem.Data;
@@ -150,6 +153,51 @@ namespace Axis.Luna.Common
             }
         }
 
+        public static CommonDataType CommonType(this Type type)
+        {
+            if (typeof(byte?).IsAssignableFrom(type))
+                return CommonDataType.Binary;
+
+            else if (typeof(bool?).IsAssignableFrom(type))
+                return CommonDataType.Boolean;
+
+            else if (typeof(System.Collections.IEnumerable).IsAssignableFrom(type))
+                return CommonDataType.CSV;
+
+            else if (typeof(DateTimeOffset?).IsAssignableFrom(type))
+                return CommonDataType.DateTime;
+
+            else if (typeof(decimal?).IsAssignableFrom(type))
+                return CommonDataType.Decimal;
+
+            else if (typeof(Guid?).IsAssignableFrom(type))
+                return CommonDataType.Boolean;
+
+            else if (typeof(int?).IsAssignableFrom(type)
+                || typeof(short?).IsAssignableFrom(type)
+                || typeof(long?).IsAssignableFrom(type))
+                return CommonDataType.Integer;
+
+            else if (typeof(IPAddress).IsAssignableFrom(type))
+                return CommonDataType.IPV4;
+
+            else if (typeof(float?).IsAssignableFrom(type)
+                || typeof(double?).IsAssignableFrom(type))
+                return CommonDataType.Real;
+
+            else if (typeof(TimeSpan?).IsAssignableFrom(type))
+                return CommonDataType.TimeSpan;
+
+            else if (typeof(Uri).IsAssignableFrom(type))
+                return CommonDataType.Url;
+
+            else if (typeof(string).IsAssignableFrom(type))
+                return CommonDataType.String;
+
+            else return CommonDataType.JsonObject;
+
+        }
+
         private static object ConvertValue(string value)
         {
             value = value?.Trim('\'');
@@ -160,6 +208,7 @@ namespace Axis.Luna.Common
             else if (DateTimeOffset.TryParse(value, out var dateTimeOffsetValue)) return dateTimeOffsetValue;
             else if (TimeSpan.TryParse(value, out var timespanValue)) return timespanValue;
             else if (bool.TryParse(value, out var boolValue)) return boolValue;
+            else if (IPAddress.TryParse(value, out var ipaddressValue)) return ipaddressValue;
             else return value;
         }
 
@@ -172,6 +221,7 @@ namespace Axis.Luna.Common
                 .Replace(";", "&scol")
                 .Replace(":", "&col");
         }
+
         private static string DecodeTagValue(string encoded)
         {
             return encoded

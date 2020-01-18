@@ -1,6 +1,8 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Nito.AsyncEx;
 using System;
+using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Axis.Luna.Operation.Test
@@ -59,8 +61,6 @@ namespace Axis.Luna.Operation.Test
                     await Task.Delay(500);
                 });
                 op.Resolve();
-
-                Assert.IsTrue(op.Succeeded == true);
             });
         }
 
@@ -72,12 +72,35 @@ namespace Axis.Luna.Operation.Test
                 var op = Operation.Try(async () =>
                 {
                     await Task.Delay(500);
-                    return 5;
+                    return 6;
                 });
-                var r = op.Resolve();
-
-                Assert.AreEqual(5, r);
+                _ = op.Resolve();
             });
+        }
+        
+        private async Task<int> SomeResultOperation(Task task = null, bool maintainSyncContext = true)
+        {
+            task = task ?? Task.Delay(500);
+            await task.ConfigureAwait(maintainSyncContext);
+
+            return DateTime.Now.GetHashCode();
+        }
+        private Task SomeVoidOperation(Task task = null, bool maintainSyncContext = true) => Task.Run(async () =>
+        {
+            var cxt = SynchronizationContext.Current;
+            using (var writer = new StreamWriter(new FileStream("sync-context.txt", FileMode.Append)))
+            {
+                writer.WriteLine($"{cxt?.ToString() ?? "null"}");
+                writer.Flush();
+            }
+
+            task = task ?? Task.Delay(500);
+            await task.ConfigureAwait(maintainSyncContext);
+        });
+        private async Task SomeVoidOperationAsync(Task task = null, bool maintainSyncContext = true)
+        {
+            task = task ?? Task.Delay(500);
+            await task.ConfigureAwait(maintainSyncContext);
         }
 
 
