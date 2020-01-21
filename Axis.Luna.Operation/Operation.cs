@@ -51,10 +51,18 @@ namespace Axis.Luna.Operation
         public abstract OperationError Error { get; }
 
 
+        public static implicit operator Operation(Func<Task> t)
+        {
+            throw new Exception();
+        }
+
+
         #region Static helpers
 
         #region Value
         public static Operation<Result> FromResult<Result>(Result result) => new Sync.SyncOperation<Result>(result);
+
+        public static Operation FromVoid() => new Lazy.LazyOperation(() => { }); //<-- is there a better way to do this?
         #endregion
 
         #region Try

@@ -200,6 +200,33 @@ namespace Axis.Luna.Extensions
         public static T ThrowIf<T>(this T value, Func<T, bool> predicate, Func<T, string> exceptionMessage)
         => value.ThrowIf(predicate, _t => new Exception(exceptionMessage?.Invoke(_t) ?? "An Exception occured"));
 
+        public static T Throw<T>(this ExceptionDispatchInfo edi)
+        {
+            edi.Throw();
+
+            //never reached
+            return default(T);
+        }
+
+        public static T Throw<T>(this Exception e)
+        {
+            if (e.StackTrace == null)
+                throw e; //<- hasn't been thrown already
+
+            ExceptionDispatchInfo.Capture(e).Throw();
+
+            //never reached
+            return default(T);
+        }
+
+        public static void Throw(this Exception e)
+        {
+            if (e.StackTrace == null)
+                throw e; //<- hasn't been thrown already
+
+            ExceptionDispatchInfo.Capture(e).Throw();
+        }
+
         public static Exception InnermostException(this System.Exception ex)
         {
             var x = ex;

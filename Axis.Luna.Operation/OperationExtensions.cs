@@ -1,6 +1,8 @@
-﻿using System;
+﻿using Axis.Luna.Extensions;
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.ExceptionServices;
 using System.Threading.Tasks;
 
 namespace Axis.Luna.Operation
@@ -24,7 +26,10 @@ namespace Axis.Luna.Operation
         /// <param name="op"></param>
         /// <param name="newException"></param>
         /// <returns></returns>
-        public static Operation ReThrow(this Operation op, Exception newException) => op.Catch(err => throw newException);
+        public static Operation ReThrow(this
+            Operation op,
+            Exception newException)
+            => op.Catch(err => newException.Throw<Operation>());
 
         /// <summary>
         /// For a failed operation, throws the generated exception instead of the actual exception of the operation
@@ -32,7 +37,10 @@ namespace Axis.Luna.Operation
         /// <param name="op"></param>
         /// <param name="map"></param>
         /// <returns></returns>
-        public static Operation ReThrow(this Operation op, Func<Exception, Exception> map) => op.Catch(err => throw map(err));
+        public static Operation ReThrow(this
+            Operation op,
+            Func<Exception, Exception> map)
+            => op.Catch(err => map(err).Throw());
 
         /// <summary> 
         /// For a faulted operation, throws the new exception instead of the actual exception of the operation
@@ -41,12 +49,15 @@ namespace Axis.Luna.Operation
         /// <param name="op"></param>
         /// <param name="newException"></param>
         /// <returns></returns>
-        public static Operation<Result> ReThrow<Result>(this Operation<Result> op, Exception newException) => op.Catch(err =>
-        {
-            var condition = true;
-            if (condition) throw newException;
-            else return op.Resolve();
-        });
+        public static Operation<Result> ReThrow<Result>(this 
+            Operation<Result> op, 
+            Exception newException) 
+            => op.Catch(err =>
+            {
+                var condition = true;
+                if (condition) throw newException;
+                else return op.Resolve();
+            });
 
         /// <summary>
         /// For a failed operation, throws the generated exception instead of the actual exception of the operation
@@ -55,12 +66,15 @@ namespace Axis.Luna.Operation
         /// <param name="op"></param>
         /// <param name="newException"></param>
         /// <returns></returns>
-        public static Operation<Result> ReThrow<Result>(this Operation<Result> op, Func<Exception, Exception> map) => op.Catch(err =>
-        {
-            var condition = true;
-            if (condition) throw map(err);
-            else return op.Resolve();
-        });
+        public static Operation<Result> ReThrow<Result>(this 
+            Operation<Result> op, 
+            Func<Exception, Exception> map) 
+            => op.Catch(err =>
+            {
+                var condition = true;
+                if (condition) throw map(err);
+                else return op.Resolve();
+            });
         #endregion
 
         #region Wait
@@ -192,7 +206,11 @@ namespace Axis.Luna.Operation
         #region Catch
         public static Operation Catch(this Operation op, Action<Exception> action)
         {
-            if (op is Lazy.LazyOperation || op is Sync.SyncOperation) 
+            if (op.Succeeded == true)
+                return op;
+
+            else if (!(op is Async.AsyncOperation))
+            {
                 return new Lazy.LazyOperation(() =>
                 {
                     try
@@ -204,7 +222,7 @@ namespace Axis.Luna.Operation
                         action.Invoke(e);
                     }
                 });
-
+            }
             else
             {
                 var t = (op as Async.AsyncOperation).GetTask().ContinueWith(async _t =>
@@ -223,19 +241,21 @@ namespace Axis.Luna.Operation
         }
         public static Operation Catch(this Operation op, Func<Exception, Task> action)
         {
-            if (op is Lazy.LazyOperation || op is Sync.SyncOperation) 
-                return new Async.AsyncOperation(async () =>
-                {
-                    try
-                    {
-                        op.Resolve();
-                    }
-                    catch (Exception e)
-                    {
-                        await action.Invoke(e);
-                    }
-                });
+            if (op.Succeeded == true)
+                return op;
 
+            else if (!(op is Async.AsyncOperation))
+            {
+                try
+                {
+                    op.Resolve();
+                    return Operation.FromVoid();
+                }
+                catch (Exception e)
+                {
+                    return new Async.AsyncOperation(() => action.Invoke(e));
+                }
+            }
             else
             {
                 var t = (op as Async.AsyncOperation).GetTask().ContinueWith(async _t =>
@@ -252,9 +272,46 @@ namespace Axis.Luna.Operation
                 return new Async.AsyncOperation(t.Unwrap());
             }
         }
+        public static Operation Catch(this Operation op, Func<Exception, Operation> action)
+        {
+            if (op.Succeeded == true)
+                return op;
+
+            else if (op is Lazy.LazyOperation)
+            {
+                try
+                {
+                    return action.Invoke(op.Error.GetException());
+                }
+                catch (Exception e)
+                {
+                    return Operation.Fail(e);
+                }
+            }
+            else
+            {
+                var t = (op as Async.AsyncOperation).GetTask().ContinueWith(async _t =>
+                {
+                    try
+                    {
+                        await _t;
+                    }
+                    catch (Exception e)
+                    {
+                        await action.Invoke(e);
+                    }
+                });
+                return new Async.AsyncOperation(t.Unwrap());
+            }
+        }
+
         public static Operation<R> Catch<R>(this Operation<R> op, Func<Exception, R> action)
         {
-            if (op is Lazy.LazyOperation<R>) 
+            if (op.Succeeded == true)
+                return op;
+
+            else if (!(op is Async.AsyncOperation<R>))
+            {
                 return new Lazy.LazyOperation<R>(() =>
                 {
                     try
@@ -266,7 +323,7 @@ namespace Axis.Luna.Operation
                         return action.Invoke(e);
                     }
                 });
-
+            }
             else
             {
                 var t = (op as Async.AsyncOperation<R>).GetTask().ContinueWith(async _t =>
@@ -285,7 +342,11 @@ namespace Axis.Luna.Operation
         }
         public static Operation<R> Catch<R>(this Operation<R> op, Func<Exception, Task<R>> action)
         {
-            if (op is Lazy.LazyOperation<R> || op is Sync.SyncOperation<R>) 
+            if (op.Succeeded == true)
+                return op;
+
+            else if (!(op is Async.AsyncOperation<R>))
+            {
                 return new Async.AsyncOperation<R>(async () =>
                 {
                     try
@@ -297,7 +358,7 @@ namespace Axis.Luna.Operation
                         return await action.Invoke(e);
                     }
                 });
-
+            }
             else
             {
                 var t = (op as Async.AsyncOperation<R>).GetTask().ContinueWith(async _t =>
@@ -314,46 +375,190 @@ namespace Axis.Luna.Operation
                 return new Async.AsyncOperation<R>(t.Unwrap());
             }
         }
-        #endregion
-
-        #region Then/Map
-        public static Operation Then(this Operation prev, Action next, Action<Exception> errorHandler = null)
-        => new Lazy.LazyOperation(() =>
+        public static Operation<R> Catch<R>(this Operation<R> op, Func<Exception, Operation<R>> action)
         {
-            try
-            {
-                prev.Resolve();
-                next?.Invoke();
-            }
-            catch (Exception e)
-            {
-                if (errorHandler == null)
-                    throw;
+            if (op.Succeeded == true)
+                return op;
 
-                else 
-                    errorHandler.Invoke(e);
+            else if (!(op is Async.AsyncOperation<R>))
+            {
+                try
+                {
+                    return action.Invoke(op.Error.GetException());
+                }
+                catch (Exception e)
+                {
+                    return Operation.Fail<R>(e);
+                }
             }
-        });
+            else
+            {
+                var t = (op as Async.AsyncOperation<R>)
+                    .GetTask()
+                    .ContinueWith(async _t =>
+                    {
+                        try
+                        {
+                            return await _t;
+                        }
+                        catch (Exception e)
+                        {
+                            return await action.Invoke(e);
+                        }
+                    });
+                return new Async.AsyncOperation<R>(t.Unwrap());
+            }
+        }
+		#endregion
 
-        public static Operation Then<In>(this Operation<In> prev, Action next, Action<Exception> errorHandler = null)
-        => new Lazy.LazyOperation(() =>
+		#region Then/Map
+
+		#region Returns Operation
+		public static Operation Then(this 
+            Operation prev, 
+            Action next, 
+            Action<Exception> errorHandler = null)
         {
-            try
-            {
-                prev.Resolve();
-                next.Invoke();
-            }
-            catch (Exception e)
-            {
-                if (errorHandler == null)
-                    throw;
+            if (prev.Succeeded == true)
+                return new Lazy.LazyOperation(next);
 
-                else
-                    errorHandler.Invoke(e);
-            }
-        });
+            else if (!(prev is Async.AsyncOperation))
+            {
+                try
+                {
+                    prev.Resolve();
 
-        public static Operation Then<In>(this Operation<In> prev, Action<In> next, Action<Exception> errorHandler = null)
+                    return new Lazy.LazyOperation(next);
+                }
+                catch (Exception e)
+                {
+                    if (errorHandler == null)
+                        return Operation.Fail(e);
+
+                    else
+                        return new Lazy.LazyOperation(() => errorHandler.Invoke(e));
+                }
+            }
+            else
+            {
+                var asyncop = prev as Async.AsyncOperation;
+                return asyncop
+                    .GetTask()
+                    .ContinueWith(t =>
+                    {
+                        if (t.Status == TaskStatus.RanToCompletion)
+                            next.Invoke();
+
+                        else
+                        {
+                            if (errorHandler == null)
+                                ExceptionDispatchInfo
+                                    .Capture(t.Exception.InnerException)
+                                    .Throw();
+
+                            else errorHandler.Invoke(t.Exception.InnerException);
+                        }
+                    })
+                    .Pipe(task => new Async.AsyncOperation(task));
+            }
+        }
+
+        public static Operation Then(this
+            Operation prev,
+            Action next,
+            Func<Exception, ErrorHandlerResult> errorHandler = null)
+        {
+            if (prev.Succeeded == true)
+                return new Lazy.LazyOperation(next);
+
+            else if (!(prev is Async.AsyncOperation))
+            {
+                try
+                {
+                    prev.Resolve();
+
+                    return new Lazy.LazyOperation(next);
+                }
+                catch (Exception e)
+                {
+                    if (errorHandler == null)
+                        return Operation.Fail(e);
+
+                    else
+                        return new Lazy.LazyOperation(() => errorHandler.Invoke(e));
+                }
+            }
+            else
+            {
+                var asyncop = prev as Async.AsyncOperation;
+                return asyncop
+                    .GetTask()
+                    .ContinueWith(t =>
+                    {
+                        if (t.Status == TaskStatus.RanToCompletion)
+                            next.Invoke();
+
+                        else
+                        {
+                            if (errorHandler == null)
+                                ExceptionDispatchInfo
+                                    .Capture(t.Exception.InnerException)
+                                    .Throw();
+
+                            else errorHandler.Invoke(t.Exception.InnerException);
+                        }
+                    })
+                    .Pipe(task => new Async.AsyncOperation(task));
+            }
+        }
+
+        public static Operation Then(this
+            Operation prev,
+            Func<Task> taskProducer,
+            Action<Exception> errorHandler = null)
+        {
+            if (prev is Async.AsyncOperation asyncop)
+            {
+                var t = asyncop.GetTask().ContinueWith(async _t =>
+                {
+                    try
+                    {
+                        _t.GetAwaiter().GetResult(); //throws an exception if the previous task faulted
+                        await taskProducer.Invoke().ConfigureAwait(false);
+                    }
+                    catch (Exception e)
+                    {
+                        if (errorHandler == null)
+                            throw;
+
+                        else
+                            errorHandler.Invoke(e);
+                    }
+                });
+                return new Async.AsyncOperation(t.Unwrap());
+            }
+            else return new Async.AsyncOperation(async () =>
+            {
+                try
+                {
+                    prev.Resolve();
+                    await taskProducer.Invoke();
+                }
+                catch (Exception e)
+                {
+                    if (errorHandler == null)
+                        throw;
+
+                    else
+                        errorHandler.Invoke(e);
+                }
+            });
+        }
+
+        public static Operation Then<In>(this
+            Operation<In> prev,
+            Action<In> next,
+            Action<Exception> errorHandler = null)
         => new Lazy.LazyOperation(() =>
         {
             try
@@ -371,8 +576,55 @@ namespace Axis.Luna.Operation
             }
         });
 
+        public static Operation Then<In>(this
+            Operation<In> prev,
+            Func<In, Task> next,
+            Action<Exception> errorHandler = null)
+        {
+            if (prev is Async.AsyncOperation asyncop)
+            {
+                var t = asyncop.GetTask().ContinueWith(async _t =>
+                {
+                    try
+                    {
+                        _t.GetAwaiter().GetResult(); //throws an exception if the previous task faulted
+                        //await taskProducer.Invoke().ConfigureAwait(false);
+                    }
+                    catch (Exception e)
+                    {
+                        if (errorHandler == null)
+                            throw;
 
-        public static Operation<Out> Then<Out>(this Operation prev, Func<Out> next, Func<Exception, Out> errorHandler = null)
+                        else
+                            errorHandler.Invoke(e);
+                    }
+                });
+                return new Async.AsyncOperation(t.Unwrap());
+            }
+            else return new Async.AsyncOperation(async () =>
+            {
+                try
+                {
+                    prev.Resolve();
+                    //await taskProducer.Invoke();
+                }
+                catch (Exception e)
+                {
+                    if (errorHandler == null)
+                        throw;
+
+                    else
+                        errorHandler.Invoke(e);
+                }
+            });
+        }
+        #endregion
+
+
+        public static Operation<Out> Then<Out>(this 
+            Operation prev, 
+            Func<Out> next, 
+            Func<Exception, Out> errorHandler = null)
         => new Lazy.LazyOperation<Out>(() =>
         {
             try
@@ -433,48 +685,6 @@ namespace Axis.Luna.Operation
             });
 
 
-        public static Operation Then(this 
-            Operation prev, 
-            Func<Task> taskProducer, 
-            Action<Exception> errorHandler = null)
-        {
-            if (prev is Async.AsyncOperation asyncop)
-            {
-                var t = asyncop.GetTask().ContinueWith(async _t =>
-                {
-                    try
-                    {
-                        _t.GetAwaiter().GetResult(); //throws an exception if the previous task faulted
-                        await taskProducer.Invoke().ConfigureAwait(false);
-                    }
-                    catch (Exception e)
-                    {
-                        if (errorHandler == null)
-                            throw;
-
-                        else
-                            errorHandler.Invoke(e);
-                    }
-                });
-                return new Async.AsyncOperation(t.Unwrap());
-            }
-            else return new Async.AsyncOperation(async () =>
-            {
-                try
-                {
-                    prev.Resolve();
-                    await taskProducer.Invoke();
-                }
-                catch (Exception e)
-                {
-                    if (errorHandler == null)
-                        throw;
-
-                    else
-                        errorHandler.Invoke(e);
-                }
-            });
-        }
 
         public static Operation Then<In>(this 
             Operation<In> prev, 
@@ -519,48 +729,48 @@ namespace Axis.Luna.Operation
             }));
         }
 
-        public static Operation Then<In>(this 
-            Operation<In> prev, 
-            Func<In, Task> taskProducer, 
-            Action<Exception> errorHandler = null)
-        {
-            if (prev is Async.AsyncOperation<In>)
-            {
-                var t = (prev as Async.AsyncOperation<In>).GetTask().ContinueWith(async _t =>
-                {
-                    try
-                    {
-                        var _in = _t.GetAwaiter().GetResult(); //throws an exception if the previous task faulted
-                        await taskProducer.Invoke(_in).ConfigureAwait(false);
-                    }
-                    catch (Exception e)
-                    {
-                        if (errorHandler == null)
-                            throw;
+        //public static Operation Then<In>(this 
+        //    Operation<In> prev, 
+        //    Func<In, Task> taskProducer, 
+        //    Action<Exception> errorHandler = null)
+        //{
+        //    if (prev is Async.AsyncOperation<In>)
+        //    {
+        //        var t = (prev as Async.AsyncOperation<In>).GetTask().ContinueWith(async _t =>
+        //        {
+        //            try
+        //            {
+        //                var _in = _t.GetAwaiter().GetResult(); //throws an exception if the previous task faulted
+        //                await taskProducer.Invoke(_in).ConfigureAwait(false);
+        //            }
+        //            catch (Exception e)
+        //            {
+        //                if (errorHandler == null)
+        //                    throw;
 
-                        else
-                            errorHandler.Invoke(e);
-                    }
-                });
-                return new Async.AsyncOperation(t.Unwrap());
-            }
-            else return new Async.AsyncOperation(Task.Run(() =>
-            {
-                try
-                {
-                    var _in = prev.Resolve();
-                    taskProducer(_in).GetAwaiter().GetResult();
-                }
-                catch (Exception e)
-                {
-                    if (errorHandler == null)
-                        throw;
+        //                else
+        //                    errorHandler.Invoke(e);
+        //            }
+        //        });
+        //        return new Async.AsyncOperation(t.Unwrap());
+        //    }
+        //    else return new Async.AsyncOperation(Task.Run(() =>
+        //    {
+        //        try
+        //        {
+        //            var _in = prev.Resolve();
+        //            taskProducer(_in).GetAwaiter().GetResult();
+        //        }
+        //        catch (Exception e)
+        //        {
+        //            if (errorHandler == null)
+        //                throw;
 
-                    else
-                        errorHandler.Invoke(e);
-                }
-            }));
-        }
+        //            else
+        //                errorHandler.Invoke(e);
+        //        }
+        //    }));
+        //}
 
 
         public static Operation<Out> Then<Out>(this 
@@ -952,5 +1162,2437 @@ namespace Axis.Luna.Operation
             }
         });
         #endregion
+    }
+
+
+
+    public static class RRR
+    {
+        #region 1
+
+        #region 1
+        public static Operation Then(this
+            Operation prev,
+            Action action,
+            Action<Exception> errorHandler = null)
+        {
+            if (action == null)
+                throw new ArgumentNullException(nameof(action));
+
+            if (prev.Succeeded == true)
+                return new Lazy.LazyOperation(action);
+
+            //prev is an async op - handle it accordingly
+            else if (prev is Async.AsyncOperation asyncop)
+            {
+                return asyncop
+                    .GetTask()
+                    .ContinueWith(t =>
+                    {
+                        if (t.Status == TaskStatus.RanToCompletion)
+                            action.Invoke();
+
+                        else if (errorHandler != null)
+                            errorHandler.Invoke(t.Exception.InnerException);
+
+                        else
+                            ExceptionDispatchInfo
+                                .Capture(t.Exception.InnerException)
+                                .Throw();
+                    })
+                    .Pipe(t => new Async.AsyncOperation(t));
+            }
+
+            //prev is a lazy op that hasn't been executed
+            else if (prev.Succeeded == null)
+            {
+                return new Lazy.LazyOperation(() =>
+                {
+                    try
+                    {
+                        prev.Resolve();
+                    }
+                    catch(Exception e)
+                    {
+                        if (errorHandler != null)
+                            errorHandler.Invoke(e);
+
+                        else
+                            ExceptionDispatchInfo
+                                .Capture(e)
+                                .Throw();
+
+                        return;
+                    }
+
+                    action.Invoke();
+                });
+            }
+
+            //prev is either lazy or sync but is faulted 
+            else if (errorHandler != null)
+                return new Lazy.LazyOperation(() => errorHandler.Invoke(prev.Error.GetException()));
+
+            //prev is lazy or sync, faulted, but no error handler was passed
+            else
+                return prev;
+        }
+
+        public static Operation Then(this
+            Operation prev,
+            Action action,
+            Func<Exception, Task> errorHandler = null)
+        {
+            if (action == null)
+                throw new ArgumentNullException(nameof(action));
+
+            if (prev.Succeeded == true)
+                return new Lazy.LazyOperation(action);
+
+            //prev is an async op - handle it accordingly
+            else if (prev is Async.AsyncOperation asyncop)
+            {
+                return asyncop
+                    .GetTask()
+                    .ContinueWith(async t =>
+                    {
+                        if (t.Status == TaskStatus.RanToCompletion)
+                            action.Invoke();
+
+                        else if (errorHandler != null)
+                            await errorHandler.Invoke(t.Exception.InnerException);
+
+                        else
+                            ExceptionDispatchInfo
+                                .Capture(t.Exception.InnerException)
+                                .Throw();
+                    })
+                    .Pipe(t => new Async.AsyncOperation(t.Unwrap()));
+            }
+
+            //prev is a lazy op that hasn't been executed
+            else if (prev.Succeeded == null)
+            {
+                return new Async.AsyncOperation(async () =>
+                {
+                    try
+                    {
+                        prev.Resolve();
+                    }
+                    catch (Exception e)
+                    {
+                        if (errorHandler != null)
+                            await errorHandler.Invoke(e);
+
+                        else
+                            ExceptionDispatchInfo
+                                .Capture(e)
+                                .Throw();
+
+                        return;
+                    }
+
+                    action.Invoke();
+                });
+            }
+
+            //prev is either lazy or sync but is faulted 
+            else if (errorHandler != null)
+                return new Async.AsyncOperation(() => errorHandler.Invoke(prev.Error.GetException()));
+
+            //prev is lazy or sync, faulted, but no error handler was passed
+            else
+                return prev;
+        }
+
+        public static Operation Then(this
+            Operation prev,
+            Action action,
+            Func<Exception, Operation> errorHandler = null)
+        {
+            if (action == null)
+                throw new ArgumentNullException(nameof(action));
+
+            if (prev.Succeeded == true)
+                return new Lazy.LazyOperation(action);
+
+            //prev is an async op - handle it accordingly
+            else if (prev is Async.AsyncOperation asyncop)
+            {
+                return asyncop
+                    .GetTask()
+                    .ContinueWith(async t =>
+                    {
+                        if (t.Status == TaskStatus.RanToCompletion)
+                            action.Invoke();
+
+                        else if (errorHandler != null)
+                            await errorHandler.Invoke(t.Exception.InnerException);
+
+                        else
+                            ExceptionDispatchInfo
+                                .Capture(t.Exception.InnerException)
+                                .Throw();
+                    })
+                    .Pipe(t => new Async.AsyncOperation(t.Unwrap()));
+            }
+
+            //prev is a lazy op that hasn't been executed
+            else if (prev.Succeeded == null)
+            {
+                return new Async.AsyncOperation(async () =>
+                {
+                    try
+                    {
+                        prev.Resolve();
+                    }
+                    catch (Exception e)
+                    {
+                        if (errorHandler != null)
+                            await errorHandler.Invoke(e);
+
+                        else
+                            ExceptionDispatchInfo
+                                .Capture(e)
+                                .Throw();
+
+                        return;
+                    }
+
+                    action.Invoke();
+                });
+            }
+
+            //prev is either lazy or sync but is faulted 
+            else if (errorHandler != null)
+                return new Async.AsyncOperation(async () => await errorHandler.Invoke(prev.Error.GetException()));
+
+            //prev is lazy or sync, faulted, but no error handler was passed
+            else
+                return prev;
+        }
+        #endregion
+
+        #region 2
+        public static Operation Then(this
+            Operation prev,
+            Func<Task> func,
+            Action<Exception> errorHandler = null)
+        {
+            if (func == null)
+                throw new ArgumentNullException(nameof(func));
+
+            if (prev.Succeeded == true)
+                return new Async.AsyncOperation(func);
+
+            //prev is an async op - handle it accordingly
+            else if (prev is Async.AsyncOperation asyncop)
+            {
+                return asyncop
+                    .GetTask()
+                    .ContinueWith(async t =>
+                    {
+                        if (t.Status == TaskStatus.RanToCompletion)
+                            await func.Invoke();
+
+                        else if (errorHandler != null)
+                            errorHandler.Invoke(t.Exception.InnerException);
+
+                        else
+                            ExceptionDispatchInfo
+                                .Capture(t.Exception.InnerException)
+                                .Throw();
+                    })
+                    .Pipe(t => new Async.AsyncOperation(t.Unwrap()));
+            }
+
+            //prev is a lazy op that hasn't been executed
+            else if (prev.Succeeded == null)
+            {
+                return new Async.AsyncOperation(async () =>
+                {
+                    try
+                    {
+                        prev.Resolve();
+                    }
+                    catch (Exception e)
+                    {
+                        if (errorHandler != null)
+                            errorHandler.Invoke(e);
+
+                        else
+                            ExceptionDispatchInfo
+                                .Capture(e)
+                                .Throw();
+
+                        return;
+                    }
+
+                    await func.Invoke();
+                });
+            }
+
+            //prev is either lazy or sync but is faulted 
+            else if (errorHandler != null)
+                return new Lazy.LazyOperation(() => errorHandler.Invoke(prev.Error.GetException()));
+
+            //prev is lazy or sync, faulted, but no error handler was passed
+            else
+                return prev;
+        }
+
+        public static Operation Then(this
+            Operation prev,
+            Func<Task> func,
+            Func<Exception, Task> errorHandler = null)
+        {
+            if (func == null)
+                throw new ArgumentNullException(nameof(func));
+
+            if (prev.Succeeded == true)
+                return new Async.AsyncOperation(func);
+
+            //prev is an async op - handle it accordingly
+            else if (prev is Async.AsyncOperation asyncop)
+            {
+                return asyncop
+                    .GetTask()
+                    .ContinueWith(async t =>
+                    {
+                        if (t.Status == TaskStatus.RanToCompletion)
+                            await func.Invoke();
+
+                        else if (errorHandler != null)
+                            await errorHandler.Invoke(t.Exception.InnerException);
+
+                        else
+                            ExceptionDispatchInfo
+                                .Capture(t.Exception.InnerException)
+                                .Throw();
+                    })
+                    .Pipe(t => new Async.AsyncOperation(t.Unwrap()));
+            }
+
+            //prev is a lazy op that hasn't been executed
+            else if (prev.Succeeded == null)
+            {
+                return new Async.AsyncOperation(async () =>
+                {
+                    try
+                    {
+                        prev.Resolve();
+                    }
+                    catch (Exception e)
+                    {
+                        if (errorHandler != null)
+                            await errorHandler.Invoke(e);
+
+                        else
+                            ExceptionDispatchInfo
+                                .Capture(e)
+                                .Throw();
+
+                        return;
+                    }
+
+                    await func.Invoke();
+                });
+            }
+
+            //prev is either lazy or sync but is faulted 
+            else if (errorHandler != null)
+                return new Async.AsyncOperation(() => errorHandler.Invoke(prev.Error.GetException()));
+
+            //prev is lazy or sync, faulted, but no error handler was passed
+            else
+                return prev;
+        }
+
+        public static Operation Then(this
+            Operation prev,
+            Func<Task> func,
+            Func<Exception, Operation> errorHandler = null)
+        {
+            if (func == null)
+                throw new ArgumentNullException(nameof(func));
+
+            if (prev.Succeeded == true)
+                return new Async.AsyncOperation(func);
+
+            //prev is an async op - handle it accordingly
+            else if (prev is Async.AsyncOperation asyncop)
+            {
+                return asyncop
+                    .GetTask()
+                    .ContinueWith(async t =>
+                    {
+                        if (t.Status == TaskStatus.RanToCompletion)
+                            await func.Invoke();
+
+                        else if (errorHandler != null)
+                            await errorHandler.Invoke(t.Exception.InnerException);
+
+                        else
+                            ExceptionDispatchInfo
+                                .Capture(t.Exception.InnerException)
+                                .Throw();
+                    })
+                    .Pipe(t => new Async.AsyncOperation(t.Unwrap()));
+            }
+
+            //prev is a lazy op that hasn't been executed
+            else if (prev.Succeeded == null)
+            {
+                return new Async.AsyncOperation(async () =>
+                {
+                    try
+                    {
+                        prev.Resolve();
+                    }
+                    catch (Exception e)
+                    {
+                        if (errorHandler != null)
+                            await errorHandler.Invoke(e);
+
+                        else
+                            ExceptionDispatchInfo
+                                .Capture(e)
+                                .Throw();
+
+                        return;
+                    }
+
+                    await func.Invoke();
+                });
+            }
+
+            //prev is either lazy or sync but is faulted 
+            else if (errorHandler != null)
+                return new Async.AsyncOperation(async () => await errorHandler.Invoke(prev.Error.GetException()));
+
+            //prev is lazy or sync, faulted, but no error handler was passed
+            else
+                return prev;
+        }
+        #endregion
+
+        #region 3
+        public static Operation Then(this
+            Operation prev,
+            Func<Operation> func,
+            Action<Exception> errorHandler = null)
+        {
+            if (func == null)
+                throw new ArgumentNullException(nameof(func));
+
+            if (prev.Succeeded == true)
+                return new Async.AsyncOperation(async () => await func.Invoke());
+
+            //prev is an async op - handle it accordingly
+            else if (prev is Async.AsyncOperation asyncop)
+            {
+                return asyncop
+                    .GetTask()
+                    .ContinueWith(async t =>
+                    {
+                        if (t.Status == TaskStatus.RanToCompletion)
+                            await func.Invoke();
+
+                        else if (errorHandler != null)
+                            errorHandler.Invoke(t.Exception.InnerException);
+
+                        else
+                            ExceptionDispatchInfo
+                                .Capture(t.Exception.InnerException)
+                                .Throw();
+                    })
+                    .Pipe(t => new Async.AsyncOperation(t.Unwrap()));
+            }
+
+            //prev is a lazy op that hasn't been executed
+            else if (prev.Succeeded == null)
+            {
+                return new Async.AsyncOperation(async () =>
+                {
+                    try
+                    {
+                        prev.Resolve();
+                    }
+                    catch (Exception e)
+                    {
+                        if (errorHandler != null)
+                            errorHandler.Invoke(e);
+
+                        else
+                            ExceptionDispatchInfo
+                                .Capture(e)
+                                .Throw();
+
+                        return;
+                    }
+
+                    await func.Invoke();
+                });
+            }
+
+            //prev is either lazy or sync but is faulted 
+            else if (errorHandler != null)
+                return new Lazy.LazyOperation(() => errorHandler.Invoke(prev.Error.GetException()));
+
+            //prev is lazy or sync, faulted, but no error handler was passed
+            else
+                return prev;
+        }
+
+        public static Operation Then(this
+            Operation prev,
+            Func<Operation> func,
+            Func<Exception, Task> errorHandler = null)
+        {
+            if (func == null)
+                throw new ArgumentNullException(nameof(func));
+
+            if (prev.Succeeded == true)
+                return new Async.AsyncOperation(async () => await func.Invoke());
+
+            //prev is an async op - handle it accordingly
+            else if (prev is Async.AsyncOperation asyncop)
+            {
+                return asyncop
+                    .GetTask()
+                    .ContinueWith(async t =>
+                    {
+                        if (t.Status == TaskStatus.RanToCompletion)
+                            await func.Invoke();
+
+                        else if (errorHandler != null)
+                            await errorHandler.Invoke(t.Exception.InnerException);
+
+                        else
+                            ExceptionDispatchInfo
+                                .Capture(t.Exception.InnerException)
+                                .Throw();
+                    })
+                    .Pipe(t => new Async.AsyncOperation(t.Unwrap()));
+            }
+
+            //prev is a lazy op that hasn't been executed
+            else if (prev.Succeeded == null)
+            {
+                return new Async.AsyncOperation(async () =>
+                {
+                    try
+                    {
+                        prev.Resolve();
+                    }
+                    catch (Exception e)
+                    {
+                        if (errorHandler != null)
+                            await errorHandler.Invoke(e);
+
+                        else
+                            ExceptionDispatchInfo
+                                .Capture(e)
+                                .Throw();
+
+                        return;
+                    }
+
+                    await func.Invoke();
+                });
+            }
+
+            //prev is either lazy or sync but is faulted 
+            else if (errorHandler != null)
+                return new Async.AsyncOperation(() => errorHandler.Invoke(prev.Error.GetException()));
+
+            //prev is lazy or sync, faulted, but no error handler was passed
+            else
+                return prev;
+        }
+
+        public static Operation Then(this
+            Operation prev,
+            Func<Operation> func,
+            Func<Exception, Operation> errorHandler = null)
+        {
+            if (func == null)
+                throw new ArgumentNullException(nameof(func));
+
+            if (prev.Succeeded == true)
+                return new Async.AsyncOperation(async () => await func.Invoke());
+
+            //prev is an async op - handle it accordingly
+            else if (prev is Async.AsyncOperation asyncop)
+            {
+                return asyncop
+                    .GetTask()
+                    .ContinueWith(async t =>
+                    {
+                        if (t.Status == TaskStatus.RanToCompletion)
+                            await func.Invoke();
+
+                        else if (errorHandler != null)
+                            await errorHandler.Invoke(t.Exception.InnerException);
+
+                        else
+                            ExceptionDispatchInfo
+                                .Capture(t.Exception.InnerException)
+                                .Throw();
+                    })
+                    .Pipe(t => new Async.AsyncOperation(t.Unwrap()));
+            }
+
+            //prev is a lazy op that hasn't been executed
+            else if (prev.Succeeded == null)
+            {
+                return new Async.AsyncOperation(async () =>
+                {
+                    try
+                    {
+                        prev.Resolve();
+                    }
+                    catch (Exception e)
+                    {
+                        if (errorHandler != null)
+                            await errorHandler.Invoke(e);
+
+                        else
+                            ExceptionDispatchInfo
+                                .Capture(e)
+                                .Throw();
+
+                        return;
+                    }
+
+                    await func.Invoke();
+                });
+            }
+
+            //prev is either lazy or sync but is faulted 
+            else if (errorHandler != null)
+                return new Async.AsyncOperation(async () => await errorHandler.Invoke(prev.Error.GetException()));
+
+            //prev is lazy or sync, faulted, but no error handler was passed
+            else
+                return prev;
+        }
+        #endregion
+
+        #endregion
+
+        #region 2
+
+        #region 1
+        public static Operation Then<TIn>(this
+            Operation<TIn> prev,
+            Action<TIn> action,
+            Action<Exception> errorHandler = null)
+        {
+            if (action == null)
+                throw new ArgumentNullException(nameof(action));
+
+            if (prev.Succeeded == true)
+                return new Lazy.LazyOperation(() => action.Invoke(prev.Result));
+
+            //prev is an async op - handle it accordingly
+            else if (prev is Async.AsyncOperation<TIn> asyncop)
+            {
+                return asyncop
+                    .GetTask()
+                    .ContinueWith(t =>
+                    {
+                        if (t.Status == TaskStatus.RanToCompletion)
+                            action.Invoke(t.Result);
+
+                        else if (errorHandler != null)
+                            errorHandler.Invoke(t.Exception.InnerException);
+
+                        else
+                            ExceptionDispatchInfo
+                                .Capture(t.Exception.InnerException)
+                                .Throw();
+                    })
+                    .Pipe(t => new Async.AsyncOperation(t));
+            }
+
+            //prev is a lazy op that hasn't been executed
+            else if (prev.Succeeded == null)
+            {
+                return new Lazy.LazyOperation(() =>
+                {
+                    TIn @in = default;
+                    try
+                    {
+                        @in = prev.Resolve();
+                    }
+                    catch (Exception e)
+                    {
+                        if (errorHandler != null)
+                            errorHandler.Invoke(e);
+
+                        else
+                            ExceptionDispatchInfo
+                                .Capture(e)
+                                .Throw();
+
+                        return;
+                    }
+
+                    action.Invoke(@in);
+                });
+            }
+
+            //prev is either lazy or sync but is faulted 
+            else if (errorHandler != null)
+                return new Lazy.LazyOperation(() => errorHandler.Invoke(prev.Error.GetException()));
+
+            //prev is lazy or sync, faulted, but no error handler was passed
+            else
+                return Operation.Fail(prev.Error.GetException());
+        }
+
+        public static Operation Then<TIn>(this
+            Operation<TIn> prev,
+            Action<TIn> action,
+            Func<Exception, Task> errorHandler = null)
+        {
+            if (action == null)
+                throw new ArgumentNullException(nameof(action));
+
+            if (prev.Succeeded == true)
+                return new Lazy.LazyOperation(() => action.Invoke(prev.Result));
+
+            //prev is an async op - handle it accordingly
+            else if (prev is Async.AsyncOperation<TIn> asyncop)
+            {
+                return asyncop
+                    .GetTask()
+                    .ContinueWith(async t =>
+                    {
+                        if (t.Status == TaskStatus.RanToCompletion)
+                            action.Invoke(t.Result);
+
+                        else if (errorHandler != null)
+                            await errorHandler.Invoke(t.Exception.InnerException);
+
+                        else
+                            ExceptionDispatchInfo
+                                .Capture(t.Exception.InnerException)
+                                .Throw();
+                    })
+                    .Pipe(t => new Async.AsyncOperation(t.Unwrap()));
+            }
+
+            //prev is a lazy op that hasn't been executed
+            else if (prev.Succeeded == null)
+            {
+                return new Async.AsyncOperation(async () =>
+                {
+                    TIn @in = default;
+                    try
+                    {
+                        @in = prev.Resolve();
+                    }
+                    catch (Exception e)
+                    {
+                        if (errorHandler != null)
+                            await errorHandler.Invoke(e);
+
+                        else
+                            ExceptionDispatchInfo
+                                .Capture(e)
+                                .Throw();
+
+                        return;
+                    }
+
+                    action.Invoke(@in);
+                });
+            }
+
+            //prev is either lazy or sync but is faulted 
+            else if (errorHandler != null)
+                return new Async.AsyncOperation(() => errorHandler.Invoke(prev.Error.GetException()));
+
+            //prev is lazy or sync, faulted, but no error handler was passed
+            else
+                return Operation.Fail(prev.Error.GetException());
+        }
+
+        public static Operation Then<TIn>(this
+            Operation<TIn> prev,
+            Action<TIn> action,
+            Func<Exception, Operation> errorHandler = null)
+        {
+            if (action == null)
+                throw new ArgumentNullException(nameof(action));
+
+            if (prev.Succeeded == true)
+                return new Lazy.LazyOperation(() => action.Invoke(prev.Result));
+
+            //prev is an async op - handle it accordingly
+            else if (prev is Async.AsyncOperation<TIn> asyncop)
+            {
+                return asyncop
+                    .GetTask()
+                    .ContinueWith(async t =>
+                    {
+                        if (t.Status == TaskStatus.RanToCompletion)
+                            action.Invoke(t.Result);
+
+                        else if (errorHandler != null)
+                            await errorHandler.Invoke(t.Exception.InnerException);
+
+                        else
+                            ExceptionDispatchInfo
+                                .Capture(t.Exception.InnerException)
+                                .Throw();
+                    })
+                    .Pipe(t => new Async.AsyncOperation(t.Unwrap()));
+            }
+
+            //prev is a lazy op that hasn't been executed
+            else if (prev.Succeeded == null)
+            {
+                return new Async.AsyncOperation(async () =>
+                {
+                    TIn @in = default;
+                    try
+                    {
+                        @in = prev.Resolve();
+                    }
+                    catch (Exception e)
+                    {
+                        if (errorHandler != null)
+                            await errorHandler.Invoke(e);
+
+                        else
+                            ExceptionDispatchInfo
+                                .Capture(e)
+                                .Throw();
+
+                        return;
+                    }
+
+                    action.Invoke(@in);
+                });
+            }
+
+            //prev is either lazy or sync but is faulted 
+            else if (errorHandler != null)
+                return new Async.AsyncOperation(async () => await errorHandler.Invoke(prev.Error.GetException()));
+
+            //prev is lazy or sync, faulted, but no error handler was passed
+            else
+                return Operation.Fail(prev.Error.GetException());
+        }
+        #endregion
+
+        #region 2
+        public static Operation Then<TIn>(this
+            Operation<TIn> prev,
+            Func<TIn, Task> func,
+            Action<Exception> errorHandler = null)
+        {
+            if (func == null)
+                throw new ArgumentNullException(nameof(func));
+
+            if (prev.Succeeded == true)
+                return new Async.AsyncOperation(() => func.Invoke(prev.Result));
+
+            //prev is an async op - handle it accordingly
+            else if (prev is Async.AsyncOperation<TIn> asyncop)
+            {
+                return asyncop
+                    .GetTask()
+                    .ContinueWith(async t =>
+                    {
+                        if (t.Status == TaskStatus.RanToCompletion)
+                            await func.Invoke(t.Result);
+
+                        else if (errorHandler != null)
+                            errorHandler.Invoke(t.Exception.InnerException);
+
+                        else
+                            ExceptionDispatchInfo
+                                .Capture(t.Exception.InnerException)
+                                .Throw();
+                    })
+                    .Pipe(t => new Async.AsyncOperation(t.Unwrap()));
+            }
+
+            //prev is a lazy op that hasn't been executed
+            else if (prev.Succeeded == null)
+            {
+                return new Async.AsyncOperation(async () =>
+                {
+                    TIn result = default;
+                    try
+                    {
+                        result = prev.Resolve();
+                    }
+                    catch (Exception e)
+                    {
+                        if (errorHandler != null)
+                            errorHandler.Invoke(e);
+
+                        else
+                            ExceptionDispatchInfo
+                                .Capture(e)
+                                .Throw();
+
+                        return;
+                    }
+
+                    await func.Invoke(result);
+                });
+            }
+
+            //prev is either lazy or sync but is faulted 
+            else if (errorHandler != null)
+                return new Lazy.LazyOperation(() => errorHandler.Invoke(prev.Error.GetException()));
+
+            //prev is lazy or sync, faulted, but no error handler was passed
+            else
+                return Operation.Fail(prev.Error.GetException());
+        }
+
+        public static Operation Then<TIn>(this
+            Operation<TIn> prev,
+            Func<TIn, Task> func,
+            Func<Exception, Task> errorHandler = null)
+        {
+            if (func == null)
+                throw new ArgumentNullException(nameof(func));
+
+            if (prev.Succeeded == true)
+                return new Async.AsyncOperation(() => func.Invoke(prev.Result));
+
+            //prev is an async op - handle it accordingly
+            else if (prev is Async.AsyncOperation<TIn> asyncop)
+            {
+                return asyncop
+                    .GetTask()
+                    .ContinueWith(async t =>
+                    {
+                        if (t.Status == TaskStatus.RanToCompletion)
+                            await func.Invoke(t.Result);
+
+                        else if (errorHandler != null)
+                            await errorHandler.Invoke(t.Exception.InnerException);
+
+                        else
+                            ExceptionDispatchInfo
+                                .Capture(t.Exception.InnerException)
+                                .Throw();
+                    })
+                    .Pipe(t => new Async.AsyncOperation(t.Unwrap()));
+            }
+
+            //prev is a lazy op that hasn't been executed
+            else if (prev.Succeeded == null)
+            {
+                return new Async.AsyncOperation(async () =>
+                {
+                    TIn result = default;
+                    try
+                    {
+                        result = prev.Resolve();
+                    }
+                    catch (Exception e)
+                    {
+                        if (errorHandler != null)
+                            await errorHandler.Invoke(e);
+
+                        else
+                            ExceptionDispatchInfo
+                                .Capture(e)
+                                .Throw();
+
+                        return;
+                    }
+
+                    await func.Invoke(result);
+                });
+            }
+
+            //prev is either lazy or sync but is faulted 
+            else if (errorHandler != null)
+                return new Async.AsyncOperation(() => errorHandler.Invoke(prev.Error.GetException()));
+
+            //prev is lazy or sync, faulted, but no error handler was passed
+            else
+                return Operation.Fail(prev.Error.GetException());
+        }
+
+        public static Operation Then<TIn>(this
+            Operation<TIn> prev,
+            Func<TIn, Task> func,
+            Func<Exception, Operation> errorHandler = null)
+        {
+            if (func == null)
+                throw new ArgumentNullException(nameof(func));
+
+            if (prev.Succeeded == true)
+                return new Async.AsyncOperation(() => func.Invoke(prev.Result));
+
+            //prev is an async op - handle it accordingly
+            else if (prev is Async.AsyncOperation<TIn> asyncop)
+            {
+                return asyncop
+                    .GetTask()
+                    .ContinueWith(async t =>
+                    {
+                        if (t.Status == TaskStatus.RanToCompletion)
+                            await func.Invoke(t.Result);
+
+                        else if (errorHandler != null)
+                            await errorHandler.Invoke(t.Exception.InnerException);
+
+                        else
+                            ExceptionDispatchInfo
+                                .Capture(t.Exception.InnerException)
+                                .Throw();
+                    })
+                    .Pipe(t => new Async.AsyncOperation(t.Unwrap()));
+            }
+
+            //prev is a lazy op that hasn't been executed
+            else if (prev.Succeeded == null)
+            {
+                return new Async.AsyncOperation(async () =>
+                {
+                    TIn result = default;
+                    try
+                    {
+                        result = prev.Resolve();
+                    }
+                    catch (Exception e)
+                    {
+                        if (errorHandler != null)
+                            await errorHandler.Invoke(e);
+
+                        else
+                            ExceptionDispatchInfo
+                                .Capture(e)
+                                .Throw();
+
+                        return;
+                    }
+
+                    await func.Invoke(result);
+                });
+            }
+
+            //prev is either lazy or sync but is faulted 
+            else if (errorHandler != null)
+                return new Async.AsyncOperation(async () => await errorHandler.Invoke(prev.Error.GetException()));
+
+            //prev is lazy or sync, faulted, but no error handler was passed
+            else
+                return Operation.Fail(prev.Error.GetException());
+        }
+        #endregion
+
+        #region 3
+        public static Operation Then<TIn>(this
+            Operation<TIn> prev,
+            Func<TIn, Operation> func,
+            Action<Exception> errorHandler = null)
+        {
+            if (func == null)
+                throw new ArgumentNullException(nameof(func));
+
+            if (prev.Succeeded == true)
+                return new Async.AsyncOperation(async () => await func.Invoke(prev.Result));
+
+            //prev is an async op - handle it accordingly
+            else if (prev is Async.AsyncOperation<TIn> asyncop)
+            {
+                return asyncop
+                    .GetTask()
+                    .ContinueWith(async t =>
+                    {
+                        if (t.Status == TaskStatus.RanToCompletion)
+                            await func.Invoke(t.Result);
+
+                        else if (errorHandler != null)
+                            errorHandler.Invoke(t.Exception.InnerException);
+
+                        else
+                            ExceptionDispatchInfo
+                                .Capture(t.Exception.InnerException)
+                                .Throw();
+                    })
+                    .Pipe(t => new Async.AsyncOperation(t.Unwrap()));
+            }
+
+            //prev is a lazy op that hasn't been executed
+            else if (prev.Succeeded == null)
+            {
+                return new Async.AsyncOperation(async () =>
+                {
+                    TIn result = default;
+                    try
+                    {
+                        result = prev.Resolve();
+                    }
+                    catch (Exception e)
+                    {
+                        if (errorHandler != null)
+                            errorHandler.Invoke(e);
+
+                        else
+                            ExceptionDispatchInfo
+                                .Capture(e)
+                                .Throw();
+
+                        return;
+                    }
+
+                    await func.Invoke(result);
+                });
+            }
+
+            //prev is either lazy or sync but is faulted 
+            else if (errorHandler != null)
+                return new Lazy.LazyOperation(() => errorHandler.Invoke(prev.Error.GetException()));
+
+            //prev is lazy or sync, faulted, but no error handler was passed
+            else
+                return Operation.Fail(prev.Error.GetException());
+        }
+
+        public static Operation Then<TIn>(this
+            Operation<TIn> prev,
+            Func<TIn, Operation> func,
+            Func<Exception, Task> errorHandler = null)
+        {
+            if (func == null)
+                throw new ArgumentNullException(nameof(func));
+
+            if (prev.Succeeded == true)
+                return new Async.AsyncOperation(async () => await func.Invoke(prev.Result));
+
+            //prev is an async op - handle it accordingly
+            else if (prev is Async.AsyncOperation<TIn> asyncop)
+            {
+                return asyncop
+                    .GetTask()
+                    .ContinueWith(async t =>
+                    {
+                        if (t.Status == TaskStatus.RanToCompletion)
+                            await func.Invoke(t.Result);
+
+                        else if (errorHandler != null)
+                            await errorHandler.Invoke(t.Exception.InnerException);
+
+                        else
+                            ExceptionDispatchInfo
+                                .Capture(t.Exception.InnerException)
+                                .Throw();
+                    })
+                    .Pipe(t => new Async.AsyncOperation(t.Unwrap()));
+            }
+
+            //prev is a lazy op that hasn't been executed
+            else if (prev.Succeeded == null)
+            {
+                return new Async.AsyncOperation(async () =>
+                {
+                    TIn result = default;
+                    try
+                    {
+                        result = prev.Resolve();
+                    }
+                    catch (Exception e)
+                    {
+                        if (errorHandler != null)
+                            await errorHandler.Invoke(e);
+
+                        else
+                            ExceptionDispatchInfo
+                                .Capture(e)
+                                .Throw();
+
+                        return;
+                    }
+
+                    await func.Invoke(result);
+                });
+            }
+
+            //prev is either lazy or sync but is faulted 
+            else if (errorHandler != null)
+                return new Async.AsyncOperation(() => errorHandler.Invoke(prev.Error.GetException()));
+
+            //prev is lazy or sync, faulted, but no error handler was passed
+            else
+                return Operation.Fail(prev.Error.GetException());
+        }
+
+        public static Operation Then<TIn>(this
+            Operation<TIn> prev,
+            Func<TIn, Operation> func,
+            Func<Exception, Operation> errorHandler = null)
+        {
+            if (func == null)
+                throw new ArgumentNullException(nameof(func));
+
+            if (prev.Succeeded == true)
+                return new Async.AsyncOperation(async () => await func.Invoke(prev.Result));
+
+            //prev is an async op - handle it accordingly
+            else if (prev is Async.AsyncOperation<TIn> asyncop)
+            {
+                return asyncop
+                    .GetTask()
+                    .ContinueWith(async t =>
+                    {
+                        if (t.Status == TaskStatus.RanToCompletion)
+                            await func.Invoke(t.Result);
+
+                        else if (errorHandler != null)
+                            await errorHandler.Invoke(t.Exception.InnerException);
+
+                        else
+                            ExceptionDispatchInfo
+                                .Capture(t.Exception.InnerException)
+                                .Throw();
+                    })
+                    .Pipe(t => new Async.AsyncOperation(t.Unwrap()));
+            }
+
+            //prev is a lazy op that hasn't been executed
+            else if (prev.Succeeded == null)
+            {
+                return new Async.AsyncOperation(async () =>
+                {
+                    TIn result = default;
+                    try
+                    {
+                        result = prev.Resolve();
+                    }
+                    catch (Exception e)
+                    {
+                        if (errorHandler != null)
+                            await errorHandler.Invoke(e);
+
+                        else
+                            ExceptionDispatchInfo
+                                .Capture(e)
+                                .Throw();
+
+                        return;
+                    }
+
+                    await func.Invoke(result);
+                });
+            }
+
+            //prev is either lazy or sync but is faulted 
+            else if (errorHandler != null)
+                return new Async.AsyncOperation(async () => await errorHandler.Invoke(prev.Error.GetException()));
+
+            //prev is lazy or sync, faulted, but no error handler was passed
+            else
+                return Operation.Fail(prev.Error.GetException());
+        }
+        #endregion
+
+        #endregion
+
+        #region 3
+
+        #region 1
+        public static Operation<TOut> Then<TOut>(this
+            Operation prev,
+            Func<TOut> func,
+            Func<Exception, TOut> errorHandler = null)
+        {
+            if (func == null)
+                throw new ArgumentNullException(nameof(func));
+
+            if (prev.Succeeded == true)
+                return new Lazy.LazyOperation<TOut>(func);
+
+            //prev is an async op - handle it accordingly
+            else if (prev is Async.AsyncOperation asyncop)
+            {
+                return asyncop
+                    .GetTask()
+                    .ContinueWith(t =>
+                    {
+                        if (t.Status == TaskStatus.RanToCompletion)
+                            return func.Invoke();
+
+                        else if (errorHandler != null)
+                            return errorHandler.Invoke(t.Exception.InnerException);
+
+                        else
+                            return ExceptionDispatchInfo
+                                .Capture(t.Exception.InnerException)
+                                .Throw<TOut>();
+                    })
+                    .Pipe(t => new Async.AsyncOperation<TOut>(t));
+            }
+
+            //prev is a lazy op that hasn't been executed
+            else if (prev.Succeeded == null)
+            {
+                return new Lazy.LazyOperation<TOut>(() =>
+                {
+                    try
+                    {
+                        prev.Resolve();
+                    }
+                    catch (Exception e)
+                    {
+                        if (errorHandler != null)
+                            return errorHandler.Invoke(e);
+
+                        else return ExceptionDispatchInfo
+                            .Capture(e)
+                            .Throw<TOut>();
+                    }
+
+                    return func.Invoke();
+                });
+            }
+
+            //prev is either lazy or sync but is faulted 
+            else if (errorHandler != null)
+                return new Lazy.LazyOperation<TOut>(() => errorHandler.Invoke(prev.Error.GetException()));
+
+            //prev is lazy or sync, faulted, but no error handler was passed
+            else
+                return Operation.Fail<TOut>(prev.Error.GetException());
+        }
+
+        public static Operation<TOut> Then<TOut>(this
+            Operation prev,
+            Func<TOut> func,
+            Func<Exception, Task<TOut>> errorHandler = null)
+        {
+            if (func == null)
+                throw new ArgumentNullException(nameof(func));
+
+            if (prev.Succeeded == true)
+                return new Lazy.LazyOperation<TOut>(func);
+
+            //prev is an async op - handle it accordingly
+            else if (prev is Async.AsyncOperation asyncop)
+            {
+                return asyncop
+                    .GetTask()
+                    .ContinueWith(async t =>
+                    {
+                        if (t.Status == TaskStatus.RanToCompletion)
+                            return func.Invoke();
+
+                        else if (errorHandler != null)
+                            return await errorHandler.Invoke(t.Exception.InnerException);
+
+                        else
+                            return ExceptionDispatchInfo
+                                .Capture(t.Exception.InnerException)
+                                .Throw<TOut>();
+                    })
+                    .Pipe(t => new Async.AsyncOperation<TOut>(t.Unwrap()));
+            }
+
+            //prev is a lazy op that hasn't been executed
+            else if (prev.Succeeded == null)
+            {
+                return new Async.AsyncOperation<TOut>(async () =>
+                {
+                    try
+                    {
+                        prev.Resolve();
+                    }
+                    catch (Exception e)
+                    {
+                        if (errorHandler != null)
+                            return await errorHandler.Invoke(e);
+
+                        else
+                            return ExceptionDispatchInfo
+                                .Capture(e)
+                                .Throw<TOut>();
+                    }
+
+                    return func.Invoke();
+                });
+            }
+
+            //prev is either lazy or sync but is faulted 
+            else if (errorHandler != null)
+                return new Async.AsyncOperation<TOut>(() => errorHandler.Invoke(prev.Error.GetException()));
+
+            //prev is lazy or sync, faulted, but no error handler was passed
+            else
+                return Operation.Fail<TOut>(prev.Error.GetException());
+        }
+
+        public static Operation<TOut> Then<TOut>(this
+            Operation prev,
+            Func<TOut> func,
+            Func<Exception, Operation<TOut>> errorHandler = null)
+        {
+            if (func == null)
+                throw new ArgumentNullException(nameof(func));
+
+            if (prev.Succeeded == true)
+                return new Lazy.LazyOperation<TOut>(func);
+
+            //prev is an async op - handle it accordingly
+            else if (prev is Async.AsyncOperation asyncop)
+            {
+                return asyncop
+                    .GetTask()
+                    .ContinueWith(async t =>
+                    {
+                        if (t.Status == TaskStatus.RanToCompletion)
+                            return func.Invoke();
+
+                        else if (errorHandler != null)
+                            return await errorHandler.Invoke(t.Exception.InnerException);
+
+                        else
+                            return ExceptionDispatchInfo
+                                .Capture(t.Exception.InnerException)
+                                .Throw<TOut>();
+                    })
+                    .Pipe(t => new Async.AsyncOperation<TOut>(t.Unwrap()));
+            }
+
+            //prev is a lazy op that hasn't been executed
+            else if (prev.Succeeded == null)
+            {
+                return new Async.AsyncOperation<TOut>(async () =>
+                {
+                    try
+                    {
+                        prev.Resolve();
+                    }
+                    catch (Exception e)
+                    {
+                        if (errorHandler != null)
+                            return await errorHandler.Invoke(e);
+
+                        else
+                            return ExceptionDispatchInfo
+                                .Capture(e)
+                                .Throw<TOut>();
+                    }
+
+                    return func.Invoke();
+                });
+            }
+
+            //prev is either lazy or sync but is faulted 
+            else if (errorHandler != null)
+                return new Async.AsyncOperation<TOut>(async () => await errorHandler.Invoke(prev.Error.GetException()));
+
+            //prev is lazy or sync, faulted, but no error handler was passed
+            else
+                return Operation.Fail<TOut>(prev.Error.GetException());
+        }
+        #endregion
+
+        #region 2
+        public static Operation<TOut> Then<TOut>(this
+            Operation prev,
+            Func<Task<TOut>> func,
+            Func<Exception, TOut> errorHandler = null)
+        {
+            if (func == null)
+                throw new ArgumentNullException(nameof(func));
+
+            if (prev.Succeeded == true)
+                return new Async.AsyncOperation<TOut>(func);
+
+            //prev is an async op - handle it accordingly
+            else if (prev is Async.AsyncOperation asyncop)
+            {
+                return asyncop
+                    .GetTask()
+                    .ContinueWith(async t =>
+                    {
+                        if (t.Status == TaskStatus.RanToCompletion)
+                            return await func.Invoke();
+
+                        else if (errorHandler != null)
+                            return errorHandler.Invoke(t.Exception.InnerException);
+
+                        else
+                            return ExceptionDispatchInfo
+                                .Capture(t.Exception.InnerException)
+                                .Throw<TOut>();
+                    })
+                    .Pipe(t => new Async.AsyncOperation<TOut>(t.Unwrap()));
+            }
+
+            //prev is a lazy op that hasn't been executed
+            else if (prev.Succeeded == null)
+            {
+                return new Async.AsyncOperation<TOut>(async () =>
+                {
+                    try
+                    {
+                        prev.Resolve();
+                    }
+                    catch (Exception e)
+                    {
+                        if (errorHandler != null)
+                            return errorHandler.Invoke(e);
+
+                        else return ExceptionDispatchInfo
+                            .Capture(e)
+                            .Throw<TOut>();
+                    }
+
+                    return await func.Invoke();
+                });
+            }
+
+            //prev is either lazy or sync but is faulted 
+            else if (errorHandler != null)
+                return new Lazy.LazyOperation<TOut>(() => errorHandler.Invoke(prev.Error.GetException()));
+
+            //prev is lazy or sync, faulted, but no error handler was passed
+            else
+                return Operation.Fail<TOut>(prev.Error.GetException());
+        }
+
+        public static Operation<TOut> Then<TOut>(this
+            Operation prev,
+            Func<Task<TOut>> func,
+            Func<Exception, Task<TOut>> errorHandler = null)
+        {
+            if (func == null)
+                throw new ArgumentNullException(nameof(func));
+
+            if (prev.Succeeded == true)
+                return new Async.AsyncOperation<TOut>(func);
+
+            //prev is an async op - handle it accordingly
+            else if (prev is Async.AsyncOperation asyncop)
+            {
+                return asyncop
+                    .GetTask()
+                    .ContinueWith(async t =>
+                    {
+                        if (t.Status == TaskStatus.RanToCompletion)
+                            return await func.Invoke();
+
+                        else if (errorHandler != null)
+                            return await errorHandler.Invoke(t.Exception.InnerException);
+
+                        else
+                            return ExceptionDispatchInfo
+                                .Capture(t.Exception.InnerException)
+                                .Throw<TOut>();
+                    })
+                    .Pipe(t => new Async.AsyncOperation<TOut>(t.Unwrap()));
+            }
+
+            //prev is a lazy op that hasn't been executed
+            else if (prev.Succeeded == null)
+            {
+                return new Async.AsyncOperation<TOut>(async () =>
+                {
+                    try
+                    {
+                        prev.Resolve();
+                    }
+                    catch (Exception e)
+                    {
+                        if (errorHandler != null)
+                            return await errorHandler.Invoke(e);
+
+                        else
+                            return ExceptionDispatchInfo
+                                .Capture(e)
+                                .Throw<TOut>();
+                    }
+
+                    return await func.Invoke();
+                });
+            }
+
+            //prev is either lazy or sync but is faulted 
+            else if (errorHandler != null)
+                return new Async.AsyncOperation<TOut>(() => errorHandler.Invoke(prev.Error.GetException()));
+
+            //prev is lazy or sync, faulted, but no error handler was passed
+            else
+                return Operation.Fail<TOut>(prev.Error.GetException());
+        }
+
+        public static Operation<TOut> Then<TOut>(this
+            Operation prev,
+            Func<Task<TOut>> func,
+            Func<Exception, Operation<TOut>> errorHandler = null)
+        {
+            if (func == null)
+                throw new ArgumentNullException(nameof(func));
+
+            if (prev.Succeeded == true)
+                return new Async.AsyncOperation<TOut>(func);
+
+            //prev is an async op - handle it accordingly
+            else if (prev is Async.AsyncOperation asyncop)
+            {
+                return asyncop
+                    .GetTask()
+                    .ContinueWith(async t =>
+                    {
+                        if (t.Status == TaskStatus.RanToCompletion)
+                            return await func.Invoke();
+
+                        else if (errorHandler != null)
+                            return await errorHandler.Invoke(t.Exception.InnerException);
+
+                        else
+                            return ExceptionDispatchInfo
+                                .Capture(t.Exception.InnerException)
+                                .Throw<TOut>();
+                    })
+                    .Pipe(t => new Async.AsyncOperation<TOut>(t.Unwrap()));
+            }
+
+            //prev is a lazy op that hasn't been executed
+            else if (prev.Succeeded == null)
+            {
+                return new Async.AsyncOperation<TOut>(async () =>
+                {
+                    try
+                    {
+                        prev.Resolve();
+                    }
+                    catch (Exception e)
+                    {
+                        if (errorHandler != null)
+                            return await errorHandler.Invoke(e);
+
+                        else
+                            return ExceptionDispatchInfo
+                                .Capture(e)
+                                .Throw<TOut>();
+                    }
+
+                    return await func.Invoke();
+                });
+            }
+
+            //prev is either lazy or sync but is faulted 
+            else if (errorHandler != null)
+                return new Async.AsyncOperation<TOut>(async () => await errorHandler.Invoke(prev.Error.GetException()));
+
+            //prev is lazy or sync, faulted, but no error handler was passed
+            else
+                return Operation.Fail<TOut>(prev.Error.GetException());
+        }
+        #endregion
+
+        #region 3
+        public static Operation<TOut> Then<TOut>(this
+            Operation prev,
+            Func<Operation<TOut>> func,
+            Func<Exception, TOut> errorHandler = null)
+        {
+            if (func == null)
+                throw new ArgumentNullException(nameof(func));
+
+            if (prev.Succeeded == true)
+                return new Async.AsyncOperation<TOut>(async () => await func.Invoke());
+
+            //prev is an async op - handle it accordingly
+            else if (prev is Async.AsyncOperation asyncop)
+            {
+                return asyncop
+                    .GetTask()
+                    .ContinueWith(async t =>
+                    {
+                        if (t.Status == TaskStatus.RanToCompletion)
+                            return await func.Invoke();
+
+                        else if (errorHandler != null)
+                            return errorHandler.Invoke(t.Exception.InnerException);
+
+                        else
+                            return ExceptionDispatchInfo
+                                .Capture(t.Exception.InnerException)
+                                .Throw<TOut>();
+                    })
+                    .Pipe(t => new Async.AsyncOperation<TOut>(t.Unwrap()));
+            }
+
+            //prev is a lazy op that hasn't been executed
+            else if (prev.Succeeded == null)
+            {
+                return new Async.AsyncOperation<TOut>(async () =>
+                {
+                    try
+                    {
+                        prev.Resolve();
+                    }
+                    catch (Exception e)
+                    {
+                        if (errorHandler != null)
+                            return errorHandler.Invoke(e);
+
+                        else return ExceptionDispatchInfo
+                            .Capture(e)
+                            .Throw<TOut>();
+                    }
+
+                    return await func.Invoke();
+                });
+            }
+
+            //prev is either lazy or sync but is faulted 
+            else if (errorHandler != null)
+                return new Lazy.LazyOperation<TOut>(() => errorHandler.Invoke(prev.Error.GetException()));
+
+            //prev is lazy or sync, faulted, but no error handler was passed
+            else
+                return Operation.Fail<TOut>(prev.Error.GetException());
+        }
+
+        public static Operation<TOut> Then<TOut>(this
+            Operation prev,
+            Func<Operation<TOut>> func,
+            Func<Exception, Task<TOut>> errorHandler = null)
+        {
+            if (func == null)
+                throw new ArgumentNullException(nameof(func));
+
+            if (prev.Succeeded == true)
+                return new Async.AsyncOperation<TOut>(async () => await func.Invoke());
+
+            //prev is an async op - handle it accordingly
+            else if (prev is Async.AsyncOperation asyncop)
+            {
+                return asyncop
+                    .GetTask()
+                    .ContinueWith(async t =>
+                    {
+                        if (t.Status == TaskStatus.RanToCompletion)
+                            return await func.Invoke();
+
+                        else if (errorHandler != null)
+                            return await errorHandler.Invoke(t.Exception.InnerException);
+
+                        else
+                            return ExceptionDispatchInfo
+                                .Capture(t.Exception.InnerException)
+                                .Throw<TOut>();
+                    })
+                    .Pipe(t => new Async.AsyncOperation<TOut>(t.Unwrap()));
+            }
+
+            //prev is a lazy op that hasn't been executed
+            else if (prev.Succeeded == null)
+            {
+                return new Async.AsyncOperation<TOut>(async () =>
+                {
+                    try
+                    {
+                        prev.Resolve();
+                    }
+                    catch (Exception e)
+                    {
+                        if (errorHandler != null)
+                            return await errorHandler.Invoke(e);
+
+                        else
+                            return ExceptionDispatchInfo
+                                .Capture(e)
+                                .Throw<TOut>();
+                    }
+
+                    return await func.Invoke();
+                });
+            }
+
+            //prev is either lazy or sync but is faulted 
+            else if (errorHandler != null)
+                return new Async.AsyncOperation<TOut>(() => errorHandler.Invoke(prev.Error.GetException()));
+
+            //prev is lazy or sync, faulted, but no error handler was passed
+            else
+                return Operation.Fail<TOut>(prev.Error.GetException());
+        }
+
+        public static Operation<TOut> Then<TOut>(this
+            Operation prev,
+            Func<Operation<TOut>> func,
+            Func<Exception, Operation<TOut>> errorHandler = null)
+        {
+            if (func == null)
+                throw new ArgumentNullException(nameof(func));
+
+            if (prev.Succeeded == true)
+                return new Async.AsyncOperation<TOut>(async () => await func.Invoke());
+
+            //prev is an async op - handle it accordingly
+            else if (prev is Async.AsyncOperation asyncop)
+            {
+                return asyncop
+                    .GetTask()
+                    .ContinueWith(async t =>
+                    {
+                        if (t.Status == TaskStatus.RanToCompletion)
+                            return await func.Invoke();
+
+                        else if (errorHandler != null)
+                            return await errorHandler.Invoke(t.Exception.InnerException);
+
+                        else
+                            return ExceptionDispatchInfo
+                                .Capture(t.Exception.InnerException)
+                                .Throw<TOut>();
+                    })
+                    .Pipe(t => new Async.AsyncOperation<TOut>(t.Unwrap()));
+            }
+
+            //prev is a lazy op that hasn't been executed
+            else if (prev.Succeeded == null)
+            {
+                return new Async.AsyncOperation<TOut>(async () =>
+                {
+                    try
+                    {
+                        prev.Resolve();
+                    }
+                    catch (Exception e)
+                    {
+                        if (errorHandler != null)
+                            return await errorHandler.Invoke(e);
+
+                        else
+                            return ExceptionDispatchInfo
+                                .Capture(e)
+                                .Throw<TOut>();
+                    }
+
+                    return await func.Invoke();
+                });
+            }
+
+            //prev is either lazy or sync but is faulted 
+            else if (errorHandler != null)
+                return new Async.AsyncOperation<TOut>(async () => await errorHandler.Invoke(prev.Error.GetException()));
+
+            //prev is lazy or sync, faulted, but no error handler was passed
+            else
+                return Operation.Fail<TOut>(prev.Error.GetException());
+        }
+        #endregion
+
+        #endregion
+
+        #region 4
+
+        #region 1
+        public static Operation<TOut> Then<TIn, TOut>(this
+            Operation<TIn> prev,
+            Func<TIn, TOut> func,
+            Func<Exception, TOut> errorHandler = null)
+        {
+            if (func == null)
+                throw new ArgumentNullException(nameof(func));
+
+            if (prev.Succeeded == true)
+                return new Lazy.LazyOperation<TOut>(() => func.Invoke(prev.Result));
+
+            //prev is an async op - handle it accordingly
+            else if (prev is Async.AsyncOperation<TIn> asyncop)
+            {
+                return asyncop
+                    .GetTask()
+                    .ContinueWith(t =>
+                    {
+                        if (t.Status == TaskStatus.RanToCompletion)
+                            return func.Invoke(t.Result);
+
+                        else if (errorHandler != null)
+                            return errorHandler.Invoke(t.Exception.InnerException);
+
+                        else
+                            return ExceptionDispatchInfo
+                                .Capture(t.Exception.InnerException)
+                                .Throw<TOut>();
+                    })
+                    .Pipe(t => new Async.AsyncOperation<TOut>(t));
+            }
+
+            //prev is a lazy op that hasn't been executed
+            else if (prev.Succeeded == null)
+            {
+                return new Async.AsyncOperation<TOut>(async () =>
+                {
+                    TIn result = default;
+                    try
+                    {
+                        prev.Resolve();
+                    }
+                    catch (Exception e)
+                    {
+                        if (errorHandler != null)
+                            return errorHandler.Invoke(e);
+
+                        else return ExceptionDispatchInfo
+                            .Capture(e)
+                            .Throw<TOut>();
+                    }
+
+                    return func.Invoke(result);
+                });
+            }
+
+            //prev is either lazy or sync but is faulted 
+            else if (errorHandler != null)
+                return new Lazy.LazyOperation<TOut>(() => errorHandler.Invoke(prev.Error.GetException()));
+
+            //prev is lazy or sync, faulted, but no error handler was passed
+            else
+                return Operation.Fail<TOut>(prev.Error.GetException());
+        }
+
+        public static Operation<TOut> Then<TIn, TOut>(this
+            Operation<TIn> prev,
+            Func<TIn, TOut> func,
+            Func<Exception, Task<TOut>> errorHandler = null)
+        {
+            if (func == null)
+                throw new ArgumentNullException(nameof(func));
+
+            if (prev.Succeeded == true)
+                return new Lazy.LazyOperation<TOut>(() => func.Invoke(prev.Result));
+
+            //prev is an async op - handle it accordingly
+            else if (prev is Async.AsyncOperation<TIn> asyncop)
+            {
+                return asyncop
+                    .GetTask()
+                    .ContinueWith(async t =>
+                    {
+                        if (t.Status == TaskStatus.RanToCompletion)
+                            return func.Invoke(t.Result);
+
+                        else if (errorHandler != null)
+                            return await errorHandler.Invoke(t.Exception.InnerException);
+
+                        else
+                            return ExceptionDispatchInfo
+                                .Capture(t.Exception.InnerException)
+                                .Throw<TOut>();
+                    })
+                    .Pipe(t => new Async.AsyncOperation<TOut>(t.Unwrap()));
+            }
+
+            //prev is a lazy op that hasn't been executed
+            else if (prev.Succeeded == null)
+            {
+                return new Async.AsyncOperation<TOut>(async () =>
+                {
+                    TIn result = default;
+                    try
+                    {
+                        result = prev.Resolve();
+                    }
+                    catch (Exception e)
+                    {
+                        if (errorHandler != null)
+                            return await errorHandler.Invoke(e);
+
+                        else
+                            return ExceptionDispatchInfo
+                                .Capture(e)
+                                .Throw<TOut>();
+                    }
+
+                    return func.Invoke(result);
+                });
+            }
+
+            //prev is either lazy or sync but is faulted 
+            else if (errorHandler != null)
+                return new Async.AsyncOperation<TOut>(() => errorHandler.Invoke(prev.Error.GetException()));
+
+            //prev is lazy or sync, faulted, but no error handler was passed
+            else
+                return Operation.Fail<TOut>(prev.Error.GetException());
+        }
+
+        public static Operation<TOut> Then<TIn, TOut>(this
+            Operation<TIn> prev,
+            Func<TIn, TOut> func,
+            Func<Exception, Operation<TOut>> errorHandler = null)
+        {
+            if (func == null)
+                throw new ArgumentNullException(nameof(func));
+
+            if (prev.Succeeded == true)
+                return new Lazy.LazyOperation<TOut>(() => func.Invoke(prev.Result));
+
+            //prev is an async op - handle it accordingly
+            else if (prev is Async.AsyncOperation<TIn> asyncop)
+            {
+                return asyncop
+                    .GetTask()
+                    .ContinueWith(async t =>
+                    {
+                        if (t.Status == TaskStatus.RanToCompletion)
+                            return func.Invoke(t.Result);
+
+                        else if (errorHandler != null)
+                            return await errorHandler.Invoke(t.Exception.InnerException);
+
+                        else
+                            return ExceptionDispatchInfo
+                                .Capture(t.Exception.InnerException)
+                                .Throw<TOut>();
+                    })
+                    .Pipe(t => new Async.AsyncOperation<TOut>(t.Unwrap()));
+            }
+
+            //prev is a lazy op that hasn't been executed
+            else if (prev.Succeeded == null)
+            {
+                return new Async.AsyncOperation<TOut>(async () =>
+                {
+                    TIn result = default;
+                    try
+                    {
+                        result = prev.Resolve();
+                    }
+                    catch (Exception e)
+                    {
+                        if (errorHandler != null)
+                            return await errorHandler.Invoke(e);
+
+                        else
+                            return ExceptionDispatchInfo
+                                .Capture(e)
+                                .Throw<TOut>();
+                    }
+
+                    return func.Invoke(result);
+                });
+            }
+
+            //prev is either lazy or sync but is faulted 
+            else if (errorHandler != null)
+                return new Async.AsyncOperation<TOut>(async () => await errorHandler.Invoke(prev.Error.GetException()));
+
+            //prev is lazy or sync, faulted, but no error handler was passed
+            else
+                return Operation.Fail<TOut>(prev.Error.GetException());
+        }
+        #endregion
+
+        #region 2
+        public static Operation<TOut> Then<TIn, TOut>(this
+            Operation<TIn> prev,
+            Func<TIn, Task<TOut>> func,
+            Func<Exception, TOut> errorHandler = null)
+        {
+            if (func == null)
+                throw new ArgumentNullException(nameof(func));
+
+            if (prev.Succeeded == true)
+                return new Async.AsyncOperation<TOut>(() => func.Invoke(prev.Result));
+
+            //prev is an async op - handle it accordingly
+            else if (prev is Async.AsyncOperation<TIn> asyncop)
+            {
+                return asyncop
+                    .GetTask()
+                    .ContinueWith(async t =>
+                    {
+                        if (t.Status == TaskStatus.RanToCompletion)
+                            return await func.Invoke(t.Result);
+
+                        else if (errorHandler != null)
+                            return errorHandler.Invoke(t.Exception.InnerException);
+
+                        else
+                            return ExceptionDispatchInfo
+                                .Capture(t.Exception.InnerException)
+                                .Throw<TOut>();
+                    })
+                    .Pipe(t => new Async.AsyncOperation<TOut>(t.Unwrap()));
+            }
+
+            //prev is a lazy op that hasn't been executed
+            else if (prev.Succeeded == null)
+            {
+                return new Async.AsyncOperation<TOut>(async () =>
+                {
+                    TIn result = default;
+                    try
+                    {
+                        result = prev.Resolve();
+                    }
+                    catch (Exception e)
+                    {
+                        if (errorHandler != null)
+                            return errorHandler.Invoke(e);
+
+                        else return ExceptionDispatchInfo
+                            .Capture(e)
+                            .Throw<TOut>();
+                    }
+
+                    return await func.Invoke(result);
+                });
+            }
+
+            //prev is either lazy or sync but is faulted 
+            else if (errorHandler != null)
+                return new Lazy.LazyOperation<TOut>(() => errorHandler.Invoke(prev.Error.GetException()));
+
+            //prev is lazy or sync, faulted, but no error handler was passed
+            else
+                return Operation.Fail<TOut>(prev.Error.GetException());
+        }
+
+        public static Operation<TOut> Then<TIn, TOut>(this
+            Operation<TIn> prev,
+            Func<TIn, Task<TOut>> func,
+            Func<Exception, Task<TOut>> errorHandler = null)
+        {
+            if (func == null)
+                throw new ArgumentNullException(nameof(func));
+
+            if (prev.Succeeded == true)
+                return new Async.AsyncOperation<TOut>(() => func.Invoke(prev.Result));
+
+            //prev is an async op - handle it accordingly
+            else if (prev is Async.AsyncOperation<TIn> asyncop)
+            {
+                return asyncop
+                    .GetTask()
+                    .ContinueWith(async t =>
+                    {
+                        if (t.Status == TaskStatus.RanToCompletion)
+                            return await func.Invoke(t.Result);
+
+                        else if (errorHandler != null)
+                            return await errorHandler.Invoke(t.Exception.InnerException);
+
+                        else
+                            return ExceptionDispatchInfo
+                                .Capture(t.Exception.InnerException)
+                                .Throw<TOut>();
+                    })
+                    .Pipe(t => new Async.AsyncOperation<TOut>(t.Unwrap()));
+            }
+
+            //prev is a lazy op that hasn't been executed
+            else if (prev.Succeeded == null)
+            {
+                return new Async.AsyncOperation<TOut>(async () =>
+                {
+                    TIn result = default;
+                    try
+                    {
+                        result = prev.Resolve();
+                    }
+                    catch (Exception e)
+                    {
+                        if (errorHandler != null)
+                            return await errorHandler.Invoke(e);
+
+                        else
+                            return ExceptionDispatchInfo
+                                .Capture(e)
+                                .Throw<TOut>();
+                    }
+
+                    return await func.Invoke(result);
+                });
+            }
+
+            //prev is either lazy or sync but is faulted 
+            else if (errorHandler != null)
+                return new Async.AsyncOperation<TOut>(() => errorHandler.Invoke(prev.Error.GetException()));
+
+            //prev is lazy or sync, faulted, but no error handler was passed
+            else
+                return Operation.Fail<TOut>(prev.Error.GetException());
+        }
+
+        public static Operation<TOut> Then<TIn, TOut>(this
+            Operation<TIn> prev,
+            Func<TIn, Task<TOut>> func,
+            Func<Exception, Operation<TOut>> errorHandler = null)
+        {
+            if (func == null)
+                throw new ArgumentNullException(nameof(func));
+
+            if (prev.Succeeded == true)
+                return new Async.AsyncOperation<TOut>(() => func.Invoke(prev.Result));
+
+            //prev is an async op - handle it accordingly
+            else if (prev is Async.AsyncOperation<TIn> asyncop)
+            {
+                return asyncop
+                    .GetTask()
+                    .ContinueWith(async t =>
+                    {
+                        if (t.Status == TaskStatus.RanToCompletion)
+                            return await func.Invoke(t.Result);
+
+                        else if (errorHandler != null)
+                            return await errorHandler.Invoke(t.Exception.InnerException);
+
+                        else
+                            return ExceptionDispatchInfo
+                                .Capture(t.Exception.InnerException)
+                                .Throw<TOut>();
+                    })
+                    .Pipe(t => new Async.AsyncOperation<TOut>(t.Unwrap()));
+            }
+
+            //prev is a lazy op that hasn't been executed
+            else if (prev.Succeeded == null)
+            {
+                return new Async.AsyncOperation<TOut>(async () =>
+                {
+                    try
+                    {
+                        prev.Resolve();
+                    }
+                    catch (Exception e)
+                    {
+                        if (errorHandler != null)
+                            return await errorHandler.Invoke(e);
+
+                        else
+                            return ExceptionDispatchInfo
+                                .Capture(e)
+                                .Throw<TOut>();
+                    }
+
+                    return await func.Invoke(prev.Result);
+                });
+            }
+
+            //prev is either lazy or sync but is faulted 
+            else if (errorHandler != null)
+                return new Async.AsyncOperation<TOut>(async () => await errorHandler.Invoke(prev.Error.GetException()));
+
+            //prev is lazy or sync, faulted, but no error handler was passed
+            else
+                return Operation.Fail<TOut>(prev.Error.GetException());
+        }
+        #endregion
+
+        #region 3
+        public static Operation<TOut> Then<TIn, TOut>(this
+            Operation<TIn> prev,
+            Func<TIn, Operation<TOut>> func,
+            Func<Exception, TOut> errorHandler = null)
+        {
+            if (func == null)
+                throw new ArgumentNullException(nameof(func));
+
+            if (prev.Succeeded == true)
+                return new Async.AsyncOperation<TOut>(async () => await func.Invoke(prev.Result));
+
+            //prev is an async op - handle it accordingly
+            else if (prev is Async.AsyncOperation<TIn> asyncop)
+            {
+                return asyncop
+                    .GetTask()
+                    .ContinueWith(async t =>
+                    {
+                        if (t.Status == TaskStatus.RanToCompletion)
+                            return await func.Invoke(t.Result);
+
+                        else if (errorHandler != null)
+                            return errorHandler.Invoke(t.Exception.InnerException);
+
+                        else
+                            return ExceptionDispatchInfo
+                                .Capture(t.Exception.InnerException)
+                                .Throw<TOut>();
+                    })
+                    .Pipe(t => new Async.AsyncOperation<TOut>(t.Unwrap()));
+            }
+
+            //prev is a lazy op that hasn't been executed
+            else if (prev.Succeeded == null)
+            {
+                return new Async.AsyncOperation<TOut>(async () =>
+                {
+                    TIn result = default;
+                    try
+                    {
+                        result = prev.Resolve();
+                    }
+                    catch (Exception e)
+                    {
+                        if (errorHandler != null)
+                            return errorHandler.Invoke(e);
+
+                        else return ExceptionDispatchInfo
+                            .Capture(e)
+                            .Throw<TOut>();
+                    }
+
+                    return await func.Invoke(result);
+                });
+            }
+
+            //prev is either lazy or sync but is faulted 
+            else if (errorHandler != null)
+                return new Lazy.LazyOperation<TOut>(() => errorHandler.Invoke(prev.Error.GetException()));
+
+            //prev is lazy or sync, faulted, but no error handler was passed
+            else
+                return Operation.Fail<TOut>(prev.Error.GetException());
+        }
+
+        public static Operation<TOut> Then<TIn, TOut>(this
+            Operation<TIn> prev,
+            Func<TIn, Operation<TOut>> func,
+            Func<Exception, Task<TOut>> errorHandler = null)
+        {
+            if (func == null)
+                throw new ArgumentNullException(nameof(func));
+
+            if (prev.Succeeded == true)
+                return new Async.AsyncOperation<TOut>(async () => await func.Invoke(prev.Result));
+
+            //prev is an async op - handle it accordingly
+            else if (prev is Async.AsyncOperation<TIn> asyncop)
+            {
+                return asyncop
+                    .GetTask()
+                    .ContinueWith(async t =>
+                    {
+                        if (t.Status == TaskStatus.RanToCompletion)
+                            return await func.Invoke(t.Result);
+
+                        else if (errorHandler != null)
+                            return await errorHandler.Invoke(t.Exception.InnerException);
+
+                        else
+                            return ExceptionDispatchInfo
+                                .Capture(t.Exception.InnerException)
+                                .Throw<TOut>();
+                    })
+                    .Pipe(t => new Async.AsyncOperation<TOut>(t.Unwrap()));
+            }
+
+            //prev is a lazy op that hasn't been executed
+            else if (prev.Succeeded == null)
+            {
+                return new Async.AsyncOperation<TOut>(async () =>
+                {
+                    TIn result = default;
+                    try
+                    {
+                        result = prev.Resolve();
+                    }
+                    catch (Exception e)
+                    {
+                        if (errorHandler != null)
+                            return await errorHandler.Invoke(e);
+
+                        else
+                            return ExceptionDispatchInfo
+                                .Capture(e)
+                                .Throw<TOut>();
+                    }
+
+                    return await func.Invoke(result);
+                });
+            }
+
+            //prev is either lazy or sync but is faulted 
+            else if (errorHandler != null)
+                return new Async.AsyncOperation<TOut>(() => errorHandler.Invoke(prev.Error.GetException()));
+
+            //prev is lazy or sync, faulted, but no error handler was passed
+            else
+                return Operation.Fail<TOut>(prev.Error.GetException());
+        }
+
+        public static Operation<TOut> Then<TIn, TOut>(this
+            Operation<TIn> prev,
+            Func<TIn, Operation<TOut>> func,
+            Func<Exception, Operation<TOut>> errorHandler = null)
+        {
+            if (func == null)
+                throw new ArgumentNullException(nameof(func));
+
+            if (prev.Succeeded == true)
+                return new Async.AsyncOperation<TOut>(() => func.Invoke(prev.Result));
+
+            //prev is an async op - handle it accordingly
+            else if (prev is Async.AsyncOperation<TIn> asyncop)
+            {
+                return asyncop
+                    .GetTask()
+                    .ContinueWith(async t =>
+                    {
+                        if (t.Status == TaskStatus.RanToCompletion)
+                            return await func.Invoke(t.Result);
+
+                        else if (errorHandler != null)
+                            return await errorHandler.Invoke(t.Exception.InnerException);
+
+                        else
+                            return ExceptionDispatchInfo
+                                .Capture(t.Exception.InnerException)
+                                .Throw<TOut>();
+                    })
+                    .Pipe(t => new Async.AsyncOperation<TOut>(t.Unwrap()));
+            }
+
+            //prev is a lazy op that hasn't been executed
+            else if (prev.Succeeded == null)
+            {
+                return new Async.AsyncOperation<TOut>(async () =>
+                {
+                    try
+                    {
+                        prev.Resolve();
+                    }
+                    catch (Exception e)
+                    {
+                        if (errorHandler != null)
+                            return await errorHandler.Invoke(e);
+
+                        else
+                            return ExceptionDispatchInfo
+                                .Capture(e)
+                                .Throw<TOut>();
+                    }
+
+                    return await func.Invoke(prev.Result);
+                });
+            }
+
+            //prev is either lazy or sync but is faulted 
+            else if (errorHandler != null)
+                return new Async.AsyncOperation<TOut>(async () => await errorHandler.Invoke(prev.Error.GetException()));
+
+            //prev is lazy or sync, faulted, but no error handler was passed
+            else
+                return Operation.Fail<TOut>(prev.Error.GetException());
+        }
+        #endregion
+
+        #endregion
+
     }
 }
