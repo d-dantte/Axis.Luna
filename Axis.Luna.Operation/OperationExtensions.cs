@@ -3535,7 +3535,7 @@ namespace Axis.Luna.Operation
                 throw new ArgumentNullException(nameof(func));
 
             if (prev.Succeeded == true)
-                return new Async.AsyncOperation<TOut>(() => func.Invoke(prev.Result));
+                return new Async.AsyncOperation<TOut>(async () => await func.Invoke(prev.Result));
 
             //prev is an async op - handle it accordingly
             else if (prev is Async.AsyncOperation<TIn> asyncop)
