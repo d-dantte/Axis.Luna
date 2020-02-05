@@ -65,6 +65,19 @@ namespace Axis.Luna.Operation.Test
         }
 
         [TestMethod]
+        public void AsyncOpWithReEntrantSyncContext2()
+        {
+            AsyncContext.Run(async () =>
+            {
+                var op = Operation.Try(async () =>
+                {
+                    await Task.Delay(500);
+                });
+                op.Resolve();
+            });
+        }
+
+        [TestMethod]
         public void ResultAsyncOpWithReEntrantSyncContext()
         {
             AsyncContext.Run(async () =>
@@ -78,31 +91,6 @@ namespace Axis.Luna.Operation.Test
             });
         }
         
-        private async Task<int> SomeResultOperation(Task task = null, bool maintainSyncContext = true)
-        {
-            task = task ?? Task.Delay(500);
-            await task.ConfigureAwait(maintainSyncContext);
-
-            return DateTime.Now.GetHashCode();
-        }
-        private Task SomeVoidOperation(Task task = null, bool maintainSyncContext = true) => Task.Run(async () =>
-        {
-            var cxt = SynchronizationContext.Current;
-            using (var writer = new StreamWriter(new FileStream("sync-context.txt", FileMode.Append)))
-            {
-                writer.WriteLine($"{cxt?.ToString() ?? "null"}");
-                writer.Flush();
-            }
-
-            task = task ?? Task.Delay(500);
-            await task.ConfigureAwait(maintainSyncContext);
-        });
-        private async Task SomeVoidOperationAsync(Task task = null, bool maintainSyncContext = true)
-        {
-            task = task ?? Task.Delay(500);
-            await task.ConfigureAwait(maintainSyncContext);
-        }
-
 
         private async Task SomeOperation()
         {

@@ -35,7 +35,7 @@ namespace Axis.Luna.Operation.Async
                     return task;
                 });
 
-                _taskAwaiter = new AsyncAwaiter<R>(_task.ConfigureAwait(false));
+                _taskAwaiter = new AsyncAwaiter<R>(_task);
             }
 
             #region Exceptions thrown from the producer
@@ -43,7 +43,7 @@ namespace Axis.Luna.Operation.Async
             {
                 _error = oe.Error;
                 _task = Task.FromException<R>(_error.GetException());
-                _taskAwaiter = new AsyncAwaiter<R>(_task.ConfigureAwait(false));
+                _taskAwaiter = new AsyncAwaiter<R>(_task);
             }
             catch (Exception e)
             {
@@ -53,7 +53,7 @@ namespace Axis.Luna.Operation.Async
                     exception: e);
 
                 _task = Task.FromException<R>(e);
-                _taskAwaiter = new AsyncAwaiter<R>(_task.ConfigureAwait(false));
+                _taskAwaiter = new AsyncAwaiter<R>(_task);
             }
             #endregion
         }
@@ -74,7 +74,7 @@ namespace Axis.Luna.Operation.Async
             if (_task.Status == TaskStatus.Created)
                 _task.Start();
 
-            _taskAwaiter = new AsyncAwaiter<R>(_task.ConfigureAwait(false));
+            _taskAwaiter = new AsyncAwaiter<R>(_task);
         }
         
         public override bool? Succeeded
@@ -110,7 +110,7 @@ namespace Axis.Luna.Operation.Async
         /// <returns></returns>
         public override R Resolve()
         {
-            if (_error?.GetException() != null)
+            if (_error != null)
                 ExceptionDispatchInfo.Capture(_error.GetException()).Throw();
 
             try
@@ -140,8 +140,7 @@ namespace Axis.Luna.Operation.Async
 
         public static implicit operator AsyncOperation<R>(Task<R> task) => new AsyncOperation<R>(task);
     }
-
-
+    
     public class AsyncOperation : Operation
     {
         private OperationError _error;
@@ -173,7 +172,7 @@ namespace Axis.Luna.Operation.Async
                     return task;
                 });
 
-                _taskAwaiter = new AsyncAwaiter(_task.ConfigureAwait(false));
+                _taskAwaiter = new AsyncAwaiter(_task);
             }
 
             #region Exceptions thrown from the producer
@@ -181,7 +180,7 @@ namespace Axis.Luna.Operation.Async
             {
                 _error = oe.Error;
                 _task = Task.FromException(_error.GetException());
-                _taskAwaiter = new AsyncAwaiter(_task.ConfigureAwait(false));
+                _taskAwaiter = new AsyncAwaiter(_task);
             }
             catch (Exception e)
             {
@@ -191,7 +190,7 @@ namespace Axis.Luna.Operation.Async
                     exception: e);
 
                 _task = Task.FromException(e);
-                _taskAwaiter = new AsyncAwaiter(_task.ConfigureAwait(false));
+                _taskAwaiter = new AsyncAwaiter(_task);
             }
             #endregion
         }
@@ -212,7 +211,7 @@ namespace Axis.Luna.Operation.Async
             if (_task.Status == TaskStatus.Created)
                 _task.Start();
 
-            _taskAwaiter = new AsyncAwaiter(_task.ConfigureAwait(false));
+            _taskAwaiter = new AsyncAwaiter(_task);
         }
 
 
@@ -249,7 +248,7 @@ namespace Axis.Luna.Operation.Async
         /// <returns></returns>
         public override void Resolve()
         {
-            if (_error?.GetException() != null)
+            if (_error != null)
                 ExceptionDispatchInfo.Capture(_error.GetException()).Throw();
 
             try

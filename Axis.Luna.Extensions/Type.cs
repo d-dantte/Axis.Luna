@@ -77,8 +77,8 @@ namespace Axis.Luna.Extensions
         private static string MutatorSignature(this PropertyInfo pinfo)
         => $"[{pinfo.DeclaringType.MinimalAQName()}].Set{pinfo.Name}";
 
-        private static string AccessorSignature(this FieldInfo finfo)
-        => $"[{finfo.DeclaringType.MinimalAQName()}].@{finfo.Name}";
+        ////private static string AccessorSignature(this FieldInfo finfo)
+        ////=> $"[{finfo.DeclaringType.MinimalAQName()}].@{finfo.Name}";
         #endregion
 
 

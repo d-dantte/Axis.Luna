@@ -264,9 +264,9 @@ namespace Axis.Luna.Extensions
         /// <param name="choices"></param>
         /// <returns></returns>
         public static IEnumerable<IEnumerable<T>> Combinations<T>(this IEnumerable<T> sequence, int choices)
-        => choices == 0 ?
-           new[] { new T[0] } :
-           sequence.SelectMany((e, i) =>
+        => choices == 0
+           ? new[] { new T[0] }
+           : sequence.SelectMany((e, i) =>
            {
                return sequence
                    .Skip(i + 1)

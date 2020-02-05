@@ -11,13 +11,17 @@ namespace Axis.Luna.Operation.Sync
 
         public bool IsCompleted => true;
 
+        public bool? IsSuccessful { get; private set; }
+
         public SyncAwaiter(Result result)
         {
             OpResult = result;
+            IsSuccessful = true;
         }
         public SyncAwaiter(Exception exception)
         {
-            OpException = exception;
+            OpException = exception ?? new Exception("General Error");
+            IsSuccessful = false;
         }
 
         public Result GetResult()
@@ -40,6 +44,8 @@ namespace Axis.Luna.Operation.Sync
         public Exception OpException { get; private set; }
 
         public bool IsCompleted => true;
+
+        public bool? IsSuccessful => false;
 
         public SyncAwaiter(Exception exception)
         {

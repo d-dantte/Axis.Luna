@@ -17,7 +17,6 @@ namespace Axis.Luna.Operation
     /// </summary>
     public static class OperationExtensions
     {
-
         #region Throw
 
         /// <summary>
@@ -200,7 +199,10 @@ namespace Axis.Luna.Operation
                     .Resolve();
         }
 
-        public static R Reduce<V, R>(this Operation<V> operation, Func<V, R> reducer) => Reduce(operation, default(V), reducer);
+        public static R Reduce<V, R>(this 
+            Operation<V> operation, 
+            Func<V, R> reducer) 
+            => Reduce(operation, default, reducer);
         #endregion
 
         #region Catch
@@ -409,772 +411,17 @@ namespace Axis.Luna.Operation
                 return new Async.AsyncOperation<R>(t.Unwrap());
             }
         }
-		#endregion
-
-		#region Then/Map
-
-		#region Returns Operation
-		public static Operation Then(this 
-            Operation prev, 
-            Action next, 
-            Action<Exception> errorHandler = null)
-        {
-            if (prev.Succeeded == true)
-                return new Lazy.LazyOperation(next);
-
-            else if (!(prev is Async.AsyncOperation))
-            {
-                try
-                {
-                    prev.Resolve();
-
-                    return new Lazy.LazyOperation(next);
-                }
-                catch (Exception e)
-                {
-                    if (errorHandler == null)
-                        return Operation.Fail(e);
-
-                    else
-                        return new Lazy.LazyOperation(() => errorHandler.Invoke(e));
-                }
-            }
-            else
-            {
-                var asyncop = prev as Async.AsyncOperation;
-                return asyncop
-                    .GetTask()
-                    .ContinueWith(t =>
-                    {
-                        if (t.Status == TaskStatus.RanToCompletion)
-                            next.Invoke();
-
-                        else
-                        {
-                            if (errorHandler == null)
-                                ExceptionDispatchInfo
-                                    .Capture(t.Exception.InnerException)
-                                    .Throw();
-
-                            else errorHandler.Invoke(t.Exception.InnerException);
-                        }
-                    })
-                    .Pipe(task => new Async.AsyncOperation(task));
-            }
-        }
-
-        public static Operation Then(this
-            Operation prev,
-            Action next,
-            Func<Exception, ErrorHandlerResult> errorHandler = null)
-        {
-            if (prev.Succeeded == true)
-                return new Lazy.LazyOperation(next);
-
-            else if (!(prev is Async.AsyncOperation))
-            {
-                try
-                {
-                    prev.Resolve();
-
-                    return new Lazy.LazyOperation(next);
-                }
-                catch (Exception e)
-                {
-                    if (errorHandler == null)
-                        return Operation.Fail(e);
-
-                    else
-                        return new Lazy.LazyOperation(() => errorHandler.Invoke(e));
-                }
-            }
-            else
-            {
-                var asyncop = prev as Async.AsyncOperation;
-                return asyncop
-                    .GetTask()
-                    .ContinueWith(t =>
-                    {
-                        if (t.Status == TaskStatus.RanToCompletion)
-                            next.Invoke();
-
-                        else
-                        {
-                            if (errorHandler == null)
-                                ExceptionDispatchInfo
-                                    .Capture(t.Exception.InnerException)
-                                    .Throw();
-
-                            else errorHandler.Invoke(t.Exception.InnerException);
-                        }
-                    })
-                    .Pipe(task => new Async.AsyncOperation(task));
-            }
-        }
-
-        public static Operation Then(this
-            Operation prev,
-            Func<Task> taskProducer,
-            Action<Exception> errorHandler = null)
-        {
-            if (prev is Async.AsyncOperation asyncop)
-            {
-                var t = asyncop.GetTask().ContinueWith(async _t =>
-                {
-                    try
-                    {
-                        _t.GetAwaiter().GetResult(); //throws an exception if the previous task faulted
-                        await taskProducer.Invoke().ConfigureAwait(false);
-                    }
-                    catch (Exception e)
-                    {
-                        if (errorHandler == null)
-                            throw;
-
-                        else
-                            errorHandler.Invoke(e);
-                    }
-                });
-                return new Async.AsyncOperation(t.Unwrap());
-            }
-            else return new Async.AsyncOperation(async () =>
-            {
-                try
-                {
-                    prev.Resolve();
-                    await taskProducer.Invoke();
-                }
-                catch (Exception e)
-                {
-                    if (errorHandler == null)
-                        throw;
-
-                    else
-                        errorHandler.Invoke(e);
-                }
-            });
-        }
-
-        public static Operation Then<In>(this
-            Operation<In> prev,
-            Action<In> next,
-            Action<Exception> errorHandler = null)
-        => new Lazy.LazyOperation(() =>
-        {
-            try
-            {
-                var _in = prev.Resolve();
-                next.Invoke(_in);
-            }
-            catch (Exception e)
-            {
-                if (errorHandler == null)
-                    throw;
-
-                else
-                    errorHandler.Invoke(e);
-            }
-        });
-
-        public static Operation Then<In>(this
-            Operation<In> prev,
-            Func<In, Task> next,
-            Action<Exception> errorHandler = null)
-        {
-            if (prev is Async.AsyncOperation asyncop)
-            {
-                var t = asyncop.GetTask().ContinueWith(async _t =>
-                {
-                    try
-                    {
-                        _t.GetAwaiter().GetResult(); //throws an exception if the previous task faulted
-                        //await taskProducer.Invoke().ConfigureAwait(false);
-                    }
-                    catch (Exception e)
-                    {
-                        if (errorHandler == null)
-                            throw;
-
-                        else
-                            errorHandler.Invoke(e);
-                    }
-                });
-                return new Async.AsyncOperation(t.Unwrap());
-            }
-            else return new Async.AsyncOperation(async () =>
-            {
-                try
-                {
-                    prev.Resolve();
-                    //await taskProducer.Invoke();
-                }
-                catch (Exception e)
-                {
-                    if (errorHandler == null)
-                        throw;
-
-                    else
-                        errorHandler.Invoke(e);
-                }
-            });
-        }
         #endregion
 
+        #region Then/Map
 
-        public static Operation<Out> Then<Out>(this 
-            Operation prev, 
-            Func<Out> next, 
-            Func<Exception, Out> errorHandler = null)
-        => new Lazy.LazyOperation<Out>(() =>
-        {
-            try
-            {
-                prev.Resolve();
-                return next.Invoke();
-            }
-            catch (Exception e)
-            {
-                if (errorHandler == null)
-                    throw;
-
-                else
-                    return errorHandler.Invoke(e);
-            }
-        });
-
-        public static Operation<Out> Then<In, Out>(this 
-            Operation<In> prev, 
-            Func<Out> next, 
-            Func<Exception, Out> errorHandler = null)
-            => new Lazy.LazyOperation<Out>(() =>
-            {
-                try
-                {
-                    prev.Resolve();
-                    return next.Invoke();
-                }
-                catch (Exception e)
-                {
-                    if (errorHandler == null)
-                        throw;
-
-                    else
-                        return errorHandler.Invoke(e);
-                }
-            });
-
-        public static Operation<Out> Then<In, Out>(this 
-            Operation<In> prev, 
-            Func<In, Out> next, 
-            Func<Exception, Out> errorHandler = null)
-            => new Lazy.LazyOperation<Out>(() =>
-            {
-                try
-                {
-                    var _in = prev.Resolve();
-                    return next.Invoke(_in);
-                }
-                catch (Exception e)
-                {
-                    if (errorHandler == null)
-                        throw;
-
-                    else
-                        return errorHandler.Invoke(e);
-                }
-            });
-
-
-
-        public static Operation Then<In>(this 
-            Operation<In> prev, 
-            Func<Task> taskProducer, 
-            Action<Exception> errorHandler = null)
-        {
-            if (prev is Async.AsyncOperation<In>)
-            {
-                var t = (prev as Async.AsyncOperation<In>).GetTask().ContinueWith(async _t =>
-                {
-                    try
-                    {
-                        _t.GetAwaiter().GetResult(); //throws an exception if the previous task faulted
-                        await taskProducer.Invoke().ConfigureAwait(false);
-                    }
-                    catch (Exception e)
-                    {
-                        if (errorHandler == null)
-                            throw;
-
-                        else
-                            errorHandler.Invoke(e);
-                    }
-                });
-                return new Async.AsyncOperation(t.Unwrap());
-            }
-            else return new Async.AsyncOperation(Task.Run(() =>
-            {
-                try
-                {
-                    var _in = prev.Resolve();
-                    taskProducer().GetAwaiter().GetResult();
-                }
-                catch (Exception e)
-                {
-                    if (errorHandler == null)
-                        throw;
-
-                    else
-                        errorHandler.Invoke(e);
-                }
-            }));
-        }
-
-        //public static Operation Then<In>(this 
-        //    Operation<In> prev, 
-        //    Func<In, Task> taskProducer, 
-        //    Action<Exception> errorHandler = null)
-        //{
-        //    if (prev is Async.AsyncOperation<In>)
-        //    {
-        //        var t = (prev as Async.AsyncOperation<In>).GetTask().ContinueWith(async _t =>
-        //        {
-        //            try
-        //            {
-        //                var _in = _t.GetAwaiter().GetResult(); //throws an exception if the previous task faulted
-        //                await taskProducer.Invoke(_in).ConfigureAwait(false);
-        //            }
-        //            catch (Exception e)
-        //            {
-        //                if (errorHandler == null)
-        //                    throw;
-
-        //                else
-        //                    errorHandler.Invoke(e);
-        //            }
-        //        });
-        //        return new Async.AsyncOperation(t.Unwrap());
-        //    }
-        //    else return new Async.AsyncOperation(Task.Run(() =>
-        //    {
-        //        try
-        //        {
-        //            var _in = prev.Resolve();
-        //            taskProducer(_in).GetAwaiter().GetResult();
-        //        }
-        //        catch (Exception e)
-        //        {
-        //            if (errorHandler == null)
-        //                throw;
-
-        //            else
-        //                errorHandler.Invoke(e);
-        //        }
-        //    }));
-        //}
-
-
-        public static Operation<Out> Then<Out>(this 
-            Operation prev, 
-            Func<Task<Out>> taskProducer, 
-            Func<Exception, Out> errorHandler = null)
-        {
-            if (prev is Async.AsyncOperation)
-            {
-                var t = (prev as Async.AsyncOperation).GetTask().ContinueWith(async _t =>
-                {
-                    try
-                    {
-                        _t.GetAwaiter().GetResult(); //throws an exception if the previous task faulted
-                        return await taskProducer.Invoke().ConfigureAwait(false);
-                    }
-                    catch (Exception e)
-                    {
-                        if (errorHandler == null)
-                            throw;
-
-                        else
-                            return errorHandler.Invoke(e);
-                    }
-                });
-                return new Async.AsyncOperation<Out>(t.Unwrap());
-            }
-            else return new Async.AsyncOperation<Out>(Task.Run(() =>
-            {
-                try
-                {
-                    //using a task here instead of awaiting the previous operation because awaiting a lazy operation causes it to resolve,
-                    //meaning this method will block till all of the previous operations have resolved - something we do not want happening here.
-                    prev.Resolve();
-                    return taskProducer().GetAwaiter().GetResult();
-                }
-                catch (Exception e)
-                {
-                    if (errorHandler == null)
-                        throw;
-
-                    else
-                        return errorHandler.Invoke(e);
-                }
-            }));
-        }
-
-        public static Operation<Out> Then<In, Out>(this 
-            Operation<In> prev, 
-            Func<Task<Out>> taskProducer, 
-            Func<Exception, Out> errorHandler = null)
-        {
-            if (prev is Async.AsyncOperation<In>)
-            {
-                var t = (prev as Async.AsyncOperation<In>).GetTask().ContinueWith(async _t =>
-                {
-                    try
-                    {
-                        _t.GetAwaiter().GetResult(); //throws an exception if the previous task faulted
-                        return await taskProducer.Invoke().ConfigureAwait(false);
-                    }
-                    catch (Exception e)
-                    {
-                        if (errorHandler == null)
-                            throw;
-
-                        else
-                            return errorHandler.Invoke(e);
-                    }
-                });
-                return new Async.AsyncOperation<Out>(t.Unwrap());
-            }
-            else return new Async.AsyncOperation<Out>(Task.Run(() =>
-            {
-                try
-                {
-                    //using a task here instead of awaiting the previous operation because awaiting a lazy operation causes it to resolve,
-                    //meaning this method will block till all of the previous operations have resolved - something we do not want happening here.
-                    var _in = prev.Resolve();
-                    return taskProducer().GetAwaiter().GetResult();
-                }
-                catch (Exception e)
-                {
-                    if (errorHandler == null)
-                        throw;
-
-                    else
-                        return errorHandler.Invoke(e);
-                }
-            }));
-        }
-
-        public static Operation<Out> Then<In, Out>(this 
-            Operation<In> prev, 
-            Func<In, Task<Out>> taskProducer, 
-            Func<Exception, Out> errorHandler = null)
-        {
-            if (prev is Async.AsyncOperation<In>)
-            {
-                var t = (prev as Async.AsyncOperation<In>).GetTask().ContinueWith(async _t =>
-                {
-                    try
-                    {
-                        var _in = _t.GetAwaiter().GetResult(); //throws an exception if the previous task faulted
-                        return await taskProducer.Invoke(_in).ConfigureAwait(false);
-                    }
-                    catch (Exception e)
-                    {
-                        if (errorHandler == null)
-                            throw;
-
-                        else
-                            return errorHandler.Invoke(e);
-                    }
-                });
-                return new Async.AsyncOperation<Out>(t.Unwrap());
-            }
-            else return new Async.AsyncOperation<Out>(Task.Run(() =>
-            {
-                try
-                {
-                    //using a task here instead of awaiting the previous operation because awaiting a lazy operation causes it to resolve,
-                    //meaning this method will block till all of the previous operations have resolved - something we do not want happening here.
-                    var _in = prev.Resolve();
-                    return taskProducer(_in).GetAwaiter().GetResult();
-                }
-                catch (Exception e)
-                {
-                    if (errorHandler == null)
-                        throw;
-
-                    else
-                        return errorHandler.Invoke(e);
-                }
-            }));
-        }
-
-
-        public static Operation Then(this 
-            Operation prev, 
-            Func<Operation> next, 
-            Action<Exception> errorHandler = null)
-        => new Lazy.LazyOperation(() =>
-        {
-            try
-            {
-                prev.Resolve();
-                next.Invoke().Resolve();
-            }
-            catch (Exception e)
-            {
-                if (errorHandler == null)
-                    throw;
-
-                else
-                    errorHandler.Invoke(e);
-            }
-        });
-
-        public static Operation Then<In>(this 
-            Operation<In> prev, 
-            Func<Operation> next, 
-            Action<Exception> errorHandler = null)
-        => new Lazy.LazyOperation(() =>
-        {
-            try
-            {
-                prev.Resolve();
-                next.Invoke().Resolve();
-            }
-            catch (Exception e)
-            {
-                if (errorHandler == null)
-                    throw;
-
-                else
-                    errorHandler.Invoke(e);
-            }
-        });
-
-        public static Operation Then<In>(this 
-            Operation<In> prev, 
-            Func<In, Operation> next, 
-            Action<Exception> errorHandler = null)
-        => new Lazy.LazyOperation(() =>
-        {
-            try
-            {
-                var _in = prev.Resolve();
-                next.Invoke(_in).Resolve();
-            }
-            catch (Exception e)
-            {
-                if (errorHandler == null)
-                    throw;
-
-                else
-                    errorHandler.Invoke(e);
-            }
-        });
-
-        public static Operation<Out> Then<Out>(this 
-            Operation prev, 
-            Func<Operation<Out>> next, 
-            Func<Exception, Out> errorHandler = null)
-        => new Lazy.LazyOperation<Out>(() =>
-        {
-            try
-            {
-                prev.Resolve();
-                return next.Invoke().Resolve();
-            }
-            catch (Exception e)
-            {
-                if (errorHandler == null)
-                    throw;
-
-                else
-                    return errorHandler.Invoke(e);
-            }
-        });
-
-        public static Operation<Out> Then<In, Out>(this 
-            Operation<In> prev, 
-            Func<Operation<Out>> next, 
-            Func<Exception, Out> errorHandler = null)
-        => new Lazy.LazyOperation<Out>(() =>
-        {
-            try
-            {
-                prev.Resolve();
-                return next.Invoke().Resolve();
-            }
-            catch (Exception e)
-            {
-                if (errorHandler == null)
-                    throw;
-
-                else
-                    return errorHandler.Invoke(e);
-            }
-        });
-
-        public static Operation<Out> Then<In, Out>(this 
-            Operation<In> prev, 
-            Func<In, Operation<Out>> next, 
-            Func<Exception, Out> errorHandler = null)
-        => new Lazy.LazyOperation<Out>(() =>
-        {
-            try
-            {
-                var _in = prev.Resolve();
-                return next.Invoke(_in).Resolve();
-            }
-            catch (Exception e)
-            {
-                if (errorHandler == null)
-                    throw;
-
-                else
-                    return errorHandler.Invoke(e);
-            }
-        });
-
-
-        public static Operation Then(this 
-            Operation prev, 
-            Func<Task<Operation>> next, 
-            Action<Exception> errorHandler = null)
-        => new Async.AsyncOperation(async () =>
-        {
-            try
-            {
-                prev.Resolve();
-                await await next.Invoke().ConfigureAwait(false);
-            }
-            catch (Exception e)
-            {
-                if (errorHandler == null)
-                    throw;
-
-                else
-                    errorHandler.Invoke(e);
-            }
-        });
-
-        public static Operation Then<In>(this 
-            Operation<In> prev, 
-            Func<Task<Operation>> next, 
-            Action<Exception> errorHandler = null)
-        => new Async.AsyncOperation(async () =>
-        {
-            try
-            {
-                prev.Resolve();
-                await await next.Invoke().ConfigureAwait(false);
-            }
-            catch (Exception e)
-            {
-                if (errorHandler == null)
-                    throw;
-
-                else
-                    errorHandler.Invoke(e);
-            }
-        });
-
-        public static Operation Then<In>(this 
-            Operation<In> prev, 
-            Func<In, Task<Operation>> next, 
-            Action<Exception> errorHandler = null)
-        => new Async.AsyncOperation(async () =>
-        {
-            try
-            {
-                var _in = prev.Resolve();
-                await await next.Invoke(_in).ConfigureAwait(false);
-            }
-            catch (Exception e)
-            {
-                if (errorHandler == null)
-                    throw;
-
-                else
-                    errorHandler.Invoke(e);
-            }
-        });
-
-        public static Operation<Out> Then<Out>(this 
-            Operation prev, 
-            Func<Task<Operation<Out>>> next, 
-            Func<Exception, Out> errorHandler = null)
-        => new Async.AsyncOperation<Out>(async () =>
-        {
-            try
-            {
-                prev.Resolve();
-                return await await next.Invoke().ConfigureAwait(false);
-            }
-            catch (Exception e)
-            {
-                if (errorHandler == null)
-                    throw;
-
-                else
-                    return errorHandler.Invoke(e);
-            }
-        });
-
-        public static Operation<Out> Then<In, Out>(this 
-            Operation<In> prev, 
-            Func<Task<Operation<Out>>> next, 
-            Func<Exception, Out> errorHandler = null)
-        => new Async.AsyncOperation<Out>(async () =>
-        {
-            try
-            {
-                prev.Resolve();
-                return await await next.Invoke().ConfigureAwait(false);
-            }
-            catch (Exception e)
-            {
-                if (errorHandler == null)
-                    throw;
-
-                else
-                    return errorHandler.Invoke(e);
-            }
-        });
-
-        public static Operation<Out> Then<In, Out>(this 
-            Operation<In> prev, 
-            Func<In, Task<Operation<Out>>> next, 
-            Func<Exception, Out> errorHandler = null)
-        => new Async.AsyncOperation<Out>(async () =>
-        {
-            try
-            {
-                var _in = prev.Resolve();
-                return await await next.Invoke(_in).ConfigureAwait(false);
-            }
-            catch (Exception e)
-            {
-                if (errorHandler == null)
-                    throw;
-
-                else
-                    return errorHandler.Invoke(e);
-            }
-        });
-        #endregion
-    }
-
-
-
-    public static class RRR
-    {
         #region 1
 
         #region 1
         public static Operation Then(this
             Operation prev,
             Action action,
-            Action<Exception> errorHandler = null)
+            Action<Exception> errorHandler)
         {
             if (action == null)
                 throw new ArgumentNullException(nameof(action));
@@ -1212,7 +459,7 @@ namespace Axis.Luna.Operation
                     {
                         prev.Resolve();
                     }
-                    catch(Exception e)
+                    catch (Exception e)
                     {
                         if (errorHandler != null)
                             errorHandler.Invoke(e);
@@ -1241,7 +488,7 @@ namespace Axis.Luna.Operation
         public static Operation Then(this
             Operation prev,
             Action action,
-            Func<Exception, Task> errorHandler = null)
+            Func<Exception, Task> errorHandler)
         {
             if (action == null)
                 throw new ArgumentNullException(nameof(action));
@@ -1308,7 +555,7 @@ namespace Axis.Luna.Operation
         public static Operation Then(this
             Operation prev,
             Action action,
-            Func<Exception, Operation> errorHandler = null)
+            Func<Exception, Operation> errorHandler)
         {
             if (action == null)
                 throw new ArgumentNullException(nameof(action));
@@ -1377,7 +624,7 @@ namespace Axis.Luna.Operation
         public static Operation Then(this
             Operation prev,
             Func<Task> func,
-            Action<Exception> errorHandler = null)
+            Action<Exception> errorHandler)
         {
             if (func == null)
                 throw new ArgumentNullException(nameof(func));
@@ -1444,7 +691,7 @@ namespace Axis.Luna.Operation
         public static Operation Then(this
             Operation prev,
             Func<Task> func,
-            Func<Exception, Task> errorHandler = null)
+            Func<Exception, Task> errorHandler)
         {
             if (func == null)
                 throw new ArgumentNullException(nameof(func));
@@ -1511,7 +758,7 @@ namespace Axis.Luna.Operation
         public static Operation Then(this
             Operation prev,
             Func<Task> func,
-            Func<Exception, Operation> errorHandler = null)
+            Func<Exception, Operation> errorHandler)
         {
             if (func == null)
                 throw new ArgumentNullException(nameof(func));
@@ -1580,7 +827,7 @@ namespace Axis.Luna.Operation
         public static Operation Then(this
             Operation prev,
             Func<Operation> func,
-            Action<Exception> errorHandler = null)
+            Action<Exception> errorHandler)
         {
             if (func == null)
                 throw new ArgumentNullException(nameof(func));
@@ -1647,7 +894,7 @@ namespace Axis.Luna.Operation
         public static Operation Then(this
             Operation prev,
             Func<Operation> func,
-            Func<Exception, Task> errorHandler = null)
+            Func<Exception, Task> errorHandler)
         {
             if (func == null)
                 throw new ArgumentNullException(nameof(func));
@@ -1714,7 +961,7 @@ namespace Axis.Luna.Operation
         public static Operation Then(this
             Operation prev,
             Func<Operation> func,
-            Func<Exception, Operation> errorHandler = null)
+            Func<Exception, Operation> errorHandler)
         {
             if (func == null)
                 throw new ArgumentNullException(nameof(func));
@@ -1787,13 +1034,13 @@ namespace Axis.Luna.Operation
         public static Operation Then<TIn>(this
             Operation<TIn> prev,
             Action<TIn> action,
-            Action<Exception> errorHandler = null)
+            Action<Exception> errorHandler)
         {
             if (action == null)
                 throw new ArgumentNullException(nameof(action));
 
             if (prev.Succeeded == true)
-                return new Lazy.LazyOperation(() => action.Invoke(prev.Result));
+                return new Lazy.LazyOperation(() => action.Invoke(prev.Resolve()));
 
             //prev is an async op - handle it accordingly
             else if (prev is Async.AsyncOperation<TIn> asyncop)
@@ -1855,13 +1102,13 @@ namespace Axis.Luna.Operation
         public static Operation Then<TIn>(this
             Operation<TIn> prev,
             Action<TIn> action,
-            Func<Exception, Task> errorHandler = null)
+            Func<Exception, Task> errorHandler)
         {
             if (action == null)
                 throw new ArgumentNullException(nameof(action));
 
             if (prev.Succeeded == true)
-                return new Lazy.LazyOperation(() => action.Invoke(prev.Result));
+                return new Lazy.LazyOperation(() => action.Invoke(prev.Resolve()));
 
             //prev is an async op - handle it accordingly
             else if (prev is Async.AsyncOperation<TIn> asyncop)
@@ -1923,13 +1170,13 @@ namespace Axis.Luna.Operation
         public static Operation Then<TIn>(this
             Operation<TIn> prev,
             Action<TIn> action,
-            Func<Exception, Operation> errorHandler = null)
+            Func<Exception, Operation> errorHandler)
         {
             if (action == null)
                 throw new ArgumentNullException(nameof(action));
 
             if (prev.Succeeded == true)
-                return new Lazy.LazyOperation(() => action.Invoke(prev.Result));
+                return new Lazy.LazyOperation(() => action.Invoke(prev.Resolve()));
 
             //prev is an async op - handle it accordingly
             else if (prev is Async.AsyncOperation<TIn> asyncop)
@@ -1993,13 +1240,13 @@ namespace Axis.Luna.Operation
         public static Operation Then<TIn>(this
             Operation<TIn> prev,
             Func<TIn, Task> func,
-            Action<Exception> errorHandler = null)
+            Action<Exception> errorHandler)
         {
             if (func == null)
                 throw new ArgumentNullException(nameof(func));
 
             if (prev.Succeeded == true)
-                return new Async.AsyncOperation(() => func.Invoke(prev.Result));
+                return new Async.AsyncOperation(() => func.Invoke(prev.Resolve()));
 
             //prev is an async op - handle it accordingly
             else if (prev is Async.AsyncOperation<TIn> asyncop)
@@ -2061,13 +1308,13 @@ namespace Axis.Luna.Operation
         public static Operation Then<TIn>(this
             Operation<TIn> prev,
             Func<TIn, Task> func,
-            Func<Exception, Task> errorHandler = null)
+            Func<Exception, Task> errorHandler)
         {
             if (func == null)
                 throw new ArgumentNullException(nameof(func));
 
             if (prev.Succeeded == true)
-                return new Async.AsyncOperation(() => func.Invoke(prev.Result));
+                return new Async.AsyncOperation(() => func.Invoke(prev.Resolve()));
 
             //prev is an async op - handle it accordingly
             else if (prev is Async.AsyncOperation<TIn> asyncop)
@@ -2129,13 +1376,13 @@ namespace Axis.Luna.Operation
         public static Operation Then<TIn>(this
             Operation<TIn> prev,
             Func<TIn, Task> func,
-            Func<Exception, Operation> errorHandler = null)
+            Func<Exception, Operation> errorHandler)
         {
             if (func == null)
                 throw new ArgumentNullException(nameof(func));
 
             if (prev.Succeeded == true)
-                return new Async.AsyncOperation(() => func.Invoke(prev.Result));
+                return new Async.AsyncOperation(() => func.Invoke(prev.Resolve()));
 
             //prev is an async op - handle it accordingly
             else if (prev is Async.AsyncOperation<TIn> asyncop)
@@ -2199,13 +1446,13 @@ namespace Axis.Luna.Operation
         public static Operation Then<TIn>(this
             Operation<TIn> prev,
             Func<TIn, Operation> func,
-            Action<Exception> errorHandler = null)
+            Action<Exception> errorHandler)
         {
             if (func == null)
                 throw new ArgumentNullException(nameof(func));
 
             if (prev.Succeeded == true)
-                return new Async.AsyncOperation(async () => await func.Invoke(prev.Result));
+                return new Async.AsyncOperation(async () => await func.Invoke(prev.Resolve()));
 
             //prev is an async op - handle it accordingly
             else if (prev is Async.AsyncOperation<TIn> asyncop)
@@ -2267,13 +1514,13 @@ namespace Axis.Luna.Operation
         public static Operation Then<TIn>(this
             Operation<TIn> prev,
             Func<TIn, Operation> func,
-            Func<Exception, Task> errorHandler = null)
+            Func<Exception, Task> errorHandler)
         {
             if (func == null)
                 throw new ArgumentNullException(nameof(func));
 
             if (prev.Succeeded == true)
-                return new Async.AsyncOperation(async () => await func.Invoke(prev.Result));
+                return new Async.AsyncOperation(async () => await func.Invoke(prev.Resolve()));
 
             //prev is an async op - handle it accordingly
             else if (prev is Async.AsyncOperation<TIn> asyncop)
@@ -2335,13 +1582,13 @@ namespace Axis.Luna.Operation
         public static Operation Then<TIn>(this
             Operation<TIn> prev,
             Func<TIn, Operation> func,
-            Func<Exception, Operation> errorHandler = null)
+            Func<Exception, Operation> errorHandler)
         {
             if (func == null)
                 throw new ArgumentNullException(nameof(func));
 
             if (prev.Succeeded == true)
-                return new Async.AsyncOperation(async () => await func.Invoke(prev.Result));
+                return new Async.AsyncOperation(async () => await func.Invoke(prev.Resolve()));
 
             //prev is an async op - handle it accordingly
             else if (prev is Async.AsyncOperation<TIn> asyncop)
@@ -2409,7 +1656,7 @@ namespace Axis.Luna.Operation
         public static Operation<TOut> Then<TOut>(this
             Operation prev,
             Func<TOut> func,
-            Func<Exception, TOut> errorHandler = null)
+            Func<Exception, TOut> errorHandler)
         {
             if (func == null)
                 throw new ArgumentNullException(nameof(func));
@@ -2473,7 +1720,7 @@ namespace Axis.Luna.Operation
         public static Operation<TOut> Then<TOut>(this
             Operation prev,
             Func<TOut> func,
-            Func<Exception, Task<TOut>> errorHandler = null)
+            Func<Exception, Task<TOut>> errorHandler)
         {
             if (func == null)
                 throw new ArgumentNullException(nameof(func));
@@ -2538,7 +1785,7 @@ namespace Axis.Luna.Operation
         public static Operation<TOut> Then<TOut>(this
             Operation prev,
             Func<TOut> func,
-            Func<Exception, Operation<TOut>> errorHandler = null)
+            Func<Exception, Operation<TOut>> errorHandler)
         {
             if (func == null)
                 throw new ArgumentNullException(nameof(func));
@@ -2605,7 +1852,7 @@ namespace Axis.Luna.Operation
         public static Operation<TOut> Then<TOut>(this
             Operation prev,
             Func<Task<TOut>> func,
-            Func<Exception, TOut> errorHandler = null)
+            Func<Exception, TOut> errorHandler)
         {
             if (func == null)
                 throw new ArgumentNullException(nameof(func));
@@ -2669,7 +1916,7 @@ namespace Axis.Luna.Operation
         public static Operation<TOut> Then<TOut>(this
             Operation prev,
             Func<Task<TOut>> func,
-            Func<Exception, Task<TOut>> errorHandler = null)
+            Func<Exception, Task<TOut>> errorHandler)
         {
             if (func == null)
                 throw new ArgumentNullException(nameof(func));
@@ -2734,7 +1981,7 @@ namespace Axis.Luna.Operation
         public static Operation<TOut> Then<TOut>(this
             Operation prev,
             Func<Task<TOut>> func,
-            Func<Exception, Operation<TOut>> errorHandler = null)
+            Func<Exception, Operation<TOut>> errorHandler)
         {
             if (func == null)
                 throw new ArgumentNullException(nameof(func));
@@ -2801,7 +2048,7 @@ namespace Axis.Luna.Operation
         public static Operation<TOut> Then<TOut>(this
             Operation prev,
             Func<Operation<TOut>> func,
-            Func<Exception, TOut> errorHandler = null)
+            Func<Exception, TOut> errorHandler)
         {
             if (func == null)
                 throw new ArgumentNullException(nameof(func));
@@ -2865,7 +2112,7 @@ namespace Axis.Luna.Operation
         public static Operation<TOut> Then<TOut>(this
             Operation prev,
             Func<Operation<TOut>> func,
-            Func<Exception, Task<TOut>> errorHandler = null)
+            Func<Exception, Task<TOut>> errorHandler)
         {
             if (func == null)
                 throw new ArgumentNullException(nameof(func));
@@ -2930,7 +2177,7 @@ namespace Axis.Luna.Operation
         public static Operation<TOut> Then<TOut>(this
             Operation prev,
             Func<Operation<TOut>> func,
-            Func<Exception, Operation<TOut>> errorHandler = null)
+            Func<Exception, Operation<TOut>> errorHandler)
         {
             if (func == null)
                 throw new ArgumentNullException(nameof(func));
@@ -3001,13 +2248,13 @@ namespace Axis.Luna.Operation
         public static Operation<TOut> Then<TIn, TOut>(this
             Operation<TIn> prev,
             Func<TIn, TOut> func,
-            Func<Exception, TOut> errorHandler = null)
+            Func<Exception, TOut> errorHandler)
         {
             if (func == null)
                 throw new ArgumentNullException(nameof(func));
 
             if (prev.Succeeded == true)
-                return new Lazy.LazyOperation<TOut>(() => func.Invoke(prev.Result));
+                return new Lazy.LazyOperation<TOut>(() => func.Invoke(prev.Resolve()));
 
             //prev is an async op - handle it accordingly
             else if (prev is Async.AsyncOperation<TIn> asyncop)
@@ -3033,12 +2280,12 @@ namespace Axis.Luna.Operation
             //prev is a lazy op that hasn't been executed
             else if (prev.Succeeded == null)
             {
-                return new Async.AsyncOperation<TOut>(async () =>
+                return new Lazy.LazyOperation<TOut>(() =>
                 {
                     TIn result = default;
                     try
                     {
-                        prev.Resolve();
+                        result = prev.Resolve();
                     }
                     catch (Exception e)
                     {
@@ -3066,13 +2313,13 @@ namespace Axis.Luna.Operation
         public static Operation<TOut> Then<TIn, TOut>(this
             Operation<TIn> prev,
             Func<TIn, TOut> func,
-            Func<Exception, Task<TOut>> errorHandler = null)
+            Func<Exception, Task<TOut>> errorHandler)
         {
             if (func == null)
                 throw new ArgumentNullException(nameof(func));
 
             if (prev.Succeeded == true)
-                return new Lazy.LazyOperation<TOut>(() => func.Invoke(prev.Result));
+                return new Lazy.LazyOperation<TOut>(() => func.Invoke(prev.Resolve()));
 
             //prev is an async op - handle it accordingly
             else if (prev is Async.AsyncOperation<TIn> asyncop)
@@ -3132,13 +2379,13 @@ namespace Axis.Luna.Operation
         public static Operation<TOut> Then<TIn, TOut>(this
             Operation<TIn> prev,
             Func<TIn, TOut> func,
-            Func<Exception, Operation<TOut>> errorHandler = null)
+            Func<Exception, Operation<TOut>> errorHandler)
         {
             if (func == null)
                 throw new ArgumentNullException(nameof(func));
 
             if (prev.Succeeded == true)
-                return new Lazy.LazyOperation<TOut>(() => func.Invoke(prev.Result));
+                return new Lazy.LazyOperation<TOut>(() => func.Invoke(prev.Resolve()));
 
             //prev is an async op - handle it accordingly
             else if (prev is Async.AsyncOperation<TIn> asyncop)
@@ -3200,13 +2447,13 @@ namespace Axis.Luna.Operation
         public static Operation<TOut> Then<TIn, TOut>(this
             Operation<TIn> prev,
             Func<TIn, Task<TOut>> func,
-            Func<Exception, TOut> errorHandler = null)
+            Func<Exception, TOut> errorHandler)
         {
             if (func == null)
                 throw new ArgumentNullException(nameof(func));
 
             if (prev.Succeeded == true)
-                return new Async.AsyncOperation<TOut>(() => func.Invoke(prev.Result));
+                return new Async.AsyncOperation<TOut>(() => func.Invoke(prev.Resolve()));
 
             //prev is an async op - handle it accordingly
             else if (prev is Async.AsyncOperation<TIn> asyncop)
@@ -3265,13 +2512,13 @@ namespace Axis.Luna.Operation
         public static Operation<TOut> Then<TIn, TOut>(this
             Operation<TIn> prev,
             Func<TIn, Task<TOut>> func,
-            Func<Exception, Task<TOut>> errorHandler = null)
+            Func<Exception, Task<TOut>> errorHandler)
         {
             if (func == null)
                 throw new ArgumentNullException(nameof(func));
 
             if (prev.Succeeded == true)
-                return new Async.AsyncOperation<TOut>(() => func.Invoke(prev.Result));
+                return new Async.AsyncOperation<TOut>(() => func.Invoke(prev.Resolve()));
 
             //prev is an async op - handle it accordingly
             else if (prev is Async.AsyncOperation<TIn> asyncop)
@@ -3331,13 +2578,13 @@ namespace Axis.Luna.Operation
         public static Operation<TOut> Then<TIn, TOut>(this
             Operation<TIn> prev,
             Func<TIn, Task<TOut>> func,
-            Func<Exception, Operation<TOut>> errorHandler = null)
+            Func<Exception, Operation<TOut>> errorHandler)
         {
             if (func == null)
                 throw new ArgumentNullException(nameof(func));
 
             if (prev.Succeeded == true)
-                return new Async.AsyncOperation<TOut>(() => func.Invoke(prev.Result));
+                return new Async.AsyncOperation<TOut>(() => func.Invoke(prev.Resolve()));
 
             //prev is an async op - handle it accordingly
             else if (prev is Async.AsyncOperation<TIn> asyncop)
@@ -3380,7 +2627,7 @@ namespace Axis.Luna.Operation
                                 .Throw<TOut>();
                     }
 
-                    return await func.Invoke(prev.Result);
+                    return await func.Invoke(prev.Resolve());
                 });
             }
 
@@ -3398,13 +2645,13 @@ namespace Axis.Luna.Operation
         public static Operation<TOut> Then<TIn, TOut>(this
             Operation<TIn> prev,
             Func<TIn, Operation<TOut>> func,
-            Func<Exception, TOut> errorHandler = null)
+            Func<Exception, TOut> errorHandler)
         {
             if (func == null)
                 throw new ArgumentNullException(nameof(func));
 
             if (prev.Succeeded == true)
-                return new Async.AsyncOperation<TOut>(async () => await func.Invoke(prev.Result));
+                return new Async.AsyncOperation<TOut>(async () => await func.Invoke(prev.Resolve()));
 
             //prev is an async op - handle it accordingly
             else if (prev is Async.AsyncOperation<TIn> asyncop)
@@ -3463,13 +2710,13 @@ namespace Axis.Luna.Operation
         public static Operation<TOut> Then<TIn, TOut>(this
             Operation<TIn> prev,
             Func<TIn, Operation<TOut>> func,
-            Func<Exception, Task<TOut>> errorHandler = null)
+            Func<Exception, Task<TOut>> errorHandler)
         {
             if (func == null)
                 throw new ArgumentNullException(nameof(func));
 
             if (prev.Succeeded == true)
-                return new Async.AsyncOperation<TOut>(async () => await func.Invoke(prev.Result));
+                return new Async.AsyncOperation<TOut>(async () => await func.Invoke(prev.Resolve()));
 
             //prev is an async op - handle it accordingly
             else if (prev is Async.AsyncOperation<TIn> asyncop)
@@ -3529,13 +2776,13 @@ namespace Axis.Luna.Operation
         public static Operation<TOut> Then<TIn, TOut>(this
             Operation<TIn> prev,
             Func<TIn, Operation<TOut>> func,
-            Func<Exception, Operation<TOut>> errorHandler = null)
+            Func<Exception, Operation<TOut>> errorHandler)
         {
             if (func == null)
                 throw new ArgumentNullException(nameof(func));
 
             if (prev.Succeeded == true)
-                return new Async.AsyncOperation<TOut>(async () => await func.Invoke(prev.Result));
+                return new Async.AsyncOperation<TOut>(async () => await func.Invoke(prev.Resolve()));
 
             //prev is an async op - handle it accordingly
             else if (prev is Async.AsyncOperation<TIn> asyncop)
@@ -3578,7 +2825,7 @@ namespace Axis.Luna.Operation
                                 .Throw<TOut>();
                     }
 
-                    return await func.Invoke(prev.Result);
+                    return await func.Invoke(prev.Resolve());
                 });
             }
 
@@ -3594,5 +2841,75 @@ namespace Axis.Luna.Operation
 
         #endregion
 
+        #region 5
+        #region 1
+        public static Operation Then(this
+            Operation prev,
+            Action action) => prev.Then(action, (Action<Exception>)null);
+
+        public static Operation Then(this
+            Operation prev,
+            Func<Task> func) => prev.Then(func, (Action<Exception>)null);
+
+        public static Operation Then(this
+            Operation prev,
+            Func<Operation> func) => prev.Then(func, (Action<Exception>)null);
+        #endregion
+
+        #region 2
+        public static Operation Then<TIn>(this
+            Operation<TIn> prev,
+            Action<TIn> action) => prev.Then(action, (Action<Exception>)null);
+
+        public static Operation Then<TIn>(this
+            Operation<TIn> prev,
+            Func<TIn, Task> func) => prev.Then(func, (Action<Exception>)null);
+
+        public static Operation Then<TIn>(this
+            Operation<TIn> prev,
+            Func<TIn, Operation> func) => prev.Then(func, (Action<Exception>)null);
+        #endregion
+
+        #region 3
+        public static Operation<TOut> Then<TOut>(this
+            Operation prev,
+            Func<TOut> func) => prev.Then(func, (Func<Exception, TOut>)null);
+
+        public static Operation<TOut> Then<TOut>(this
+            Operation prev,
+            Func<Task<TOut>> func) => prev.Then(func, (Func<Exception, TOut>)null);
+
+        public static Operation<TOut> Then<TOut>(this
+            Operation prev,
+            Func<Operation<TOut>> func) => prev.Then(func, (Func<Exception, TOut>)null);
+        #endregion
+
+        #region 4
+        public static Operation<TOut> Then<TIn, TOut>(this
+            Operation<TIn> prev,
+            Func<TIn, TOut> func) => prev.Then(func, (Func<Exception, TOut>)null);
+
+        public static Operation<TOut> Then<TIn, TOut>(this
+            Operation<TIn> prev,
+            Func<TIn, Task<TOut>> func) => prev.Then(func, (Func<Exception, TOut>)null);
+
+        public static Operation<TOut> Then<TIn, TOut>(this
+            Operation<TIn> prev,
+            Func<TIn, Operation<TOut>> func) => prev.Then(func, (Func<Exception, TOut>)null);
+        #endregion
+        #endregion
+        #endregion
+
+
+        #region Misc
+        internal static R Throw<R>(this ExceptionDispatchInfo info)
+        {
+            info.Throw();
+
+            //never reached
+            return default;
+        }
+        #endregion
     }
+
 }

@@ -8,7 +8,7 @@ namespace Axis.Luna.Operation.Lazy
     public class LazyOperation<R> : Operation<R>
     {
         private OperationError _error;
-        private LazyAwaiter<R> _awaiter;
+        private readonly LazyAwaiter<R> _awaiter;
 
         internal LazyOperation(Func<R> func)
         {
@@ -22,7 +22,7 @@ namespace Axis.Luna.Operation.Lazy
             _awaiter = new LazyAwaiter<R>(lazy ?? throw new NullReferenceException("Invalid Lazy factory supplied"));
         }
 
-        public override bool? Succeeded => !_awaiter.IsCompleted ? null : (bool?)(_error == null);
+        public override bool? Succeeded => _awaiter.IsSuccessful;
 
 
         public override IAwaiter<R> GetAwaiter() => _awaiter;
@@ -31,7 +31,7 @@ namespace Axis.Luna.Operation.Lazy
 
         public override R Resolve()
         {
-            if (_error?.GetException() != null)
+            if (_error != null)
                 ExceptionDispatchInfo.Capture(_error.GetException()).Throw();
 
             try
@@ -41,10 +41,9 @@ namespace Axis.Luna.Operation.Lazy
             catch (OperationException oe)
             {
                 _error = oe.Error;
-                ExceptionDispatchInfo.Capture(_error.GetException()).Throw();
-
-                //never reached
-                throw oe;
+                return ExceptionDispatchInfo
+                    .Capture(_error.GetException())
+                    .Throw<R>();
             }
             catch (Exception e)
             {
@@ -67,7 +66,7 @@ namespace Axis.Luna.Operation.Lazy
     public class LazyOperation : Operation
     {
         private OperationError _error;
-        private LazyAwaiter _awaiter;
+        private readonly LazyAwaiter _awaiter;
 
         internal LazyOperation(Action action)
         {
@@ -83,7 +82,7 @@ namespace Axis.Luna.Operation.Lazy
                     }));
         }
 
-        public override bool? Succeeded => !_awaiter.IsCompleted ? null : (bool?)(_error == null);
+        public override bool? Succeeded => _awaiter.IsSuccessful;
 
         public override OperationError Error => _error;
 
@@ -91,7 +90,7 @@ namespace Axis.Luna.Operation.Lazy
 
         public override void Resolve()
         {
-            if (_error?.GetException() != null)
+            if (_error != null)
                 ExceptionDispatchInfo.Capture(_error.GetException()).Throw();
 
             try
@@ -101,10 +100,9 @@ namespace Axis.Luna.Operation.Lazy
             catch (OperationException oe)
             {
                 _error = oe.Error;
-                ExceptionDispatchInfo.Capture(_error.GetException()).Throw();
-
-                //never reached
-                throw oe;
+                ExceptionDispatchInfo
+                    .Capture(_error.GetException())
+                    .Throw();
             }
             catch (Exception e)
             {

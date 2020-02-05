@@ -5,24 +5,21 @@ namespace Axis.Luna.Operation.Sync
 
     public class SyncOperation<R> : Operation<R>
     {
-        private OperationError _error;
+        private readonly OperationError _error;
         private readonly SyncAwaiter<R> _awaiter;
-        private readonly bool _succeeded;
 
         internal SyncOperation(R value)
         {
-            _succeeded = true;
             _awaiter = new SyncAwaiter<R>(value);
         }
 
         internal SyncOperation(OperationError error)
         {
-            _succeeded = false;
             _error = error;
             _awaiter = new SyncAwaiter<R>(_error.GetException());
         }
 
-        public override bool? Succeeded => _succeeded;
+        public override bool? Succeeded => _awaiter.IsSuccessful;
 
         public override OperationError Error => _error;
 
@@ -38,11 +35,11 @@ namespace Axis.Luna.Operation.Sync
 
     public class SyncOperation : Operation
     {
-        private OperationError _error;
-        private SyncAwaiter _awaiter;
+        private readonly OperationError _error;
+        private readonly SyncAwaiter _awaiter;
 
 
-        public override bool? Succeeded => false;
+        public override bool? Succeeded => _awaiter.IsSuccessful;
         public override OperationError Error => throw new NotImplementedException();
 
         internal SyncOperation(OperationError error)

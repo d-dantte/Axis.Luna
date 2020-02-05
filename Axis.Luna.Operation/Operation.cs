@@ -20,18 +20,15 @@ namespace Axis.Luna.Operation
         /// <summary>
         /// Safely Resovle the operation and return it's result, returning a default value if the operation was faulted
         /// </summary>
-        public R Result
+        public R ResolveSafely()
         {
-            get
+            try
             {
-                try
-                {
-                    return Resolve();
-                }
-                catch
-                {
-                    return default(R);
-                }
+                return Resolve();
+            }
+            catch
+            {
+                return default(R);
             }
         }
     }
@@ -49,6 +46,17 @@ namespace Axis.Luna.Operation
         public abstract bool? Succeeded { get; }
 
         public abstract OperationError Error { get; }
+
+        public void ResolveSafely()
+        {
+            try
+            {
+                Resolve();
+            }
+            catch
+            {
+            }
+        }
 
 
         public static implicit operator Operation(Func<Task> t)

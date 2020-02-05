@@ -3,20 +3,35 @@
 namespace Axis.Luna.Operation.Lazy
 {
 
-    public struct LazyAwaiter : IAwaiter
+    public class LazyAwaiter : IAwaiter
     {
         private readonly Lazy<object> _lazy;
 
         public LazyAwaiter(Lazy<object> lazy)
         {
             _lazy = lazy;
+            IsSuccessful = null;
         }
 
+        /// <summary>
+        /// Always true so that awaiting on this awaiter will always run synchroniously
+        /// </summary>
         public bool IsCompleted => true;
+
+        public bool? IsSuccessful { get; private set; }
 
         public void GetResult()
         {
-            _ = _lazy.Value;
+            try
+            {
+                _ = _lazy.Value;
+                IsSuccessful = true;
+            }
+            catch
+            {
+                IsSuccessful = false;
+                throw;
+            }
         }
 
         public void OnCompleted(Action continuation)
@@ -27,26 +42,43 @@ namespace Axis.Luna.Operation.Lazy
     }
 
 
-    public struct LazyAwaiter<Result> : IAwaiter<Result>
+    public class LazyAwaiter<Result> : IAwaiter<Result>
     {
         private readonly Lazy<Result> _lazy;
 
         public LazyAwaiter(Lazy<Result> lazy)
         {
             _lazy = lazy;
+            IsSuccessful = null;
         }
 
+        public bool? IsSuccessful { get; private set; }
+
+        /// <summary>
+        /// Always true so that awaiting on this awaiter will always run synchroniously
+        /// </summary>
         public bool IsCompleted => true;
 
         public Result GetResult()
         {
-            return _lazy.Value;
+            try
+            {
+                Result r =  _lazy.Value;
+                IsSuccessful = true;
+
+                return r;
+            }
+            catch
+            {
+                IsSuccessful = false;
+                throw;
+            }
         }
 
         public void OnCompleted(Action continuation)
         {
             //resolve
-            GetResult();
+            _ = GetResult();
             continuation.Invoke();
         }
     }
