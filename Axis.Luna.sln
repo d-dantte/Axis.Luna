@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.27004.2002
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.29613.14
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{1FC7E4CA-D079-43C0-9AC5-051F4B81A7AC}"
 EndProject
@@ -10,6 +10,7 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".Solution Items", ".Solution Items", "{63ECDC93-300E-4686-8FFC-74C47B3A2694}"
 	ProjectSection(SolutionItems) = preProject
 		BackLog.txt = BackLog.txt
+		CHANGELOG.md = CHANGELOG.md
 		LICENSE.txt.txt = LICENSE.txt.txt
 	EndProjectSection
 EndProject

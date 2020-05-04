@@ -26,7 +26,9 @@ namespace Axis.Luna.Extensions
         where D : IDisposable
         {
             using (disposable)
+            {
                 return func(disposable);
+            }
         }
 
         /// <summary>
@@ -41,28 +43,34 @@ namespace Axis.Luna.Extensions
         where D : IDisposable
         {
             using (disposable)
+            {
                 return await func(disposable);
+            }
         }
 
         public static void Using<D>(this D disposable, Action<D> action)
         where D : IDisposable
         {
             using (disposable)
+            {
                 action(disposable);
+            }
         }
 
         public static async Task UsingAsync<D>(this D disposable, Func<D, Task> action)
         where D : IDisposable
         {
             using (disposable)
+            {
                 await action(disposable);
+            }
         }
 
-        public static T GetRoot<T>(this T obj, Func<T, T> step)
+        public static T GetRoot<T>(this T obj, Func<T, T> step, EqualityComparer<T> comparer = null)
         {
             var temp = obj;
-            var eqc = EqualityComparer<T>.Default;
-            while (!eqc.Equals((temp = step(temp)), default(T))) obj = temp;
+            var eqc = comparer ?? EqualityComparer<T>.Default;
+            while (!eqc.Equals((temp = step(temp)), default)) obj = temp;
             return obj;
         }
 

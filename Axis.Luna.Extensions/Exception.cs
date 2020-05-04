@@ -205,8 +205,10 @@ namespace Axis.Luna.Extensions
             edi.Throw();
 
             //never reached
-            return default(T);
+            return default;
         }
+
+        public static void Throw(this ExceptionDispatchInfo edi) => edi.Throw();
 
         public static T Throw<T>(this Exception e)
         {
@@ -216,7 +218,7 @@ namespace Axis.Luna.Extensions
             ExceptionDispatchInfo.Capture(e).Throw();
 
             //never reached
-            return default(T);
+            return default;
         }
 
         public static void Throw(this Exception e)

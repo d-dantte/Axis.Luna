@@ -5,7 +5,7 @@ using static System.Runtime.CompilerServices.ConfiguredTaskAwaitable;
 
 namespace Axis.Luna.Operation.Async
 {
-    public class AsyncAwaiter : IAwaiter, ICriticalNotifyCompletion
+    public struct AsyncAwaiter : IAwaiter, ICriticalNotifyCompletion
     {
         public ConfiguredTaskAwaiter TaskAwaiter => TaskAwaitable.GetAwaiter();
 
@@ -47,7 +47,8 @@ namespace Axis.Luna.Operation.Async
         public void UnsafeOnCompleted(Action continuation) => TaskAwaiter.UnsafeOnCompleted(continuation);
     }
 
-    public class AsyncAwaiter<Result> : IAwaiter<Result>, ICriticalNotifyCompletion
+
+    public struct AsyncAwaiter<Result> : IAwaiter<Result>, ICriticalNotifyCompletion
     {
         public ConfiguredTaskAwaitable<Result>.ConfiguredTaskAwaiter TaskAwaiter => TaskAwaitable.GetAwaiter();
 

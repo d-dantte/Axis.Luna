@@ -4,23 +4,27 @@ using System.Runtime.ExceptionServices;
 
 namespace Axis.Luna.Operation.Sync
 {
-    public class SyncAwaiter<Result> : IAwaiter<Result>, ICriticalNotifyCompletion
+    public struct SyncAwaiter<Result> : IAwaiter<Result>, ICriticalNotifyCompletion
     {
         public Result OpResult { get; private set; }
-        public Exception OpException { get; private set; }
 
-        public bool IsCompleted => true;
+        public Exception OpException { get; private set; }
 
         public bool? IsSuccessful { get; private set; }
 
+        public bool IsCompleted => true;
+
+
         public SyncAwaiter(Result result)
         {
+            OpException = null;
             OpResult = result;
             IsSuccessful = true;
         }
         public SyncAwaiter(Exception exception)
         {
             OpException = exception ?? new Exception("General Error");
+            OpResult = default;
             IsSuccessful = false;
         }
 
@@ -39,13 +43,14 @@ namespace Axis.Luna.Operation.Sync
     }
 
 
-    public class SyncAwaiter : IAwaiter, ICriticalNotifyCompletion
+    public struct SyncAwaiter : IAwaiter, ICriticalNotifyCompletion
     {
         public Exception OpException { get; private set; }
 
         public bool IsCompleted => true;
 
         public bool? IsSuccessful => false;
+
 
         public SyncAwaiter(Exception exception)
         {

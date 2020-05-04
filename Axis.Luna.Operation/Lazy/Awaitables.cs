@@ -3,14 +3,13 @@
 namespace Axis.Luna.Operation.Lazy
 {
 
-    public class LazyAwaiter : IAwaiter
+    public struct LazyAwaiter : IAwaiter
     {
-        private readonly Lazy<object> _lazy;
+        private readonly CustomLazy<object> _lazy;
 
-        public LazyAwaiter(Lazy<object> lazy)
+        public LazyAwaiter(CustomLazy<object> lazy)
         {
             _lazy = lazy;
-            IsSuccessful = null;
         }
 
         /// <summary>
@@ -18,20 +17,23 @@ namespace Axis.Luna.Operation.Lazy
         /// </summary>
         public bool IsCompleted => true;
 
-        public bool? IsSuccessful { get; private set; }
+        public bool? IsSuccessful
+        {
+            get
+            {
+                switch(_lazy.State)
+                {
+                    case CustomLazyState.Faulted: return false;
+                    case CustomLazyState.Initialized: return true;
+                    case CustomLazyState.Uninitialized:
+                    default: return null;
+                }
+            }
+        }
 
         public void GetResult()
         {
-            try
-            {
-                _ = _lazy.Value;
-                IsSuccessful = true;
-            }
-            catch
-            {
-                IsSuccessful = false;
-                throw;
-            }
+            _ = _lazy.Value;
         }
 
         public void OnCompleted(Action continuation)
@@ -42,38 +44,35 @@ namespace Axis.Luna.Operation.Lazy
     }
 
 
-    public class LazyAwaiter<Result> : IAwaiter<Result>
+    public struct LazyAwaiter<Result> : IAwaiter<Result>
     {
-        private readonly Lazy<Result> _lazy;
+        private readonly CustomLazy<Result> _lazy;
 
-        public LazyAwaiter(Lazy<Result> lazy)
+        public LazyAwaiter(CustomLazy<Result> lazy)
         {
             _lazy = lazy;
-            IsSuccessful = null;
         }
 
-        public bool? IsSuccessful { get; private set; }
+        public bool? IsSuccessful
+        {
+            get
+            {
+                switch (_lazy.State)
+                {
+                    case CustomLazyState.Faulted: return false;
+                    case CustomLazyState.Initialized: return true;
+                    case CustomLazyState.Uninitialized:
+                    default: return null;
+                }
+            }
+        }
 
         /// <summary>
         /// Always true so that awaiting on this awaiter will always run synchroniously
         /// </summary>
         public bool IsCompleted => true;
 
-        public Result GetResult()
-        {
-            try
-            {
-                Result r =  _lazy.Value;
-                IsSuccessful = true;
-
-                return r;
-            }
-            catch
-            {
-                IsSuccessful = false;
-                throw;
-            }
-        }
+        public Result GetResult() => _lazy.Value;
 
         public void OnCompleted(Action continuation)
         {

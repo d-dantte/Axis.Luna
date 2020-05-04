@@ -90,6 +90,38 @@ namespace Axis.Luna.Operation.Test
                 _ = op.Resolve();
             });
         }
+
+
+        [TestMethod]
+        public void FauxAsyncTest()
+        {
+            AsyncContext.Run(() =>
+            {
+                __AsyncMethod().Wait();
+                Console.WriteLine("Done");
+            });
+        }
+
+        [TestMethod]
+        public void FauxAsyncTest2()
+        {
+            AsyncContext.Run(() =>
+            {
+                __LazyOpAsyncMethod().Wait();
+                Console.WriteLine("Done");
+            });
+        }
+
+        private async Task __AsyncMethod()
+        {
+            //await Task.Run(() => Thread.Sleep(500)).ConfigureAwait(false);
+            await Task.Delay(500).ConfigureAwait(false);
+        }
+
+        private async Task __LazyOpAsyncMethod()
+        {
+            await Operation.Try(() => Thread.Sleep(500));
+        }
         
 
         private async Task SomeOperation()
@@ -126,5 +158,6 @@ namespace Axis.Luna.Operation.Test
                 });
             });
         }
+
     }
 }

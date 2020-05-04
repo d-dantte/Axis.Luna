@@ -1,4 +1,5 @@
 ﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System;
 using System.Linq;
 
 namespace Axis.Luna.Extensions.Test
@@ -45,6 +46,17 @@ namespace Axis.Luna.Extensions.Test
 
             subset = Enumerable.Range(0, 100).Reverse().ToArray();
             Assert.IsTrue(subset.IsSubsetOf(sequence));
+        }
+
+        [TestMethod]
+        public void CombinationTest()
+        {
+            "aacde"
+                .Permutations()
+                .Select(arr => new string(arr.ToArray()))
+                .Distinct()
+                .ForAll(Console.WriteLine);
+
         }
     }
 }

@@ -59,12 +59,6 @@ namespace Axis.Luna.Operation
         }
 
 
-        public static implicit operator Operation(Func<Task> t)
-        {
-            throw new Exception();
-        }
-
-
         #region Static helpers
 
         #region Value

@@ -88,3 +88,13 @@
 
 -   Remove the DynamicMethodInvoker class from here, as it has been placed in it's own project
 	[Done]
+
+2020/03/21 ===============================================================================
+-	Investigate using ValueTasks for operation awaiting: this means migrating the entire code base to whatever .Net version supports them.
+
+-	Overhaul AsyncOperation creation, as well as the Extension methods that create operations so Tasks are used in accordance to what is
+	found in the investigation above.
+
+-	Investigate using Structs for operation instances
+
+-	Move support to netcoreapp3.1 and netstandard2.1? [note: this stops support of netframework :( ]

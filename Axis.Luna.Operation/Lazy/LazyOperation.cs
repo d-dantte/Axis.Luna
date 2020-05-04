@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Runtime.ExceptionServices;
-using System.Threading.Tasks;
 
 namespace Axis.Luna.Operation.Lazy
 {
@@ -17,7 +16,7 @@ namespace Axis.Luna.Operation.Lazy
             _awaiter = new LazyAwaiter<R>(new Lazy<R>(func, true));
         }
 
-        internal LazyOperation(Lazy<R> lazy, Func<Task> rollBack = null)
+        internal LazyOperation(Lazy<R> lazy)
         {
             _awaiter = new LazyAwaiter<R>(lazy ?? throw new NullReferenceException("Invalid Lazy factory supplied"));
         }

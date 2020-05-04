@@ -1,8 +1,12 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+﻿using Axis.Luna.Extensions;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Axis.Luna.Common.Test
 {
@@ -115,6 +119,97 @@ namespace Axis.Luna.Common.Test
             };
             var pages = page.AdjacentIndexes(2);
             Console.WriteLine(string.Join(',', pages));
+        }
+
+        [TestMethod]
+        public void ConcurrentDictionarySemaphoreTest()
+        {
+            var xmaphore = new ConcurrentDictionary<string, string>();
+            
+            var t = new Thread(() =>
+            {
+                xmaphore.SemaphoreLock("abcd", k =>
+                {
+                    Console.WriteLine("Entered");
+                    Thread.Sleep(200);
+                    Console.WriteLine("Woken up");
+                });
+            });
+
+            t.Start();
+
+            Thread.Yield();
+            xmaphore.SemaphoreLock(
+                key: "abcd",
+                granted: k => Console.WriteLine("granted"),
+                denied: k => Console.WriteLine("denied"));
+
+
+            Thread.Sleep(1000);
+        }
+
+        [TestMethod]
+        public void TestMethod5()
+        {
+            var s = new Lazy<int>(() => 6);
+            var f = new Lazy<int>(() => new Exception().Throw<int>());
+
+            try
+            {
+                _ = s.Value;
+                _ = f.Value;
+            }
+            catch { }
+        }
+    }
+
+    public static class XYZExtensions
+    {
+        internal static TResult SemaphoreLock<TLock, TResult>(this
+            ConcurrentDictionary<TLock, TLock> dictionary,
+            TLock key,
+            Func<TLock, TResult> granted,
+            Func<TLock, TResult> denied = null)
+        {
+            if (dictionary.TryAdd(key, key))
+            {
+                try
+                {
+                    return granted.Invoke(key);
+                }
+                finally
+                {
+                    dictionary.TryRemove(key, out _);
+                }
+            }
+
+            else if (denied != null)
+                return denied.Invoke(key);
+
+            else
+                return default;
+        }
+
+        internal static void SemaphoreLock<TLock>(this
+            ConcurrentDictionary<TLock, TLock> dictionary,
+            TLock key,
+            Action<TLock> granted,
+            Action<TLock> denied = null)
+        {
+            if (dictionary.TryAdd(key, key))
+            {
+                try
+                {
+                    granted.Invoke(key);
+                }
+                finally
+                {
+                    dictionary.TryRemove(key, out _);
+                }
+            }
+
+            else
+                denied?.Invoke(key);
         }
     }
 }

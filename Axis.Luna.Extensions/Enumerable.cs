@@ -274,6 +274,42 @@ namespace Axis.Luna.Extensions
                    .Select(c => (new[] { e }).Concat(c));
            });
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="values"></param>
+        /// <returns></returns>
+        public static IEnumerable<IEnumerable<T>> Permutations<T>(this IEnumerable<T> values)
+        {
+            if ((values is T[] tarr && tarr.Length == 1)
+                || (values is System.Collections.ICollection col && col.Count == 1)
+                || (values is ICollection<T> tcol && tcol.Count == 1)
+                || (values.Count() == 1))
+                return new T[][] { new T[] { values.First() } };
+
+            else
+            {
+                return values
+                    .SelectMany((value, index) =>
+                    {
+                        var primary = new[] { value };
+                        return Permutations(Splice(values, index))
+                            .Select(perm =>
+                            {
+                                return primary.Concat(perm).ToList() as IEnumerable<T>;
+                            });
+                    });
+            }
+        }
+
+        static private T[] Splice<T>(IEnumerable<T> list, int index)
+        {
+            return list
+                .Take(index)
+                .Concat(list.Skip(index + 1))
+                .ToArray();
+        }
+
 
         /// <summary>
         ///  Fisher-Yates-Durstenfeld shuffle http://en.wikipedia.org/wiki/Fisher%E2%80%93Yates_shuffle#The_modern_algorithm
