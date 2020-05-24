@@ -68,8 +68,8 @@ namespace Axis.Luna.FInvoke
             if (method.IsStatic)
                 throw new ArgumentException("Method is static");
 
-            else if (method.ReturnType != typeof(void))
-                throw new ArgumentException("Method has return-type");
+            else if (method.ReturnType == typeof(void))
+                throw new ArgumentException("Method has no return-type");
 
             else
             {
@@ -104,8 +104,8 @@ namespace Axis.Luna.FInvoke
             if (!method.IsStatic)
                 throw new ArgumentException("Method is not static");
 
-            else if (method.ReturnType != typeof(void))
-                throw new ArgumentException("Method has return-type");
+            else if (method.ReturnType == typeof(void))
+                throw new ArgumentException("Method has no return-type");
 
             else
             {
