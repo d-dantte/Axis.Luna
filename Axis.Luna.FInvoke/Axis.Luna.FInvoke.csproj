@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>netstandard2.0;net461;netcoreapp2.1</TargetFrameworks>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <AssemblyVersion>5.0.0.0</AssemblyVersion>
+    <FileVersion>5.0.0.0</FileVersion>
+    <Version>5.0.0</Version>
+    <Description>Uses cached delegates to dynamically call methods. Use inplace of reflection to gain performance</Description>
+    <PackageReleaseNotes></PackageReleaseNotes>
+    <RepositoryUrl>https://github.com/d-dantte/Axis.Luna</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/d-dantte/Axis.Luna</PackageProjectUrl>
+    <PackageLicenseUrl>https://licenses.nuget.org/MIT</PackageLicenseUrl>
+    <Company>Axiis</Company>
+    <Authors>Dantte</Authors>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Sigil" Version="5.0.0" />
+  </ItemGroup>
+
+
+</Project>
