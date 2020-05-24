@@ -64,17 +64,17 @@ namespace Axis.Luna.FInvoke
 			emitter.IsInstance(method.DeclaringType);
 
 			//push arguments unto the stack
-			var arguments = method.GetGenericArguments() ?? new Type[0];
+			var arguments = method.GetParameters() ?? new ParameterInfo[0];
 			for (ushort cnt = 0; cnt < arguments.Length; cnt++)
 			{
 				//load the meta-arg array into memory
 				emitter.LoadArgument(1);
 
-				if (arguments[cnt].IsValueType)
-					LoadBoxedValueType(emitter, arguments[cnt], cnt);
+				if (arguments[cnt].ParameterType.IsValueType)
+					LoadBoxedValueType(emitter, arguments[cnt].ParameterType, cnt);
 
 				else //if(!arguments[cnt].IsValueType)
-					LoadCastedRefType(emitter, arguments[cnt], cnt);
+					LoadCastedRefType(emitter, arguments[cnt].ParameterType, cnt);
 			}
 
 			//call the method
@@ -106,7 +106,7 @@ namespace Axis.Luna.FInvoke
 		{
 			emitter
 				.LoadConstant(argIndex)
-				.LoadElement(argType)
+				.LoadElement(typeof(object))
 				.UnboxAny(argType);
 		}
 
@@ -124,7 +124,7 @@ namespace Axis.Luna.FInvoke
 		{
 			emitter
 				.LoadConstant(argIndex)
-				.LoadElement(argType)
+				.LoadElement(typeof(object))
 				.IsInstance(argType);
 		}
 	}

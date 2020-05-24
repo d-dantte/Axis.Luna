@@ -21,18 +21,13 @@ namespace Axis.Luna.FInvoke.Test
             
             const int callCount = 1000000;
 
-            //Action1
-            var method = type.GetMethod("Action1");
-            instance.Invoke(method); instance.Invoke(method); //warmup
+			#region Action1
+			var method = type.GetMethod("Action1");
+            var iinvoker = InstanceInvoker.InvokerFor(method);
+            iinvoker.Func(instance, null); //warmup
             var start = DateTime.Now;
-            for (int cnt = 0; cnt < callCount; cnt++) instance.Invoke(method);
-            var invokerTime = DateTime.Now - start;
-
-            var dinvoker = InstanceInvoker.InvokerFor(method);
-            dinvoker.Func(instance, null); //warmup
-            start = DateTime.Now;
-            for (int cnt = 0; cnt < callCount; cnt++) dinvoker.Func(instance, null);
-            var dinvokerTime = DateTime.Now - start;
+            for (int cnt = 0; cnt < callCount; cnt++) iinvoker.Func(instance, null);
+            var iinvokerTime = DateTime.Now - start;
 
             var del = method.CreateDelegate(typeof(Action), instance);
             var ddel = (Action)del;
@@ -63,22 +58,25 @@ namespace Axis.Luna.FInvoke.Test
                 new[]
                 {
                     $"reflection-time: {reflectionTime}",
-                    $"invoker-time: {invokerTime}",
-                    $"dynamic-invoker-time: {dinvokerTime}",
+                    $"dynamic-invoker-time: {iinvokerTime}",
                     $"direct-delegate-time: {directDelegateTime}",
                     $"dynamic-delegate-time: {dynamicDelegateTime}",
                     $"dynamic-time: {dynamicTime}",
                     $"direct-time: {directTime}",
                 })
-                + $"], average-invoker-time: {new TimeSpan(dinvokerTime.Ticks / callCount)}";
+                + $"], average-invoker-time: {new TimeSpan(iinvokerTime.Ticks / callCount)}";
 
             Console.WriteLine(output+"\n\n");
+			#endregion
 
-            //Action2
-            method = type.GetMethod("Action2");
+			#region Action2
+			method = type.GetMethod("Action2");
+            iinvoker = InstanceInvoker.InvokerFor(method);
+            var @params = new object[] { 654 };
+            iinvoker.Func(instance, @params); //warm up
             start = DateTime.Now;
-            for (int cnt = 0; cnt < callCount; cnt++) instance.Invoke(method, 654);
-            invokerTime = DateTime.Now - start;
+            for (int cnt = 0; cnt < callCount; cnt++) iinvoker.Func(instance, @params);
+            iinvokerTime = DateTime.Now - start;
 
             start = DateTime.Now;
             for (int cnt = 0; cnt < callCount; cnt++) instance.Action2(654);
@@ -89,14 +87,28 @@ namespace Axis.Luna.FInvoke.Test
             for (int cnt = 0; cnt < callCount; cnt++) dinstance.Action2(654);
             dynamicTime = DateTime.Now - start;
 
-            Console.WriteLine($"Action2 stats [call-count: {callCount},  invoker-time: {invokerTime}, dynamic-time: {dynamicTime} direct-time: {directTime}], average-invoker-time: {new TimeSpan(invokerTime.Ticks / callCount)}");
+            output = "Action2 stats:\n";
+            output += string.Join(
+                "\n",
+                new[]
+                {
+                    $"dynamic-invoker-time: {iinvokerTime}",
+                    $"dynamic-time: {dynamicTime}",
+                    $"direct-time: {directTime}",
+                })
+                + $"], average-invoker-time: {new TimeSpan(iinvokerTime.Ticks / callCount)}";
 
-            //Action3
-            object i = 654, l = 654L, s = "me";
+            Console.WriteLine(output + "\n\n");
+			#endregion
+
+			#region Action3
+			object i = 654, l = 654L, s = "me";
             method = type.GetMethod("Action3");
+            iinvoker = InstanceInvoker.InvokerFor(method);
+            @params = new object[] { 654, 654l, "me" };
             start = DateTime.Now;
-            for (int cnt = 0; cnt < callCount; cnt++) instance.Invoke(method, 654, 654L, "me");
-            invokerTime = DateTime.Now - start;
+            for (int cnt = 0; cnt < callCount; cnt++) iinvoker.Func(instance, @params);
+            iinvokerTime = DateTime.Now - start;
 
             start = DateTime.Now;
             for (int cnt = 0; cnt < callCount; cnt++) instance.Action3((int)i, (long)l, (string)s);
@@ -107,13 +119,27 @@ namespace Axis.Luna.FInvoke.Test
             for (int cnt = 0; cnt < callCount; cnt++) dinstance.Action3((int)i, (long)l, (string)s);
             dynamicTime = DateTime.Now - start;
 
-            Console.WriteLine($"Action3 stats [call-count: {callCount},  invoker-time: {invokerTime}, dynamic-time: {dynamicTime} direct-time: {directTime}, average-invoker-time: {new TimeSpan(invokerTime.Ticks / callCount)}]");
+            output = "Action3 stats:\n";
+            output += string.Join(
+                "\n",
+                new[]
+                {
+                    $"dynamic-invoker-time: {iinvokerTime}",
+                    $"dynamic-time: {dynamicTime}",
+                    $"direct-time: {directTime}",
+                })
+                + $"], average-invoker-time: {new TimeSpan(iinvokerTime.Ticks / callCount)}";
 
-            //Action4
+            Console.WriteLine(output + "\n\n");
+            #endregion
+
+            #region  Action4
             method = type.GetMethod("Action4").MakeGenericMethod(typeof(string));
+            @params = new object[] { 654 };
+            iinvoker = InstanceInvoker.InvokerFor(method);
             start = DateTime.Now;
-            for (int cnt = 0; cnt < callCount; cnt++) instance.Invoke(method, 654);
-            invokerTime = DateTime.Now - start;
+            for (int cnt = 0; cnt < callCount; cnt++) iinvoker.Func(instance, @params);
+            iinvokerTime = DateTime.Now - start;
 
             start = DateTime.Now;
             for (int cnt = 0; cnt < callCount; cnt++) instance.Action4<string>(654);
@@ -124,56 +150,122 @@ namespace Axis.Luna.FInvoke.Test
             for (int cnt = 0; cnt < callCount; cnt++) dinstance.Action4<string>(654);
             dynamicTime = DateTime.Now - start;
 
-            Console.WriteLine($"Action4 stats [call-count: {callCount},  invoker-time: {invokerTime}, dynamc-time: {dynamicTime}  direct-time: {directTime}], average-invoker-time: {new TimeSpan(invokerTime.Ticks / callCount)}");
+            output = "Action4 stats:\n";
+            output += string.Join(
+                "\n",
+                new[]
+                {
+                    $"dynamic-invoker-time: {iinvokerTime}",
+                    $"dynamic-time: {dynamicTime}",
+                    $"direct-time: {directTime}",
+                })
+                + $"], average-invoker-time: {new TimeSpan(iinvokerTime.Ticks / callCount)}";
 
+            Console.WriteLine(output + "\n\n");
+            #endregion
 
-            //Func1
+            #region Func1
             method = type.GetMethod("Func1");
+            iinvoker = InstanceInvoker.InvokerFor(method);
             start = DateTime.Now;
-            for (int cnt = 0; cnt < callCount; cnt++) instance.Invoke(method);
-            invokerTime = DateTime.Now - start;
+            for (int cnt = 0; cnt < callCount; cnt++) iinvoker.Func(instance, null);
+            iinvokerTime = DateTime.Now - start;
 
             start = DateTime.Now;
             for (int cnt = 0; cnt < callCount; cnt++) instance.Func1();
             directTime = DateTime.Now - start;
 
-            Console.WriteLine($"Func1 stats [call-count: {callCount},  invoker-time: {invokerTime},  direct-time: {directTime}], average-invoker-time: {new TimeSpan(invokerTime.Ticks / callCount)}");
+            output = "Func1 stats:\n";
+            output += string.Join(
+                "\n",
+                new[]
+                {
+                    $"dynamic-invoker-time: {iinvokerTime}",
+                    $"dynamic-time: {dynamicTime}",
+                    $"direct-time: {directTime}",
+                })
+                + $"], average-invoker-time: {new TimeSpan(iinvokerTime.Ticks / callCount)}";
 
-            //Func2
+            Console.WriteLine(output + "\n\n");
+            #endregion
+
+            #region Func2
             method = type.GetMethod("Func2");
+            iinvoker = InstanceInvoker.InvokerFor(method);
+            @params = new object[] { 654 };
             start = DateTime.Now;
-            for (int cnt = 0; cnt < callCount; cnt++) instance.Invoke(method, 654);
-            invokerTime = DateTime.Now - start;
+            for (int cnt = 0; cnt < callCount; cnt++) iinvoker.Func(instance, @params);
+            iinvokerTime = DateTime.Now - start;
 
             start = DateTime.Now;
             for (int cnt = 0; cnt < callCount; cnt++) instance.Func2(654);
             directTime = DateTime.Now - start;
 
-            Console.WriteLine($"Func2 stats [call-count: {callCount},  invoker-time: {invokerTime},  direct-time: {directTime}], average-invoker-time: {new TimeSpan(invokerTime.Ticks / callCount)}");
+            output = "Func2 stats:\n";
+            output += string.Join(
+                "\n",
+                new[]
+                {
+                    $"dynamic-invoker-time: {iinvokerTime}",
+                    $"dynamic-time: {dynamicTime}",
+                    $"direct-time: {directTime}",
+                })
+                + $"], average-invoker-time: {new TimeSpan(iinvokerTime.Ticks / callCount)}";
 
-            //Func3
+            Console.WriteLine(output + "\n\n");
+            #endregion
+
+            #region Func3
             method = type.GetMethod("Func3");
+            iinvoker = InstanceInvoker.InvokerFor(method);
+            @params = new object[] { 654, 654L, "me" };
             start = DateTime.Now;
-            for (int cnt = 0; cnt < callCount; cnt++) instance.Invoke(method, 654, 654l, "me");
-            invokerTime = DateTime.Now - start;
+            for (int cnt = 0; cnt < callCount; cnt++) iinvoker.Func(instance, @params);
+            iinvokerTime = DateTime.Now - start;
 
             start = DateTime.Now;
             for (int cnt = 0; cnt < callCount; cnt++) instance.Func3(654, 654L, "me");
             directTime = DateTime.Now - start;
 
-            Console.WriteLine($"Func3 stats [call-count: {callCount},  invoker-time: {invokerTime},  direct-time: {directTime}], average-invoker-time: {new TimeSpan(invokerTime.Ticks / callCount)}");
+            output = "Func3 stats:\n";
+            output += string.Join(
+                "\n",
+                new[]
+                {
+                    $"dynamic-invoker-time: {iinvokerTime}",
+                    $"dynamic-time: {dynamicTime}",
+                    $"direct-time: {directTime}",
+                })
+                + $"], average-invoker-time: {new TimeSpan(iinvokerTime.Ticks / callCount)}";
 
-            //Func4
+            Console.WriteLine(output + "\n\n");
+            #endregion
+
+            #region Func4
             method = type.GetMethod("Func4").MakeGenericMethod(typeof(string));
+            iinvoker = InstanceInvoker.InvokerFor(method);
+            @params = new object[] { 654 };
             start = DateTime.Now;
-            for (int cnt = 0; cnt < callCount; cnt++) instance.Invoke(method, 654);
-            invokerTime = DateTime.Now - start;
+            for (int cnt = 0; cnt < callCount; cnt++) iinvoker.Func(instance, @params);
+            iinvokerTime = DateTime.Now - start;
 
             start = DateTime.Now;
             for (int cnt = 0; cnt < callCount; cnt++) instance.Func4<string>(654);
             directTime = DateTime.Now - start;
 
-            Console.WriteLine($"Func4 stats [call-count: {callCount},  invoker-time: {invokerTime},  direct-time: {directTime}], average-invoker-time: {new TimeSpan(invokerTime.Ticks / callCount)}");
+            output = "Func4 stats:\n";
+            output += string.Join(
+                "\n",
+                new[]
+                {
+                    $"dynamic-invoker-time: {iinvokerTime}",
+                    $"dynamic-time: {dynamicTime}",
+                    $"direct-time: {directTime}",
+                })
+                + $"], average-invoker-time: {new TimeSpan(iinvokerTime.Ticks / callCount)}";
+
+            Console.WriteLine(output + "\n\n");
+            #endregion
 
             Console.WriteLine("\n\n Total Call Count:" + instance.g);
 
