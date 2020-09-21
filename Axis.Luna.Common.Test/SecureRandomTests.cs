@@ -13,6 +13,8 @@ namespace Axis.Luna.Common.Test
         [TestMethod]
         public void TestMethod()
         {
+
+            Console.WriteLine(typeof(object).MinimalAQName());
             Console.WriteLine(typeof(StringBuilder).MinimalAQName());
 
             var sb = new StringBuilder();

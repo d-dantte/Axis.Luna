@@ -21,6 +21,10 @@ namespace Axis.Luna.Extensions
             Multiples = numerator / denominator
         };
 
+        public static int DigitCount(long value) => (int)Math.Floor(Math.Log10(value) + 1);
+
+        public static int DigitCount(ulong value) => (int)Math.Floor(Math.Log10(value) + 1);
+
         /// <summary>
         /// Linear interpolation from one value (start) to another value (end) using a ratio between 0 and 1
         /// </summary>

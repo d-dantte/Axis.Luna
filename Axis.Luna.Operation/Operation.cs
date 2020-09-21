@@ -9,28 +9,11 @@ namespace Axis.Luna.Operation
     /// <typeparam name="R"></typeparam>
     public abstract class Operation<R> : IAwaitable<R>
     {
-        public abstract R Resolve();
-
         public abstract IAwaiter<R> GetAwaiter();
 
         public abstract bool? Succeeded { get; }
 
         public abstract OperationError Error { get; }
-
-        /// <summary>
-        /// Safely Resovle the operation and return it's result, returning a default value if the operation was faulted
-        /// </summary>
-        public R ResolveSafely()
-        {
-            try
-            {
-                return Resolve();
-            }
-            catch
-            {
-                return default(R);
-            }
-        }
     }
 
     /// <summary>
@@ -39,24 +22,11 @@ namespace Axis.Luna.Operation
     /// <typeparam name="R"></typeparam>
     public abstract class Operation : IAwaitable
     {
-        public abstract void Resolve();
-
         public abstract IAwaiter GetAwaiter();
 
         public abstract bool? Succeeded { get; }
 
         public abstract OperationError Error { get; }
-
-        public void ResolveSafely()
-        {
-            try
-            {
-                Resolve();
-            }
-            catch
-            {
-            }
-        }
 
 
         #region Static helpers
@@ -79,22 +49,44 @@ namespace Axis.Luna.Operation
         public static Operation Try(Task task) => new Async.AsyncOperation(task);
 
 
-        public static Operation<Result> Try<Result>(Func<Operation<Result>> op) => op.Invoke();
-        public static Operation Try(Func<Operation> op) => op.Invoke();
+        public static Operation<Result> Try<Result>(Func<Operation<Result>> op)
+        {
+            try
+            {
+                return op.Invoke();
+            }
+            catch(Exception e)
+            {
+                return Operation.Fail<Result>(e);
+            }
+        }
+        public static Operation Try(Func<Operation> op)
+        {
+            try
+            {
+                return op.Invoke();
+            }
+            catch (Exception e)
+            {
+                return Operation.Fail(e);
+            }
+        }
         #endregion
 
         #region Fail
-        public static Operation Fail(Exception exception = null) => new Sync.SyncOperation(
-            new OperationError(
-                code: "GeneralError",
-                message: exception?.Message,
-                exception: exception));
+        public static Operation Fail(Exception exception = null) 
+            => new Sync.SyncOperation(
+                new OperationError(
+                    code: "GeneralError",
+                    message: exception?.Message,
+                    exception: exception));
 
-        public static Operation<Result> Fail<Result>(Exception exception = null) => new Sync.SyncOperation<Result>(
-            new OperationError(
-                code: "GeneralError",
-                message: exception?.Message,
-                exception: exception));
+        public static Operation<Result> Fail<Result>(Exception exception = null) 
+            => new Sync.SyncOperation<Result>(
+                new OperationError(
+                    code: "GeneralError",
+                    message: exception?.Message,
+                    exception: exception));
 
         public static Operation Fail(string message) => Fail(new Exception(message));
 

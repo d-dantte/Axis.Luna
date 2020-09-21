@@ -194,8 +194,6 @@ namespace Axis.Luna.Extensions
         //convert the args to an enumerable
         public static IEnumerable<T> Enumerate<T>(this T value, params T[] args) => new T[] { value }.Concat(args);
 
-        public static IEnumerable<T> Enumerate<T>(params T[] values) => values ?? new T[0];
-
         public static int PositionOf<T>(this IEnumerable<T> enumerable, T item, IEqualityComparer<T> equalityComparer = null)
         {
             var eqc = equalityComparer ?? EqualityComparer<T>.Default;

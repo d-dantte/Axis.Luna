@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 
 namespace Axis.Luna.Operation.Async
 {
-    public class AsyncOperation<R> : Operation<R>
+    public class AsyncOperation<R> : Operation<R>, IResolvable<Task<R>>
     {
         private OperationError _error;
         private readonly Task<R> _task;
@@ -26,16 +26,12 @@ namespace Axis.Luna.Operation.Async
 
             try
             {
-                _task = Task.Run(() =>
-                {
-                    var task = taskProducer?.Invoke();
-                    if (task.Status == TaskStatus.Created)
-                        task.Start();
+                _task = taskProducer.Invoke();
 
-                    return task;
-                });
+                if (_task.Status == TaskStatus.Created)
+                    _task.Start();
 
-                _taskAwaiter = new AsyncAwaiter<R>(_task);
+                _taskAwaiter = new AsyncAwaiter<R>(_task, SetError);
             }
 
             #region Exceptions thrown from the producer
@@ -43,7 +39,7 @@ namespace Axis.Luna.Operation.Async
             {
                 _error = oe.Error;
                 _task = Task.FromException<R>(_error.GetException());
-                _taskAwaiter = new AsyncAwaiter<R>(_task);
+                _taskAwaiter = new AsyncAwaiter<R>(_task, SetError);
             }
             catch (Exception e)
             {
@@ -53,7 +49,7 @@ namespace Axis.Luna.Operation.Async
                     exception: e);
 
                 _task = Task.FromException<R>(e);
-                _taskAwaiter = new AsyncAwaiter<R>(_task);
+                _taskAwaiter = new AsyncAwaiter<R>(_task, SetError);
             }
             #endregion
         }
@@ -74,7 +70,7 @@ namespace Axis.Luna.Operation.Async
             if (_task.Status == TaskStatus.Created)
                 _task.Start();
 
-            _taskAwaiter = new AsyncAwaiter<R>(_task);
+            _taskAwaiter = new AsyncAwaiter<R>(_task, SetError);
         }
         
         public override bool? Succeeded
@@ -99,49 +95,42 @@ namespace Axis.Luna.Operation.Async
 
         internal Task<R> GetTask() => _task;
 
-        /// <summary>
-        /// Resolves this task synchroniously.
-        /// 
-        /// <para>
-        /// NOTE: if the encapsulated task was created with a synchronization context in effect,
-        /// Calling "Resolve" will result in a deadlock.
-        /// </para>
-        /// </summary>
-        /// <returns></returns>
-        public override R Resolve()
+        private void SetError(Exception e)
         {
-            if (_error != null)
-                ExceptionDispatchInfo.Capture(_error.GetException()).Throw();
-
-            try
+            switch (e)
             {
-                return _taskAwaiter.GetResult();
-            }
-            catch (OperationException oe)
-            {
-                _error = oe.Error;
-                ExceptionDispatchInfo.Capture(_error.GetException()).Throw();
+                case OperationException oe:
+                    _error = oe.Error;
+                    break;
 
-                //never reached
-                throw;
+                default:
+                    _error = new OperationError(
+                        message: e.Message,
+                        code: "GeneralError",
+                        exception: e);
+                    break;
             }
-            catch (Exception e)
-            {
-                _error = new OperationError(
-                    message: e.Message,
-                    code: "GeneralError",
-                    exception: e);
+        }
 
-                throw;
-            }
-        }        
+        #region Resolvable
+        public Task<R> ResolveSafely() => _task;
+
+        public Task<R> Resolve() => _task;
+
+        public bool TryResolve(out Task<R> result, out OperationError error)
+        {
+            error = null;
+            result = _task;
+            return true;
+        }
+        #endregion
 
         public static implicit operator AsyncOperation<R>(Func<Task<R>> func) => new AsyncOperation<R>(func);
 
         public static implicit operator AsyncOperation<R>(Task<R> task) => new AsyncOperation<R>(task);
     }
     
-    public class AsyncOperation : Operation
+    public class AsyncOperation : Operation, IResolvable<Task>
     {
         private OperationError _error;
         private readonly Task _task;
@@ -163,16 +152,12 @@ namespace Axis.Luna.Operation.Async
 
             try
             {
-                _task = Task.Run(() =>
-                {
-                    var task = taskProducer?.Invoke();
-                    if (task.Status == TaskStatus.Created)
-                        task.Start();
+                _task = taskProducer?.Invoke();
 
-                    return task;
-                });
+                if (_task.Status == TaskStatus.Created)
+                    _task.Start();
 
-                _taskAwaiter = new AsyncAwaiter(_task);
+                _taskAwaiter = new AsyncAwaiter(_task, SetError);
             }
 
             #region Exceptions thrown from the producer
@@ -180,7 +165,7 @@ namespace Axis.Luna.Operation.Async
             {
                 _error = oe.Error;
                 _task = Task.FromException(_error.GetException());
-                _taskAwaiter = new AsyncAwaiter(_task);
+                _taskAwaiter = new AsyncAwaiter(_task, SetError);
             }
             catch (Exception e)
             {
@@ -190,7 +175,7 @@ namespace Axis.Luna.Operation.Async
                     exception: e);
 
                 _task = Task.FromException(e);
-                _taskAwaiter = new AsyncAwaiter(_task);
+                _taskAwaiter = new AsyncAwaiter(_task, SetError);
             }
             #endregion
         }
@@ -211,7 +196,7 @@ namespace Axis.Luna.Operation.Async
             if (_task.Status == TaskStatus.Created)
                 _task.Start();
 
-            _taskAwaiter = new AsyncAwaiter(_task);
+            _taskAwaiter = new AsyncAwaiter(_task, SetError);
         }
 
 
@@ -237,42 +222,36 @@ namespace Axis.Luna.Operation.Async
 
         public Task GetTask() => _task;
 
-        /// <summary>
-        /// Resolves this task synchroniously.
-        /// 
-        /// <para>
-        /// NOTE: if the encapsulated task was created with a synchronization context in effect,
-        /// Calling "Resolve" will result in a deadlock.
-        /// </para>
-        /// </summary>
-        /// <returns></returns>
-        public override void Resolve()
+        private void SetError(Exception e)
         {
-            if (_error != null)
-                ExceptionDispatchInfo.Capture(_error.GetException()).Throw();
-
-            try
+            switch (e)
             {
-                _taskAwaiter.GetResult();
-            }
-            catch (OperationException oe)
-            {
-                _error = oe.Error;
-                ExceptionDispatchInfo.Capture(_error.GetException()).Throw();
+                case OperationException oe:
+                    _error = oe.Error;
+                    break;
 
-                //never reached
-                throw;
-            }
-            catch (Exception e)
-            {
-                _error = new OperationError(
-                    code: "GeneralError",
-                    message: e.Message,
-                    exception: e);
-
-                throw;
+                default:
+                    _error = new OperationError(
+                        message: e.Message,
+                        code: "GeneralError",
+                        exception: e);
+                    break;
             }
         }
+
+
+        #region Resolvable
+        public Task ResolveSafely() => _task;
+
+        public Task Resolve() => _task;
+
+        public bool TryResolve(out Task result, out OperationError error)
+        {
+            error = null;
+            result = _task;
+            return true;
+        }
+        #endregion
 
 
         public static implicit operator AsyncOperation(Func<Task> func) => new AsyncOperation(func);

@@ -181,26 +181,31 @@ namespace Axis.Luna.Extensions
             return source;
         }
 
-        public static int PropertyHash(this object @this, int prime1 = 19, int prime2 = 181)
+        public static int PropertyHash(this object @this)
         => ValueHash(@this.GetType().GetProperties().OrderBy(p => p.Name).Select(p => p.GetValue(@this)));
 
         public static int ValueHash(IEnumerable<object> propertyValues, int prime1 = 19, int prime2 = 181)
         => ValueHash(prime1, prime2, propertyValues.ToArray());
 
-        public static int ValueHash(int prime1, int prime2, params object[] propertyValues)
-        => propertyValues.Aggregate(prime1, (hash, next) => hash * prime2 + (next?.GetHashCode() ?? 0));
+        public static int ValueHash(int prime1, int prime2, params object[] values)
+        => values.Aggregate(prime1, (hash, next) => hash * prime2 + (next?.GetHashCode() ?? 0));
 
-        public static int ValueHash(params object[] values) => ValueHash(values.AsEnumerable());
+        public static int ValueHash(params object[] values) 
+        => ValueHash(19, 181, values);
 
 
         public static Out Pipe<In, Out>(this In @this, Func<In, Out> projection) => projection(@this);
 
-        public static Out PipeIf<In, Out>(this In @this, Func<In, bool> predicate, Func<In, Out> projection) => predicate(@this) ? projection(@this) : default(Out);
+        public static Out PipeIf<In, Out>(this 
+            In @this,
+            Func<In, bool> predicate,
+            Func<In, Out> projection)
+            => predicate(@this) ? projection(@this) : default;
 
         public static Out PipeIf<In, Out>(this In @this, Func<In, Func<In, Out>> projectionGenerator)
         {
             var projection = projectionGenerator(@this);
-            if (projection == null) return default(Out);
+            if (projection == null) return default;
             else return projection.Invoke(@this);
         }
 

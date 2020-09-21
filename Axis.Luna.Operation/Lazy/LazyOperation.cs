@@ -4,7 +4,7 @@ using System.Runtime.ExceptionServices;
 namespace Axis.Luna.Operation.Lazy
 {
     //[DebuggerStepThrough]
-    public class LazyOperation<R> : Operation<R>
+    public class LazyOperation<R> : Operation<R>, IResolvable<R>
     {
         private OperationError _error;
         private readonly LazyAwaiter<R> _awaiter;
@@ -13,12 +13,16 @@ namespace Axis.Luna.Operation.Lazy
         {
             if (func == null) throw new NullReferenceException("Invalid delegate supplied");
 
-            _awaiter = new LazyAwaiter<R>(new Lazy<R>(func, true));
+            _awaiter = new LazyAwaiter<R>(
+                new Lazy<R>(func, true),
+                SetError);
         }
 
         internal LazyOperation(Lazy<R> lazy)
         {
-            _awaiter = new LazyAwaiter<R>(lazy ?? throw new NullReferenceException("Invalid Lazy factory supplied"));
+            _awaiter = new LazyAwaiter<R>(
+                lazy ?? throw new NullReferenceException("Invalid Lazy factory supplied"),
+                SetError);
         }
 
         public override bool? Succeeded => _awaiter.IsSuccessful;
@@ -28,41 +32,60 @@ namespace Axis.Luna.Operation.Lazy
 
         public override OperationError Error => _error;
 
-        public override R Resolve()
+		#region Resolvable
+		public R Resolve() => _awaiter.GetResult();
+
+        public R ResolveSafely()
         {
-            if (_error != null)
-                ExceptionDispatchInfo.Capture(_error.GetException()).Throw();
-
-            try
-            {
+            if (Succeeded == true)
                 return _awaiter.GetResult();
-            }
-            catch (OperationException oe)
-            {
-                _error = oe.Error;
-                return ExceptionDispatchInfo
-                    .Capture(_error.GetException())
-                    .Throw<R>();
-            }
-            catch (Exception e)
-            {
-                _error = new OperationError(
-                    message: e.Message,
-                    code: "GeneralError",
-                    exception: e);
 
-                throw;
+            else if (Succeeded == null)
+            {
+                try
+                {
+                    return Resolve();
+                }
+                catch { }
+            }
+
+            return default;
+        }
+
+        public bool TryResolve(out R result, out OperationError error)
+        {
+            result = ResolveSafely();
+
+            error = _error;
+
+            return Succeeded.Value;
+        }
+		#endregion
+
+        private void SetError(Exception e)
+        {
+            switch(e)
+            {
+                case OperationException oe:
+                    _error = oe.Error;
+                    break;
+
+                default:
+                    _error = new OperationError(
+                        message: e.Message,
+                        code: "GeneralError",
+                        exception: e);
+                    break;
             }
         }
 
-
-        public static implicit operator LazyOperation<R>(Func<R> func) => new LazyOperation<R>(func);
+		public static implicit operator LazyOperation<R>(Func<R> func) => new LazyOperation<R>(func);
 
         public static implicit operator LazyOperation<R>(Lazy<R> lazy) => new LazyOperation<R>(lazy);
     }
 
 
-    public class LazyOperation : Operation
+    public class LazyOperation : Operation, IResolvable
     {
         private OperationError _error;
         private readonly LazyAwaiter _awaiter;
@@ -72,7 +95,8 @@ namespace Axis.Luna.Operation.Lazy
             if (action == null) throw new NullReferenceException("Invalid delegate supplied");
 
             _awaiter = new LazyAwaiter(
-                new Lazy<object>(
+                errorSetter: SetError,
+                lazy: new Lazy<object>(
                     isThreadSafe: true,
                     valueFactory: () =>
                     {
@@ -87,34 +111,57 @@ namespace Axis.Luna.Operation.Lazy
 
         public override IAwaiter GetAwaiter() => _awaiter;
 
-        public override void Resolve()
+        #region Resolvable
+        public void Resolve()
         {
-            if (_error != null)
-                ExceptionDispatchInfo.Capture(_error.GetException()).Throw();
+            if (Succeeded == true)
+                return;
 
-            try
+            else
             {
                 _awaiter.GetResult();
             }
-            catch (OperationException oe)
-            {
-                _error = oe.Error;
-                ExceptionDispatchInfo
-                    .Capture(_error.GetException())
-                    .Throw();
-            }
-            catch (Exception e)
-            {
-                _error = new OperationError(
-                    message: e.Message,
-                    code: "GeneralError",
-                    exception: e);
+        }
 
-                throw;
+        public void ResolveSafely()
+        {
+            if (Succeeded == null)
+            {
+                try
+                {
+                    Resolve();
+                }
+                catch { }
             }
         }
 
-        
+        public bool TryResolve(out OperationError error)
+        {
+            ResolveSafely();
+
+            error = _error;
+
+            return Succeeded.Value;
+        }
+        #endregion
+
+        private void SetError(Exception e)
+        {
+            switch (e)
+            {
+                case OperationException oe:
+                    _error = oe.Error;
+                    break;
+
+                default:
+                    _error = new OperationError(
+                        message: e.Message,
+                        code: "GeneralError",
+                        exception: e);
+                    break;
+            }
+        }
+
         public static implicit operator LazyOperation(Action action) => new LazyOperation(action);
     }
 }

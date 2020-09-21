@@ -8,12 +8,16 @@ using System.Threading.Tasks;
 namespace Axis.Luna.Operation
 {
     /// <summary>
+    /// <para>
     /// NOTE: With respect to the <c>Then*</c> methods, the <c>errorHandler</c> function/action gives the opportunity to handle the error.
-    /// If this invocation completes without any exceptions, the Operation is once again placed on the "successful" path. To propagate
+    /// If this <c>errorHandler</c> invocation completes without any exceptions, the Operation is once again placed on the "successful" path. To propagate
     /// A faulted/failed operation, this function has to throw an exception.
+    /// </para>
     /// 
+    /// <para>
     /// NOTE: For all of the methods, find a way to detect failed operations that doesn't rely on catching an exception as the exception catching
     /// mechanism is EXTREMELY SLOW
+    /// </para>
     /// </summary>
     public static class OperationExtensions
     {
@@ -39,7 +43,7 @@ namespace Axis.Luna.Operation
         public static Operation ReThrow(this
             Operation op,
             Func<Exception, Exception> map)
-            => op.Catch(err => map(err).Throw());
+            => op.Catch(err => map.Invoke(err).Throw());
 
         /// <summary> 
         /// For a faulted operation, throws the new exception instead of the actual exception of the operation
@@ -48,15 +52,10 @@ namespace Axis.Luna.Operation
         /// <param name="op"></param>
         /// <param name="newException"></param>
         /// <returns></returns>
-        public static Operation<Result> ReThrow<Result>(this 
-            Operation<Result> op, 
-            Exception newException) 
-            => op.Catch(err =>
-            {
-                var condition = true;
-                if (condition) throw newException;
-                else return op.Resolve();
-            });
+        public static Operation<Result> ReThrow<Result>(this
+            Operation<Result> op,
+            Exception newException)
+            => op.Catch(err => newException.Throw<Operation<Result>>());
 
         /// <summary>
         /// For a failed operation, throws the generated exception instead of the actual exception of the operation
@@ -68,55 +67,74 @@ namespace Axis.Luna.Operation
         public static Operation<Result> ReThrow<Result>(this 
             Operation<Result> op, 
             Func<Exception, Exception> map) 
-            => op.Catch(err =>
-            {
-                var condition = true;
-                if (condition) throw map(err);
-                else return op.Resolve();
-            });
+            => op.Catch(err => map.Invoke(err).Throw<Operation<Result>>());
         #endregion
 
         #region Wait
         /// <summary>
-        /// Returns a resolved operation whose "Successful" property will never be null
+        /// Returns a resolved operation whose "Successful" property will never be null.
+        /// This method has a tendency to deadlock if "prev" is an async operation that has not completed.
         /// </summary>
         /// <param name="prev"></param>
         /// <returns></returns>
         public static Operation Wait(this Operation prev)
         {
-            if (prev == null) 
+            if (prev == null)
                 return Operation.Fail(new NullReferenceException());
+
+            else if (prev.Succeeded != null)
+                return prev;
 
             else
             {
-                try
+                switch(prev)
                 {
-                    prev.Resolve();
+                    case IResolvable r:
+                        r.ResolveSafely();
+                        return prev;
+
+                    case IResolvable<Task> rtsk:
+                        rtsk.ResolveSafely()
+                            .Wait(); //<-- where deadlocks may occur
+                        return prev;
+
+                    default:
+                        throw new InvalidOperationException($"Invalid operation type: {prev.GetType()}");
                 }
-                catch { }
-                return prev;
             }
         }
 
         /// <summary>
-        /// Returns a resolved operation whose "Successful" property will never be null
+        /// Returns a resolved operation whose "Successful" property will never be null.
+        /// This method has a tendency to deadlock if "prev" is an async operation that has not completed.
         /// </summary>
         /// <typeparam name="Result"></typeparam>
         /// <param name="prev"></param>
         /// <returns></returns>
         public static Operation<Result> Wait<Result>(this Operation<Result> prev)
         {
-            if (prev == null) 
+            if (prev == null)
                 return Operation.Fail<Result>(new NullReferenceException());
+
+            else if (prev.Succeeded != null)
+                return prev;
 
             else
             {
-                try
+                switch (prev)
                 {
-                    prev.Resolve();
+                    case IResolvable r:
+                        r.ResolveSafely();
+                        return prev;
+
+                    case IResolvable<Task> rtsk:
+                        rtsk.ResolveSafely()
+                            .Wait(); //<-- where deadlocks may occur
+                        return prev;
+
+                    default:
+                        throw new InvalidOperationException($"Invalid operation type: {prev.GetType()}");
                 }
-                catch { }
-                return prev;
             }
         }
         #endregion
@@ -144,7 +162,7 @@ namespace Axis.Luna.Operation
                 list.Add(await _op);
             }
 
-            return list.Cast<In>();
+            return list.AsEnumerable();
         });
 
         public static Operation<Out> Fold<In, Out>(this 
@@ -162,7 +180,8 @@ namespace Axis.Luna.Operation
 
         public static Operation<Out> Fold<In, Out>(this 
             IEnumerable<Operation<In>> operations, 
-            Out seed, Func<Out, In, Task<Out>> reducer)
+            Out seed,
+            Func<Out, In, Task<Out>> reducer)
         => Operation.Try(async () =>
         {
             var accumulator = seed;
@@ -183,23 +202,24 @@ namespace Axis.Luna.Operation
         /// <param name="operation"></param>
         /// <param name="default"></param>
         /// <param name="reducer"></param>
-        /// <returns></returns>
-        public static R Reduce<V, R>(this Operation<V> operation, V @default, Func<V, R> reducer)
+        public static async Task<R> Reduce<V, R>(this
+            Operation<V> operation,
+            V @default,
+            Func<V, R> reducer)
         {
             if (operation == null)
                 throw new ArgumentNullException(nameof(operation));
 
-            else if(reducer == null)
+            else if (reducer == null)
                 throw new ArgumentNullException(nameof(reducer));
 
             else
-                return operation
+                return await operation
                     .Then(reducer)
-                    .Catch(ex => reducer.Invoke(@default))
-                    .Resolve();
+                    .Catch(ex => reducer.Invoke(@default));
         }
 
-        public static R Reduce<V, R>(this 
+        public static Task<R> Reduce<V, R>(this 
             Operation<V> operation, 
             Func<V, R> reducer) 
             => Reduce(operation, default, reducer);
@@ -208,207 +228,446 @@ namespace Axis.Luna.Operation
         #region Catch
         public static Operation Catch(this Operation op, Action<Exception> action)
         {
+            if (action == null)
+                throw new ArgumentNullException(nameof(action));
+
+
             if (op.Succeeded == true)
                 return op;
 
-            else if (!(op is Async.AsyncOperation))
+            else if(op is Async.AsyncOperation asyncop)
             {
-                return new Lazy.LazyOperation(() =>
+                var t = asyncop.GetTask().ContinueWith(_t =>
                 {
-                    try
+                    if (_t.Status == TaskStatus.RanToCompletion)
+                        return;
+
+                    else
                     {
-                        op.Resolve();
+                        action.Invoke(_t.Exception.InnerException);
                     }
-                    catch (Exception e)
-                    {
-                        action.Invoke(e);
-                    }
+
                 });
+
+                return new Async.AsyncOperation(t);
+            }
+            else if(op is Sync.SyncOperation syncop)
+            {
+                if (syncop.Succeeded == true)
+                    return syncop;
+
+                else
+                {
+                    return new Lazy.LazyOperation(() => action.Invoke(syncop.Error.GetException()));
+                }
+            }
+            else if(op is IResolvable r) //lazy
+            {
+                if (op.Succeeded == true)
+                    return op;
+
+                else if (op.Succeeded == false)
+                    return new Lazy.LazyOperation(() => action.Invoke(op.Error.GetException()));
+
+                else
+                {
+                    return new Lazy.LazyOperation(() =>
+                    {
+                        if(!r.TryResolve(out var error))
+                            action.Invoke(op.Error.GetException());
+                    });
+                }
             }
             else
             {
-                var t = (op as Async.AsyncOperation).GetTask().ContinueWith(async _t =>
-                {
-                    try
-                    {
-                        await _t;
-                    }
-                    catch (Exception e)
-                    {
-                        action.Invoke(e);
-                    }
-                });
-                return new Async.AsyncOperation(t.Unwrap());
+                throw new InvalidOperationException($"Invalid operation type: {op.GetType()}");
             }
         }
         public static Operation Catch(this Operation op, Func<Exception, Task> action)
         {
+            if (action == null)
+                throw new ArgumentNullException(nameof(action));
+
+
             if (op.Succeeded == true)
                 return op;
 
-            else if (!(op is Async.AsyncOperation))
+            else if (op is Async.AsyncOperation asyncop)
             {
-                try
+                var t = asyncop.GetTask().ContinueWith(async _t =>
                 {
-                    op.Resolve();
-                    return Operation.FromVoid();
+                    if (_t.Status == TaskStatus.RanToCompletion)
+                        return;
+
+                    else
+                    {
+                        await action.Invoke(_t.Exception.InnerException);
+                    }
+
+                });
+
+                return new Async.AsyncOperation(t.Unwrap());
+            }
+            else if (op is Sync.SyncOperation syncop)
+            {
+                if (syncop.Succeeded == true)
+                    return syncop;
+
+                else
+                {
+                    return new Async.AsyncOperation(() => action.Invoke(syncop.Error.GetException()));
                 }
-                catch (Exception e)
+            }
+            else if(op is IResolvable r) //lazy
+            {
+                if (op.Succeeded == true)
+                    return op;
+
+                else if (op.Succeeded == false)
+                    return new Async.AsyncOperation(() => action.Invoke(op.Error.GetException()));
+
+                else 
                 {
-                    return new Async.AsyncOperation(() => action.Invoke(e));
+                    return new Async.AsyncOperation(async () =>
+                    {
+                        if (!r.TryResolve(out var error))
+                            await action.Invoke(op.Error.GetException());
+                    });
                 }
             }
             else
             {
-                var t = (op as Async.AsyncOperation).GetTask().ContinueWith(async _t =>
-                {
-                    try
-                    {
-                        await _t;
-                    }
-                    catch (Exception e)
-                    {
-                        await action.Invoke(e);
-                    }
-                });
-                return new Async.AsyncOperation(t.Unwrap());
+                throw new InvalidOperationException($"Invalid operation type: {op.GetType()}");
             }
         }
         public static Operation Catch(this Operation op, Func<Exception, Operation> action)
         {
+            if (action == null)
+                throw new ArgumentNullException(nameof(action));
+
+
             if (op.Succeeded == true)
                 return op;
 
-            else if (op is Lazy.LazyOperation)
+            else if (op is Async.AsyncOperation asyncop)
             {
-                try
+                var t = asyncop.GetTask().ContinueWith(async _t =>
                 {
-                    return action.Invoke(op.Error.GetException());
+                    if (_t.Status == TaskStatus.RanToCompletion)
+                        return;
+
+                    else
+                    {
+                        switch (action.Invoke(_t.Exception.InnerException))
+                        {
+                            case Sync.SyncOperation syncaction:
+                                syncaction.Resolve();
+                                break;
+
+                            case Lazy.LazyOperation lazyaction:
+                                lazyaction.Resolve();
+                                break;
+
+                            case Async.AsyncOperation asyncaction:
+                                await asyncaction;
+                                break;
+
+                            case null:
+                            default:
+                                throw new InvalidOperationException("Invalid operation type");
+                        }
+                    }
+
+                });
+
+                return new Async.AsyncOperation(t.Unwrap());
+            }
+            else if (op is Sync.SyncOperation syncop)
+            {
+                if (syncop.Succeeded == true)
+                    return syncop;
+
+                else
+                {
+                    try
+                    {
+                        var newop = action.Invoke(syncop.Error.GetException());
+
+                        if (newop == null)
+                            return Operation.Fail(new Exception("null catch-action operation"));
+
+                        else
+                        {
+                            return newop;
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        return Operation.Fail(e);
+                    }
                 }
-                catch (Exception e)
+            }
+            else if (op is IResolvable r) //lazy
+            {
+                if (op.Succeeded == true)
+                    return op;
+
+                else
                 {
-                    return Operation.Fail(e);
+                    if (!r.TryResolve(out var error))
+                    {
+                        try
+                        {
+                            var newop = action.Invoke(error.GetException());
+
+                            if (newop == null)
+                                return Operation.Fail(new Exception("null catch-action operation"));
+
+                            else
+                            {
+                                return newop;
+                            }
+                        }
+                        catch (Exception e)
+                        {
+                            return Operation.Fail(e);
+                        }
+                    }
+                    else
+                    {
+                        return op;
+                    }
                 }
             }
             else
             {
-                var t = (op as Async.AsyncOperation).GetTask().ContinueWith(async _t =>
-                {
-                    try
-                    {
-                        await _t;
-                    }
-                    catch (Exception e)
-                    {
-                        await action.Invoke(e);
-                    }
-                });
-                return new Async.AsyncOperation(t.Unwrap());
+                throw new InvalidOperationException($"Invalid operation type: {op.GetType()}");
             }
         }
 
         public static Operation<R> Catch<R>(this Operation<R> op, Func<Exception, R> action)
         {
+            if (action == null)
+                throw new ArgumentNullException(nameof(action));
+
+
             if (op.Succeeded == true)
                 return op;
 
-            else if (!(op is Async.AsyncOperation<R>))
+            else if (op is Async.AsyncOperation<R> asyncop)
             {
-                return new Lazy.LazyOperation<R>(() =>
+                var t = asyncop.GetTask().ContinueWith(_t =>
                 {
-                    try
+                    if (_t.Status == TaskStatus.RanToCompletion)
+                        return _t.GetAwaiter().GetResult();
+
+                    else
                     {
-                        return op.Resolve();
+                        return action.Invoke(_t.Exception.InnerException);
                     }
-                    catch (Exception e)
-                    {
-                        return action.Invoke(e);
-                    }
+
                 });
+
+                return new Async.AsyncOperation<R>(t);
+            }
+            else if (op is Sync.SyncOperation<R> syncop)
+            {
+                if (syncop.Succeeded == true)
+                    return syncop;
+
+                else
+                {
+                    return new Lazy.LazyOperation<R>(() => action.Invoke(syncop.Error.GetException()));
+                }
+            }
+            else if (op is IResolvable<R> r) //lazy
+            {
+                if (op.Succeeded == true)
+                    return op;
+
+                else if (op.Succeeded == false)
+                    return new Lazy.LazyOperation<R>(() => action.Invoke(op.Error.GetException()));
+
+                else
+                {
+                    return new Lazy.LazyOperation<R>(() =>
+                    {
+                        if (r.TryResolve(out var result, out var error))
+                            return result;
+
+                        else
+                        {
+                            return action.Invoke(error.GetException());
+                        }
+                    });
+                }
             }
             else
             {
-                var t = (op as Async.AsyncOperation<R>).GetTask().ContinueWith(async _t =>
-                {
-                    try
-                    {
-                        return await _t;
-                    }
-                    catch (Exception e)
-                    {
-                        return action.Invoke(e);
-                    }
-                });
-                return new Async.AsyncOperation<R>(t.Unwrap());
+                throw new InvalidOperationException($"Invalid operation type: {op.GetType()}");
             }
         }
         public static Operation<R> Catch<R>(this Operation<R> op, Func<Exception, Task<R>> action)
         {
+            if (action == null)
+                throw new ArgumentNullException(nameof(action));
+
+
             if (op.Succeeded == true)
                 return op;
 
-            else if (!(op is Async.AsyncOperation<R>))
+            else if (op is Async.AsyncOperation<R> asyncop)
             {
-                return new Async.AsyncOperation<R>(async () =>
+                var t = asyncop.GetTask().ContinueWith(async _t =>
                 {
-                    try
+                    if (_t.Status == TaskStatus.RanToCompletion)
+                        return _t.GetAwaiter().GetResult();
+
+                    else
                     {
-                        return op.Resolve();
+                        return await action.Invoke(_t.Exception.InnerException);
                     }
-                    catch (Exception e)
-                    {
-                        return await action.Invoke(e);
-                    }
+
                 });
+
+                return new Async.AsyncOperation<R>(t.Unwrap());
+            }
+            else if (op is Sync.SyncOperation<R> syncop)
+            {
+                if (syncop.Succeeded == true)
+                    return syncop;
+
+                else
+                {
+                    return new Async.AsyncOperation<R>(() => action.Invoke(syncop.Error.GetException()));
+                }
+            }
+            else if (op is IResolvable<R> r) //lazy
+            {
+                if (op.Succeeded == true)
+                    return op;
+
+                else if (op.Succeeded == false)
+                    return new Async. AsyncOperation<R>(() => action.Invoke(op.Error.GetException()));
+
+                else
+                {
+                    return new Async.AsyncOperation<R>(async () =>
+                    {
+                        if (r.TryResolve(out var result, out var error))
+                            return result;
+
+                        else
+                        {
+                            return await action.Invoke(error.GetException());
+                        }
+                    });
+                }
             }
             else
             {
-                var t = (op as Async.AsyncOperation<R>).GetTask().ContinueWith(async _t =>
-                {
-                    try
-                    {
-                        return await _t;
-                    }
-                    catch (Exception e)
-                    {
-                        return await action.Invoke(e);
-                    }
-                });
-                return new Async.AsyncOperation<R>(t.Unwrap());
+                throw new InvalidOperationException($"Invalid operation type: {op.GetType()}");
             }
         }
         public static Operation<R> Catch<R>(this Operation<R> op, Func<Exception, Operation<R>> action)
         {
+            if (action == null)
+                throw new ArgumentNullException(nameof(action));
+
+
             if (op.Succeeded == true)
                 return op;
 
-            else if (!(op is Async.AsyncOperation<R>))
+            else if (op is Async.AsyncOperation<R> asyncop)
             {
-                try
+                var t = asyncop.GetTask().ContinueWith(async _t =>
                 {
-                    return action.Invoke(op.Error.GetException());
+                    if (_t.Status == TaskStatus.RanToCompletion)
+                        return _t.GetAwaiter().GetResult();
+
+                    else
+                    {
+                        switch (action.Invoke(_t.Exception.InnerException))
+                        {
+                            case Sync.SyncOperation<R> syncaction:
+                                return syncaction.Resolve();
+
+                            case Lazy.LazyOperation<R> lazyaction:
+                                return lazyaction.Resolve();
+
+                            case Async.AsyncOperation<R> asyncaction:
+                                return await asyncaction;
+
+                            case null:
+                            default:
+                                throw new InvalidOperationException("Invalid operation type");
+                        }
+                    }
+
+                });
+
+                return new Async.AsyncOperation<R>(t.Unwrap());
+            }
+            else if (op is Sync.SyncOperation<R> syncop)
+            {
+                if (syncop.Succeeded == true)
+                    return syncop;
+
+                else
+                {
+                    try
+                    {
+                        var newop = action.Invoke(syncop.Error.GetException());
+
+                        if (newop == null)
+                            return Operation.Fail<R>(new Exception("null catch-action operation"));
+
+                        else
+                        {
+                            return newop;
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        return Operation.Fail<R>(e);
+                    }
                 }
-                catch (Exception e)
+            }
+            else if (op is IResolvable<R> r) //lazy
+            {
+                if (op.Succeeded == true)
+                    return op;
+
+                else
                 {
-                    return Operation.Fail<R>(e);
+                    if (!r.TryResolve(out R result, out var error))
+                    {
+                        try
+                        {
+                            var newop = action.Invoke(error.GetException());
+
+                            if (newop == null)
+                                return Operation.Fail<R>(new Exception("null catch-action operation"));
+
+                            else
+                            {
+                                return newop;
+                            }
+                        }
+                        catch (Exception e)
+                        {
+                            return Operation.Fail<R>(e);
+                        }
+                    }
+                    else
+                    {
+                        return op;
+                    }
                 }
             }
             else
             {
-                var t = (op as Async.AsyncOperation<R>)
-                    .GetTask()
-                    .ContinueWith(async _t =>
-                    {
-                        try
-                        {
-                            return await _t;
-                        }
-                        catch (Exception e)
-                        {
-                            return await action.Invoke(e);
-                        }
-                    });
-                return new Async.AsyncOperation<R>(t.Unwrap());
+                throw new InvalidOperationException($"Invalid operation type: {op.GetType()}");
             }
         }
         #endregion
@@ -457,7 +716,7 @@ namespace Axis.Luna.Operation
                 {
                     try
                     {
-                        prev.Resolve();
+                        prev.As<IResolvable>().Resolve();
                     }
                     catch (Exception e)
                     {
@@ -524,7 +783,7 @@ namespace Axis.Luna.Operation
                 {
                     try
                     {
-                        prev.Resolve();
+                        prev.As<IResolvable>().Resolve();
                     }
                     catch (Exception e)
                     {
@@ -591,7 +850,7 @@ namespace Axis.Luna.Operation
                 {
                     try
                     {
-                        prev.Resolve();
+                        prev.As<IResolvable>().Resolve();
                     }
                     catch (Exception e)
                     {
@@ -612,7 +871,16 @@ namespace Axis.Luna.Operation
 
             //prev is either lazy or sync but is faulted 
             else if (errorHandler != null)
-                return new Async.AsyncOperation(async () => await errorHandler.Invoke(prev.Error.GetException()));
+            {
+                try
+                {
+                    return errorHandler.Invoke(prev.Error.GetException());
+                }
+                catch (Exception e)
+                {
+                    return Operation.Fail(e);
+                }
+            }
 
             //prev is lazy or sync, faulted, but no error handler was passed
             else
@@ -660,7 +928,7 @@ namespace Axis.Luna.Operation
                 {
                     try
                     {
-                        prev.Resolve();
+                        prev.As<IResolvable>().Resolve();
                     }
                     catch (Exception e)
                     {
@@ -727,7 +995,7 @@ namespace Axis.Luna.Operation
                 {
                     try
                     {
-                        prev.Resolve();
+                        prev.As<IResolvable>().Resolve();
                     }
                     catch (Exception e)
                     {
@@ -794,7 +1062,7 @@ namespace Axis.Luna.Operation
                 {
                     try
                     {
-                        prev.Resolve();
+                        prev.As<IResolvable>().Resolve();
                     }
                     catch (Exception e)
                     {
@@ -863,7 +1131,7 @@ namespace Axis.Luna.Operation
                 {
                     try
                     {
-                        prev.Resolve();
+                        prev.As<IResolvable>().Resolve();
                     }
                     catch (Exception e)
                     {
@@ -930,7 +1198,7 @@ namespace Axis.Luna.Operation
                 {
                     try
                     {
-                        prev.Resolve();
+                        prev.As<IResolvable>().Resolve();
                     }
                     catch (Exception e)
                     {
@@ -997,7 +1265,7 @@ namespace Axis.Luna.Operation
                 {
                     try
                     {
-                        prev.Resolve();
+                        prev.As<IResolvable>().Resolve();
                     }
                     catch (Exception e)
                     {
@@ -1039,8 +1307,8 @@ namespace Axis.Luna.Operation
             if (action == null)
                 throw new ArgumentNullException(nameof(action));
 
-            if (prev.Succeeded == true)
-                return new Lazy.LazyOperation(() => action.Invoke(prev.Resolve()));
+            if (prev.Succeeded == true && prev is IResolvable<TIn> resolvable)
+                return new Lazy.LazyOperation(() => action.Invoke(resolvable.Resolve()));
 
             //prev is an async op - handle it accordingly
             else if (prev is Async.AsyncOperation<TIn> asyncop)
@@ -1071,7 +1339,7 @@ namespace Axis.Luna.Operation
                     TIn @in = default;
                     try
                     {
-                        @in = prev.Resolve();
+                        @in = prev.As<IResolvable<TIn>>().Resolve();
                     }
                     catch (Exception e)
                     {
@@ -1107,8 +1375,8 @@ namespace Axis.Luna.Operation
             if (action == null)
                 throw new ArgumentNullException(nameof(action));
 
-            if (prev.Succeeded == true)
-                return new Lazy.LazyOperation(() => action.Invoke(prev.Resolve()));
+            if (prev.Succeeded == true && prev is IResolvable<TIn> resolvable)
+                return new Lazy.LazyOperation(() => action.Invoke(resolvable.Resolve()));
 
             //prev is an async op - handle it accordingly
             else if (prev is Async.AsyncOperation<TIn> asyncop)
@@ -1139,7 +1407,7 @@ namespace Axis.Luna.Operation
                     TIn @in = default;
                     try
                     {
-                        @in = prev.Resolve();
+                        @in = prev.As<IResolvable<TIn>>().Resolve();
                     }
                     catch (Exception e)
                     {
@@ -1175,8 +1443,8 @@ namespace Axis.Luna.Operation
             if (action == null)
                 throw new ArgumentNullException(nameof(action));
 
-            if (prev.Succeeded == true)
-                return new Lazy.LazyOperation(() => action.Invoke(prev.Resolve()));
+            if (prev.Succeeded == true && prev is IResolvable<TIn> resolvable)
+                return new Lazy.LazyOperation(() => action.Invoke(resolvable.Resolve()));
 
             //prev is an async op - handle it accordingly
             else if (prev is Async.AsyncOperation<TIn> asyncop)
@@ -1207,7 +1475,7 @@ namespace Axis.Luna.Operation
                     TIn @in = default;
                     try
                     {
-                        @in = prev.Resolve();
+                        @in = prev.As<IResolvable<TIn>>().Resolve();
                     }
                     catch (Exception e)
                     {
@@ -1245,8 +1513,8 @@ namespace Axis.Luna.Operation
             if (func == null)
                 throw new ArgumentNullException(nameof(func));
 
-            if (prev.Succeeded == true)
-                return new Async.AsyncOperation(() => func.Invoke(prev.Resolve()));
+            if (prev.Succeeded == true && prev is IResolvable<TIn> resolvable)
+                return new Async.AsyncOperation(() => func.Invoke(resolvable.Resolve()));
 
             //prev is an async op - handle it accordingly
             else if (prev is Async.AsyncOperation<TIn> asyncop)
@@ -1277,7 +1545,7 @@ namespace Axis.Luna.Operation
                     TIn result = default;
                     try
                     {
-                        result = prev.Resolve();
+                        result = prev.As<IResolvable<TIn>>().Resolve();
                     }
                     catch (Exception e)
                     {
@@ -1313,8 +1581,8 @@ namespace Axis.Luna.Operation
             if (func == null)
                 throw new ArgumentNullException(nameof(func));
 
-            if (prev.Succeeded == true)
-                return new Async.AsyncOperation(() => func.Invoke(prev.Resolve()));
+            if (prev.Succeeded == true && prev is IResolvable<TIn> resolvable)
+                return new Async.AsyncOperation(() => func.Invoke(resolvable.Resolve()));
 
             //prev is an async op - handle it accordingly
             else if (prev is Async.AsyncOperation<TIn> asyncop)
@@ -1345,7 +1613,7 @@ namespace Axis.Luna.Operation
                     TIn result = default;
                     try
                     {
-                        result = prev.Resolve();
+                        result = prev.As<IResolvable<TIn>>().Resolve();
                     }
                     catch (Exception e)
                     {
@@ -1381,8 +1649,8 @@ namespace Axis.Luna.Operation
             if (func == null)
                 throw new ArgumentNullException(nameof(func));
 
-            if (prev.Succeeded == true)
-                return new Async.AsyncOperation(() => func.Invoke(prev.Resolve()));
+            if (prev.Succeeded == true && prev is IResolvable<TIn> resolvable)
+                return new Async.AsyncOperation(() => func.Invoke(resolvable.Resolve()));
 
             //prev is an async op - handle it accordingly
             else if (prev is Async.AsyncOperation<TIn> asyncop)
@@ -1413,7 +1681,7 @@ namespace Axis.Luna.Operation
                     TIn result = default;
                     try
                     {
-                        result = prev.Resolve();
+                        result = prev.As<IResolvable<TIn>>().Resolve();
                     }
                     catch (Exception e)
                     {
@@ -1451,8 +1719,8 @@ namespace Axis.Luna.Operation
             if (func == null)
                 throw new ArgumentNullException(nameof(func));
 
-            if (prev.Succeeded == true)
-                return new Async.AsyncOperation(async () => await func.Invoke(prev.Resolve()));
+            if (prev.Succeeded == true && prev is IResolvable<TIn> resolvable)
+                return new Async.AsyncOperation(async () => await func.Invoke(resolvable.Resolve()));
 
             //prev is an async op - handle it accordingly
             else if (prev is Async.AsyncOperation<TIn> asyncop)
@@ -1483,7 +1751,7 @@ namespace Axis.Luna.Operation
                     TIn result = default;
                     try
                     {
-                        result = prev.Resolve();
+                        result = prev.As<IResolvable<TIn>>().Resolve();
                     }
                     catch (Exception e)
                     {
@@ -1519,8 +1787,8 @@ namespace Axis.Luna.Operation
             if (func == null)
                 throw new ArgumentNullException(nameof(func));
 
-            if (prev.Succeeded == true)
-                return new Async.AsyncOperation(async () => await func.Invoke(prev.Resolve()));
+            if (prev.Succeeded == true && prev is IResolvable<TIn> resolvable)
+                return new Async.AsyncOperation(async () => await func.Invoke(resolvable.Resolve()));
 
             //prev is an async op - handle it accordingly
             else if (prev is Async.AsyncOperation<TIn> asyncop)
@@ -1551,7 +1819,7 @@ namespace Axis.Luna.Operation
                     TIn result = default;
                     try
                     {
-                        result = prev.Resolve();
+                        result = prev.As<IResolvable<TIn>>().Resolve();
                     }
                     catch (Exception e)
                     {
@@ -1587,8 +1855,8 @@ namespace Axis.Luna.Operation
             if (func == null)
                 throw new ArgumentNullException(nameof(func));
 
-            if (prev.Succeeded == true)
-                return new Async.AsyncOperation(async () => await func.Invoke(prev.Resolve()));
+            if (prev.Succeeded == true && prev is IResolvable<TIn> resolvable)
+                return new Async.AsyncOperation(async () => await func.Invoke(resolvable.Resolve()));
 
             //prev is an async op - handle it accordingly
             else if (prev is Async.AsyncOperation<TIn> asyncop)
@@ -1619,7 +1887,7 @@ namespace Axis.Luna.Operation
                     TIn result = default;
                     try
                     {
-                        result = prev.Resolve();
+                        result = prev.As<IResolvable<TIn>>().Resolve();
                     }
                     catch (Exception e)
                     {
@@ -1692,7 +1960,7 @@ namespace Axis.Luna.Operation
                 {
                     try
                     {
-                        prev.Resolve();
+                        prev.As<IResolvable>().Resolve();
                     }
                     catch (Exception e)
                     {
@@ -1756,7 +2024,7 @@ namespace Axis.Luna.Operation
                 {
                     try
                     {
-                        prev.Resolve();
+                        prev.As<IResolvable>().Resolve();
                     }
                     catch (Exception e)
                     {
@@ -1821,7 +2089,7 @@ namespace Axis.Luna.Operation
                 {
                     try
                     {
-                        prev.Resolve();
+                        prev.As<IResolvable>().Resolve();
                     }
                     catch (Exception e)
                     {
@@ -2899,8 +3167,7 @@ namespace Axis.Luna.Operation
         #endregion
         #endregion
         #endregion
-
-
+        
         #region Misc
         internal static R Throw<R>(this ExceptionDispatchInfo info)
         {

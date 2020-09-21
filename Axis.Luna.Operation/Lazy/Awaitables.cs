@@ -6,10 +6,12 @@ namespace Axis.Luna.Operation.Lazy
     public struct LazyAwaiter : IAwaiter
     {
         private readonly CustomLazy<object> _lazy;
+        private readonly Action<Exception> _errorSetter;
 
-        public LazyAwaiter(CustomLazy<object> lazy)
+        public LazyAwaiter(CustomLazy<object> lazy, Action<Exception> errorSetter)
         {
             _lazy = lazy;
+            _errorSetter = errorSetter;
         }
 
         /// <summary>
@@ -33,7 +35,28 @@ namespace Axis.Luna.Operation.Lazy
 
         public void GetResult()
         {
-            _ = _lazy.Value;
+            switch(_lazy.State)
+            {
+                case CustomLazyState.Faulted:
+                case CustomLazyState.Initialized:
+                    _ = _lazy.Value;
+                    break;
+
+                case CustomLazyState.Uninitialized:
+                    try
+                    {
+                        _ = _lazy.Value;
+                    }
+                    catch(Exception e)
+                    {
+                        _errorSetter.Invoke(e);
+                        throw;
+                    }
+                    break;
+
+                default:
+                    throw new InvalidOperationException($"Invalid lazy state: {_lazy.State}");
+            }
         }
 
         public void OnCompleted(Action continuation)
@@ -47,10 +70,12 @@ namespace Axis.Luna.Operation.Lazy
     public struct LazyAwaiter<Result> : IAwaiter<Result>
     {
         private readonly CustomLazy<Result> _lazy;
+        private readonly Action<Exception> _errorSetter;
 
-        public LazyAwaiter(CustomLazy<Result> lazy)
+        public LazyAwaiter(CustomLazy<Result> lazy, Action<Exception> errorSetter)
         {
             _lazy = lazy;
+            _errorSetter = errorSetter;
         }
 
         public bool? IsSuccessful
@@ -72,7 +97,29 @@ namespace Axis.Luna.Operation.Lazy
         /// </summary>
         public bool IsCompleted => true;
 
-        public Result GetResult() => _lazy.Value;
+        public Result GetResult()
+        {
+            switch (_lazy.State)
+            {
+                case CustomLazyState.Faulted:
+                case CustomLazyState.Initialized:
+                    return _lazy.Value;
+
+                case CustomLazyState.Uninitialized:
+                    try
+                    {
+                        return _lazy.Value;
+                    }
+                    catch (Exception e)
+                    {
+                        _errorSetter.Invoke(e);
+                        throw;
+                    }
+
+                default:
+                    throw new InvalidOperationException($"Invalid lazy state: {_lazy.State}");
+            }
+        }
 
         public void OnCompleted(Action continuation)
         {
