@@ -54,6 +54,15 @@ namespace Axis.Luna.Extensions
             return array.Skip(Math.Abs(spliceIndex)).Concat(array.Take(Math.Abs(spliceIndex)));
         }
 
+        /// <summary>
+        /// Append a value to a position within the enumerable.
+        /// <para>Note that if the position is beyond the bounds of the enumerable, the value will never be added</para>
+        /// </summary>
+        /// <typeparam name="V"></typeparam>
+        /// <param name="enumerable"></param>
+        /// <param name="position"></param>
+        /// <param name="value"></param>
+        /// <returns></returns>
         public static IEnumerable<V> AppendAt<V>(this IEnumerable<V> enumerable, int position, V value)
         {
             position.ThrowIf(p => p < 0, "invalid position");
@@ -72,19 +81,6 @@ namespace Axis.Luna.Extensions
             {
                 action(v);
                 yield return v;
-            }
-        }
-
-        public static IEnumerable<Task<V>> WithEach<V>(this IEnumerable<V> enumerable, Func<V, Task> action)
-        {
-            foreach (var v in enumerable)
-            {
-                var task = action(v);
-                yield return task.ContinueWith(_t =>
-                {
-                    _t.GetAwaiter().GetResult(); //throw exception if faulted
-                    return v;
-                });
             }
         }
 
@@ -161,38 +157,90 @@ namespace Axis.Luna.Extensions
                 await repeatAction(cnt);
         }
 
-        public static IEnumerable<V> GenerateSequence<V>(this long repetitions, Func<long, V> generator)
-        {
-            for (long cnt = 0; cnt < repetitions; cnt++)
-                yield return generator.Invoke(cnt);
-        }
-
-        public static IEnumerable<Task<V>> GenerateSequenceAsync<V>(this long repetitions, Func<long, Task<V>> generator)
-        {
-            for (long cnt = 0; cnt < repetitions; cnt++)
-                yield return generator.Invoke(cnt);
-        }
-
         public static T GetOrAdd<T>(this ICollection<T> collection, Func<T, bool> predicate, Func<T> generator)
         {
-            var value = collection.FirstOrDefault(predicate);
-            if (EqualityComparer<T>.Default.Equals(value, default(T))) collection.Add(value = generator.Invoke());
-            return value;
+            if (predicate == null)
+                throw new ArgumentNullException(nameof(predicate));
+
+            if (generator == null)
+                throw new ArgumentNullException(nameof(generator));
+
+            foreach(var t in collection)
+            {
+                if (predicate.Invoke(t))
+                    return t;
+            }
+
+            var newValue = generator.Invoke();
+            collection.Add(newValue);
+
+            return newValue;
         }
 
         public static async Task<T> GetOrAddAsync<T>(this ICollection<T> collection, Func<T, bool> predicate, Func<Task<T>> generator)
         {
-            T value;
-            if (collection.Any(predicate)) return collection.First(predicate);
-            else
+            if (predicate == null)
+                throw new ArgumentNullException(nameof(predicate));
+
+            if (generator == null)
+                throw new ArgumentNullException(nameof(generator));
+
+            foreach (var t in collection)
             {
-                collection.Add(value = await generator.Invoke());
-                return value;
+                if (predicate.Invoke(t))
+                    return t;
+            }
+
+            var newValue = await generator.Invoke();
+            collection.Add(newValue);
+
+            return newValue;
+        }
+
+        #region Concat
+        public static IEnumerable<T> Concat<T>(this T value, T otherValue)
+        {
+            yield return value;
+            yield return otherValue;
+        }
+
+        public static IEnumerable<T> Concat<T>(this T value, IEnumerable<T> values)
+        {
+            yield return value;
+            foreach (var t in values)
+            {
+                yield return t;
             }
         }
 
-        //convert the args to an enumerable
-        public static IEnumerable<T> Enumerate<T>(this T value, params T[] args) => new T[] { value }.Concat(args);
+        public static IEnumerable<T> Concat<T>(this T value, params T[] values)
+        {
+            yield return value;
+            foreach (var t in values)
+            {
+                yield return t;
+            }
+        }
+
+        public static IEnumerable<T> Concat<T>(this IEnumerable<T> initialValues, T otherValue)
+        {
+            foreach (var t in initialValues)
+            {
+                yield return t;
+            }
+            yield return otherValue;
+        }
+
+        public static IEnumerable<T> Concat<T>(
+            this IEnumerable<T> initialValues,
+            params T[] otherValue)
+            => Enumerable.Concat(initialValues, otherValue);
+
+        public static IEnumerable<T> Concat<T>(
+            this IEnumerable<T> initialValues,
+            IEnumerable<T> otherValue)
+            => Enumerable.Concat(initialValues, otherValue);
+        #endregion
 
         public static int PositionOf<T>(this IEnumerable<T> enumerable, T item, IEqualityComparer<T> equalityComparer = null)
         {
@@ -231,13 +279,18 @@ namespace Axis.Luna.Extensions
 
         public static async Task<TValue> GetOrAddAsync<TKey, TValue>(this IDictionary<TKey, TValue> @this, TKey key, Func<TKey, Task<TValue>> valueFactory)
         {
-            return await AsyncLock(async () =>
-            {
-                if (!@this.TryGetValue(key, out TValue value))
-                    @this.Add(key, value = await valueFactory(key));
+            //return await AsyncLock(async () =>
+            //{
+            //    if (!@this.TryGetValue(key, out TValue value))
+            //        @this.Add(key, value = await valueFactory(key));
 
-                return value;
-            });
+            //    return value;
+            //});
+
+            if (!@this.TryGetValue(key, out TValue value))
+                @this.Add(key, value = await valueFactory(key));
+
+            return value;
         }
 
         public static void RemoveAll<V>(this ICollection<V> collection, params V[] values)
@@ -291,7 +344,8 @@ namespace Axis.Luna.Extensions
                     .SelectMany((value, index) =>
                     {
                         var primary = new[] { value };
-                        return Permutations(Splice(values, index))
+                        return EnumerableExtensions
+                            .Permutations(Splice(values, index))
                             .Select(perm =>
                             {
                                 return primary.Concat(perm).ToList() as IEnumerable<T>;
@@ -315,12 +369,14 @@ namespace Axis.Luna.Extensions
         /// <typeparam name="V"></typeparam>
         /// <param name="source"></param>
         /// <param name="rng"></param>
+        /// <param name="cycle">Number of times the shuffle algorithm should cycle through the sequence</param>
         /// <returns></returns>
-        public static IEnumerable<V> Shuffle<V>(this IEnumerable<V> source)
+        public static IEnumerable<V> Shuffle<V>(this IEnumerable<V> source, uint cycle = 1)
         {
-            using (var rng = new RNGCryptoServiceProvider())
+            using var rng = new RNGCryptoServiceProvider();
+            var buffer = source.ToArray();
+            while ((cycle--) > 0)
             {
-                var buffer = source.ToArray();
                 for (int i = 0; i < buffer.Length; i++)
                 {
                     int j = rng.RandomInt(i, buffer.Length);
@@ -328,16 +384,6 @@ namespace Axis.Luna.Extensions
 
                     buffer[j] = buffer[i];
                 }
-            }
-        }
-
-        public static IEnumerable<V> SelectWhen<V>(this IEnumerable<V> sequence, Func<V, bool> predicate, Func<V, V> projection)
-        {
-            foreach (var v in sequence)
-            {
-                yield return predicate?.Invoke(v) ?? false ?
-                             projection(v) :
-                             v;
             }
         }
 
@@ -376,9 +422,9 @@ namespace Axis.Luna.Extensions
 
             //else
             var sourceEnumerator = source.GetEnumerator();
-            bool hasRemainingItems = false;
             var cache = new Queue<T>(count + 1);
 
+            bool hasRemainingItems;
             do
             {
                 if (hasRemainingItems = sourceEnumerator.MoveNext())
@@ -426,13 +472,13 @@ namespace Axis.Luna.Extensions
                 while (enumerator.MoveNext())
                 {
                     //cache the items before loading the kvp
-                    var l = enumerator.enumerateSome(batchSize).ToList();
+                    var l = enumerator.EnumerateSome(batchSize).ToList();
                     yield return (indx++).ValuePair(l.As<IEnumerable<T>>());
                 }
             }
         }
 
-        private static IEnumerable<T> enumerateSome<T>(this IEnumerator<T> enumerator, int count)
+        private static IEnumerable<T> EnumerateSome<T>(this IEnumerator<T> enumerator, int count)
         {
             yield return enumerator.Current;
 

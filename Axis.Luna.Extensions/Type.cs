@@ -84,44 +84,111 @@ namespace Axis.Luna.Extensions
 
         #region Inheritance
 
-        public static bool HasGenericAncestor(this Type type, Type genericDefinitionAncestorType)
+        /// <summary>
+        /// NOTE: his will fail if <c>genericDefinitionBaseType</c> is the <c>GenericTypeDefinition</c> of <c>type</c>
+        /// </summary>
+        /// <param name="type"></param>
+        /// <param name="genericDefinitionBaseType"></param>
+        /// <returns></returns>
+        public static bool HasGenericBaseType(this Type type, Type genericDefinitionBaseType)
         {
-            if (!genericDefinitionAncestorType.IsGenericTypeDefinition) throw new System.Exception("ancestor is not a generic type definition");
+            if (!genericDefinitionBaseType.IsGenericTypeDefinition) throw new System.Exception("ancestor is not a generic type definition");
             return type
                 .BaseTypes()
                 .Where(_bt => _bt != type)
                 .Where(_bt => _bt.IsGenericType)
-                .Where(_bt => _bt.GetGenericTypeDefinition() == genericDefinitionAncestorType)
+                .Where(_bt => _bt.GetGenericTypeDefinition() == genericDefinitionBaseType)
                 .Any();
         }
 
-        public static bool ImplementsGenericInterface(this Type type, Type genericDefinitionInterfaceType)
-        => type.GetInterfaces().Any(_i => _i.IsGenericType && _i.GetGenericTypeDefinition() == genericDefinitionInterfaceType);
+        public static bool ImplementsGenericInterface(this
+            Type type,
+            Type genericDefinitionInterfaceType)
+            => type
+                .GetInterfaces()
+                .Any(_i => _i.IsGenericType && _i.GetGenericTypeDefinition() == genericDefinitionInterfaceType);
+
+
+        public static Type GetGenericBase(this Type type, Type genericDefinitionBaseType)
+        {
+            if (!genericDefinitionBaseType.IsGenericTypeDefinition) 
+                throw new System.Exception("ancestor is not a generic type definition");
+
+            return type
+                .BaseTypes()
+                .Where(_bt => _bt.GetGenericTypeDefinition() == genericDefinitionBaseType)
+                .FirstOrDefault();
+        }
 
         public static bool Implements(this Type type, Type firstInterface, params Type[] implementedInterfaces)
         {
             var interfaces = type.GetInterfaces();
-            return firstInterface.Enumerate()
+            return firstInterface.Concat()
                 .Union(implementedInterfaces)
                 .Where(@interface => @interface.IsInterface)
                 .All(interfaces.Contains);
         }
 
         /// <summary>
-        /// Ensures that a type inherits from all the listed types
+        /// Ensures that a type inherits from all the listed types. If any of the bases is a GenericTypeDefinition, the method checks that any of the
+        /// target type's generic bases has a generic definition that matches the given one. If the type itself is contained in the base list, it still passes
         /// </summary>
         /// <param name="type"></param>
         /// <param name="baseType"></param>
         /// <param name="otherBases"></param>
         /// <returns></returns>
-        public static bool Extends(this Type type, Type baseType, params Type[] otherBases)
-        => type
-            .ThrowIfNull(new ArgumentNullException(nameof(type)))
-            .ThrowIf(t => t.IsInterface, new ArgumentException($"argument '{nameof(type)}' cannot be an interface"))
-            .BaseTypes()
-            .ContainsAll(otherBases
-                .Concat(baseType.Enumerate())
-                .Where(t => !t.IsInterface));
+        public static bool Extends(this
+            Type type,
+            Type baseType,
+            params Type[] otherBases)
+            => type.Extends(baseType.Concat(otherBases).ToArray());
+
+        /// <summary>
+        /// 
+        /// Ensures that a type inherits from all the listed types. If any of the bases is a GenericTypeDefinition, the method checks that any of the
+        /// target type's generic bases has a generic definition that matches the given one.
+        /// </summary>
+        /// <param name="type"></param>
+        /// <param name="bases"></param>
+        /// <returns></returns>
+        public static bool Extends(this Type type, params Type[] bases)
+        {
+            if (type == null)
+                throw new ArgumentNullException(nameof(type));
+
+            if (bases == null || bases.Length == 0)
+                return false;
+
+            var regularBases = new HashSet<Type>();
+            var genericDefinitionBases = new HashSet<Type>();
+
+            bases.ForAll(@base =>
+            {
+                if (@base.IsGenericTypeDefinition)
+                    genericDefinitionBases.Add(@base);
+
+                else regularBases.Add(@base);
+            });
+
+            var tempBases = type
+                .ThrowIf(t => t.IsInterface, new ArgumentException($"argument '{nameof(type)}' cannot be an interface"))
+                .BaseTypes()
+                .SelectMany(type =>
+                {
+                    var types = new List<Type> { type };
+
+                    if (type.IsGenericType)
+                        types.Add(type.GetGenericTypeDefinition());
+
+                    return types;
+                });
+
+            var actualBases = new HashSet<Type>(bases);
+
+            //check bases are contained. Note that empty collections return true for the "All(...)" function.
+            return regularBases.All(@base => actualBases.Contains(@base))
+                && genericDefinitionBases.All(@base => actualBases.Contains(@base));
+        }
 
         public static IEnumerable<Type> TypeLineage(this Type type) => type.GetInterfaces().Concat(type.BaseTypes());
 
@@ -156,8 +223,7 @@ namespace Axis.Luna.Extensions
             if (!(expr is LambdaExpression lambda)) return null;
             else if (lambda.Body is UnaryExpression)
             {
-                var member = (lambda.Body as UnaryExpression).Operand as MemberExpression;
-                if (member == null) return null;
+                if (!((lambda.Body as UnaryExpression).Operand is MemberExpression member)) return null;
                 else return member.Member as MemberInfo;
             }
             else if (lambda.Body is MemberExpression)
@@ -262,6 +328,8 @@ namespace Axis.Luna.Extensions
 
             return producer.Invoke();
         }
+
+        public static bool IsDefault<T>(this T value) => EqualityComparer<T>.Default.Equals(value, default);
 
         public static bool IsPropertyAccessor(this MethodInfo method)
         => method.DeclaringType.GetProperties().Any(prop => prop.GetGetMethod() == method);

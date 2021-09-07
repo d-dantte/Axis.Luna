@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-
-namespace Axis.Luna.Common.Contracts
+﻿namespace Axis.Luna.Common.Contracts
 {
     public interface IDataItem
     {

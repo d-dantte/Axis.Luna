@@ -2,7 +2,6 @@
 {
 	public interface IResolvable
 	{
-		void ResolveSafely();
 
 		void Resolve();
 
@@ -11,8 +10,6 @@
 
 	public interface IResolvable<Result>
 	{
-		Result ResolveSafely();
-
 		Result Resolve();
 
 		bool TryResolve(out Result result, out OperationError error);

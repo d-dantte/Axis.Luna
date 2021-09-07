@@ -1,8 +1,6 @@
-﻿using static Axis.Luna.Extensions.ExceptionExtension;
-
+﻿
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
@@ -14,6 +12,55 @@ namespace Axis.Luna.Extensions
     //[DebuggerStepThrough]
     public static class Common
     {
+        public enum ObjectCopyMode
+        {
+            /// <summary>
+            /// Replace everything
+            /// </summary>
+            Replace,
+
+            /// <summary>
+            /// Ignores null values for objects
+            /// </summary>
+            IgnoreNulls,
+
+            /// <summary>
+            /// Ignores null values for objects, and defaults for value-types
+            /// </summary>
+            IgnoreNullsAndDefaults,
+
+            /// <summary>
+            /// copies only modified values
+            /// </summary>
+            CopyModified
+        };
+
+
+        public static bool NullOrEquals<T>(this T operand1, T operand2)
+        where T: class
+        {
+            if (operand1 == null && operand2 == null)
+                return true;
+
+            return operand1?.Equals(operand2) == true;
+        }
+
+        public static bool NullOrEquals<T>(this T operand1, T operand2, Func<T, T, bool> equalityChecker)
+        where T : class
+        {
+            if (equalityChecker == null)
+                throw new ArgumentNullException(nameof(equalityChecker));
+
+            if (operand1 == null && operand2 == null)
+                return true;
+
+            if (operand1 != null && operand2 != null && equalityChecker.Invoke(operand1, operand2))
+                return true;
+
+            return false;
+        }
+
+
         /// <summary>
         /// Convenience method for "using" disposables with lambda delegates
         /// </summary>
@@ -66,15 +113,9 @@ namespace Axis.Luna.Extensions
             }
         }
 
-        public static T GetRoot<T>(this T obj, Func<T, T> step, EqualityComparer<T> comparer = null)
-        {
-            var temp = obj;
-            var eqc = comparer ?? EqualityComparer<T>.Default;
-            while (!eqc.Equals((temp = step(temp)), default)) obj = temp;
-            return obj;
-        }
-
         public static KeyValuePair<K, V> ValuePair<K, V>(this K key, V value) => new KeyValuePair<K, V>(key, value);
+
+
         public static KeyValuePair<K, object> ObjectPair<K>(this K key, object obj) => new KeyValuePair<K, object>(key, obj);
 
         public static T As<T>(this object value)
@@ -97,13 +138,16 @@ namespace Axis.Luna.Extensions
         {
             try
             {
-                if (value is IConvertible && typeof(IConvertible).IsAssignableFrom(typeof(T)))
+                if (value is IConvertible 
+                    && typeof(IConvertible).IsAssignableFrom(typeof(T)))
                     return (T)Convert.ChangeType(value, typeof(T));
-                else return (T)(object)value;
+
+                else 
+                    return (T)(object)value;
             }
             catch
             {
-                return default(T);
+                return default;
             }
         }
 
@@ -113,48 +157,11 @@ namespace Axis.Luna.Extensions
         public static bool IsPrimitive(this object value) => value?.GetType().IsPrimitive == true;
         public static bool IsIntegral(this object value) => value?.GetType().IsIntegral() ?? false;
         public static bool IsDecimal(this object value) => value?.GetType().IsDecimal() ?? false;
-        public static bool hanIsNull(this object value) => value == null;
+        public static bool IsNull(this object value) => value == null;
         public static bool IsNotNull(this object value) => value != null;
-
-        public enum ObjectCopyMode
-        {
-            /// <summary>
-            /// Replace everything
-            /// </summary>
-            Replace,
-
-            /// <summary>
-            /// Ignores null values for objects
-            /// </summary>
-            IgnoreNulls,
-
-            /// <summary>
-            /// Ignores null values for objects, and defaults for value-types
-            /// </summary>
-            IgnoreNullsAndDefaults,
-
-            /// <summary>
-            /// copies only modified values
-            /// </summary>
-            CopyModified
-        };
-
-        public static Obj CopyFrom<Obj>(this Obj dest, Obj source, params string[] ignoredProperties)
-        => dest.CopyFrom(source, ObjectCopyMode.Replace, ignoredProperties);
 
         public static Obj CopyTo<Obj>(this Obj source, Obj dest, params string[] ignoredProperties)
         => source.CopyTo(dest, ObjectCopyMode.Replace, ignoredProperties);
-
-        /// <summary>
-        /// Copy from source object to destination object, and return the destination object
-        /// </summary>
-        /// <typeparam name="Obj"></typeparam>
-        /// <param name="dest"></param>
-        /// <param name="source"></param>
-        /// <param name="mode"></param>
-        /// <returns></returns>
-        public static Obj CopyFrom<Obj>(this Obj dest, Obj source, ObjectCopyMode mode, params string[] ignoredProperties)
-        => (source == null) ? dest : source.CopyTo(dest, mode, ignoredProperties).Pipe(x => dest);
 
         /// <summary>
         /// Copy from source object to destination object, and return the source object
@@ -167,7 +174,7 @@ namespace Axis.Luna.Extensions
         public static Obj CopyTo<Obj>(this Obj source, Obj dest, ObjectCopyMode mode, params string[] ignoredProperties)
         {
             var tobj = typeof(Obj);
-            ignoredProperties = ignoredProperties ?? new string[0];
+            ignoredProperties ??= new string[0];
 
             foreach (var prop in tobj.GetProperties().Where(_p => !ignoredProperties.Contains(_p.Name)))
             {
@@ -194,71 +201,18 @@ namespace Axis.Luna.Extensions
         => ValueHash(19, 181, values);
 
 
-        public static Out Pipe<In, Out>(this In @this, Func<In, Out> projection) => projection(@this);
-
-        public static Out PipeIf<In, Out>(this 
-            In @this,
-            Func<In, bool> predicate,
-            Func<In, Out> projection)
-            => predicate(@this) ? projection(@this) : default;
-
-        public static Out PipeIf<In, Out>(this In @this, Func<In, Func<In, Out>> projectionGenerator)
-        {
-            var projection = projectionGenerator(@this);
-            if (projection == null) return default;
-            else return projection.Invoke(@this);
-        }
-
-        /// <summary>
-        /// pipes the primary-parameter into the projection, except it (primary-parameter) is the default value of its type, 
-        /// in which case, returns the default value of the projection's return type.
-        /// </summary>
-        /// <typeparam name="Out"></typeparam>
-        /// <typeparam name="In"></typeparam>
-        /// <param name="this"></param>
-        /// <param name="projection"></param>
-        /// <returns></returns>
-        public static Out PipeOrDefault<Out, In>(this In @this, Func<In, Out> projection)
-        => EqualityComparer<In>.Default.Equals(default(In), @this) ? default(Out) : projection(@this);
-
-
-        public static void Pipe<In>(this In v, Action<In> action) => action(v);
-
-        public static void PipeIf<In>(this In v, Func<In, bool> predicate, Action<In> action)
-        {
-            if (predicate(v)) action(v);
-        }
-
-        public static void PipeIf<In>(this In @this, Func<In, Action<In>> actionGenerator)
-        => actionGenerator(@this)?.Invoke(@this);
-
-        /// <summary>
-        /// pipes the primary-parameter into the action, except it (primary-parameter) is the default value of its type, 
-        /// in which case, commence to returning @void
-        /// </summary>
-        /// <typeparam name="Out"></typeparam>
-        /// <typeparam name="In"></typeparam>
-        /// <param name="this"></param>
-        /// <param name="projection"></param>
-        /// <returns></returns>
-        public static void PipeOrDefault<In>(this In @this, Action<In> action)
-        {
-            if (EqualityComparer<In>.Default.Equals(default(In), @this)) action(@this);
-        }
-
-
         #region String extensions
         public static string Trim(this string @string, string trimChars) => @string.TrimStart(trimChars).TrimEnd(trimChars);
 
         public static string TrimStart(this string original, string searchString)
-        => original.StartsWith(searchString) ?
-           original.Substring(searchString.Length) :
-           original;
+        => original.StartsWith(searchString)
+           ? original.Substring(searchString.Length)
+           : original;
 
         public static string TrimEnd(this string original, string searchString)
-        => original.EndsWith(searchString) ?
-           original.Substring(0, original.Length - searchString.Length) :
-           original;
+        => original.EndsWith(searchString)
+           ? original.Substring(0, original.Length - searchString.Length)
+           : original;
 
         public static string JoinUsing(this IEnumerable<string> strings, string separator) => string.Join(separator, strings);
 
@@ -343,7 +297,7 @@ namespace Axis.Luna.Extensions
             if (value >= maxExclusive) return value % maxExclusive;
             else return value;
         }
-        public static long RandomSignedLong(this RandomNumberGenerator rng, long minInclusive = 0, long maxExclusive = long.MaxValue)
+        public static long RandomSignedLong(this RandomNumberGenerator rng)
         {
             var intByte = new byte[8];
             rng.GetBytes(intByte);
@@ -368,11 +322,9 @@ namespace Axis.Luna.Extensions
 
         public override bool Equals(object obj)
         {
-            var other = obj.As<CastVector>();
-
-            return other != null &&
-                   other.From == From &&
-                   other.To == To;
+            return obj is CastVector other
+                && other.From == From
+                && other.To == To;
         }
 
         public override int GetHashCode() => Common.ValueHash(From, To);

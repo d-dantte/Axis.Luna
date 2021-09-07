@@ -44,9 +44,9 @@ namespace Axis.Luna.Extensions
         }
 
         private static object CapturedValue(this MemberExpression memberAccess)
-        => (memberAccess.Expression is ConstantExpression) ?
-           memberAccess.Member.As<FieldInfo>().GetValue(memberAccess.Expression.As<ConstantExpression>().Value) :
-           memberAccess.Expression.As<MemberExpression>().CapturedValue();
+        => (memberAccess.Expression is ConstantExpression)
+           ? memberAccess.Member.As<FieldInfo>().GetValue(memberAccess.Expression.As<ConstantExpression>().Value)
+           : memberAccess.Expression.As<MemberExpression>().CapturedValue();
 
         public static T ThrowIf<T>(this T value, T compare, System.Exception ex)
         {

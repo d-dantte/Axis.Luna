@@ -5,10 +5,11 @@ using static System.Runtime.CompilerServices.ConfiguredTaskAwaitable;
 
 namespace Axis.Luna.Operation.Async
 {
+    /// <summary>
+    /// Awaiter for the <see cref="Async.AsyncOperation"/>
+    /// </summary>
     public struct AsyncAwaiter : IAwaiter, ICriticalNotifyCompletion
     {
-        private readonly Action<Exception> _errorSetter;
-
         public ConfiguredTaskAwaiter TaskAwaiter => TaskAwaitable.GetAwaiter();
 
         public ConfiguredTaskAwaitable TaskAwaitable { get; }
@@ -19,62 +20,37 @@ namespace Axis.Luna.Operation.Async
 
         public bool? IsSuccessful
         {
-            get
+            get => Task.Status switch
             {
-                switch(Task.Status)
-                {
-                    case TaskStatus.RanToCompletion:
-                        return true;
+                TaskStatus.RanToCompletion => true,
 
-                    case TaskStatus.Canceled:
-                    case TaskStatus.Faulted:
-                        return false;
+                TaskStatus.Canceled => false,
+                TaskStatus.Faulted => false,
 
-                    default:
-                        return null;
-                }
-            }
+                _ => null
+            };
         }
 
-        public AsyncAwaiter(Task task, Action<Exception> errorSetter)
+        public AsyncAwaiter(Task task)
         {
             Task = task;
             TaskAwaitable = task.ConfigureAwait(false);
-            _errorSetter = errorSetter;
         }
 
         public void GetResult() => TaskAwaiter.GetResult();
 
-        public void OnCompleted(Action continuation)
-        {
-            var _this = this;
-            TaskAwaiter.OnCompleted(() =>
-            {
-                if (_this.IsSuccessful == false)
-                    _this._errorSetter.Invoke(_this.Task.Exception.InnerException);
+        public void OnCompleted(Action continuation) => TaskAwaiter.OnCompleted(continuation);
 
-                continuation.Invoke();
-            });
-        }
+        public void UnsafeOnCompleted(Action continuation) => TaskAwaiter.UnsafeOnCompleted(continuation);
 
-        public void UnsafeOnCompleted(Action continuation)
-        {
-            var _this = this;
-            TaskAwaiter.OnCompleted(() =>
-            {
-                if (_this.IsSuccessful == false)
-                    _this._errorSetter.Invoke(_this.Task.Exception.InnerException);
-
-                continuation.Invoke();
-            });
-        }
     }
 
-
+    /// <summary>
+    /// Awaiter for the <see cref="Async.AsyncOperation{TResult}"/>
+    /// </summary>
+    /// <typeparam name="Result"></typeparam>
     public struct AsyncAwaiter<Result> : IAwaiter<Result>, ICriticalNotifyCompletion
     {
-        private readonly Action<Exception> _errorSetter; 
-
         public ConfiguredTaskAwaitable<Result>.ConfiguredTaskAwaiter TaskAwaiter => TaskAwaitable.GetAwaiter();
 
         public ConfiguredTaskAwaitable<Result> TaskAwaitable { get; }
@@ -85,55 +61,28 @@ namespace Axis.Luna.Operation.Async
 
         public bool? IsSuccessful
         {
-            get
+            get => Task.Status switch
             {
-                switch (Task.Status)
-                {
-                    case TaskStatus.RanToCompletion:
-                        return true;
+                TaskStatus.RanToCompletion => true,
 
-                    case TaskStatus.Canceled:
-                    case TaskStatus.Faulted:
-                        return false;
+                TaskStatus.Canceled => false,
+                TaskStatus.Faulted => false,
 
-                    default:
-                        return null;
-                }
-            }
+                _ => null
+            };
         }
 
 
-        public AsyncAwaiter(Task<Result> task, Action<Exception> errorSetter)
+        public AsyncAwaiter(Task<Result> task)
         {
             Task = task;
             TaskAwaitable = Task.ConfigureAwait(false);
-            _errorSetter = errorSetter;
         }
 
         public Result GetResult() => TaskAwaiter.GetResult();
 
-        public void OnCompleted(Action continuation)
-        {
-            var _this = this;
-            TaskAwaiter.OnCompleted(() =>
-            {
-                if (_this.IsSuccessful == false)
-                    _this._errorSetter.Invoke(_this.Task.Exception.InnerException);
+        public void OnCompleted(Action continuation) => TaskAwaiter.OnCompleted(continuation);
 
-                continuation.Invoke();
-            });
-        }
-
-        public void UnsafeOnCompleted(Action continuation)
-        {
-            var _this = this;
-            TaskAwaiter.OnCompleted(() =>
-            {
-                if (_this.IsSuccessful == false)
-                    _this._errorSetter.Invoke(_this.Task.Exception.InnerException);
-
-                continuation.Invoke();
-            });
-        }
+        public void UnsafeOnCompleted(Action continuation) => TaskAwaiter.OnCompleted(continuation);
     }
 }

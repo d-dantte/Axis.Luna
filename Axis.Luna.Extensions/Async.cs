@@ -26,7 +26,5 @@ namespace Axis.Luna.Extensions
                 semaphore.Release();
             }
         }
-
-        public static async Task<Result> AsyncLock<Result>(Func<Task<Result>> asyncTask) => await new SemaphoreSlim(1, 1).AsyncLock(asyncTask);
     }
 }

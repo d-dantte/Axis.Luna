@@ -33,9 +33,13 @@ namespace Axis.Luna.Extensions
         /// <param name="ratio"></param>
         /// <returns></returns>
         public static double Lerp(this double start, double end, double ratio)
-        => ratio.ThrowIf(r => r < 0d || r > 1d, $"ratio must be between 0.0 and 1.0")
-                .Pipe(r => new { ratio = r, inverseRatio = 1 - r })
-                .Pipe(rinfo => (start * rinfo.inverseRatio) + (end * rinfo.ratio));
+        {
+            ratio.ThrowIf(r => r < 0d || r > 1d, $"ratio must be between 0.0 and 1.0");
+
+            var rinfo = new { ratio, inverseRatio = 1 - ratio };
+
+            return (start * rinfo.inverseRatio) + (end * rinfo.ratio);
+        }
 
 
         private static readonly String[] OrdinalSuffixes = { "th", "st", "nd", "rd", "th", "th", "th", "th", "th", "th" };
@@ -59,6 +63,14 @@ namespace Axis.Luna.Extensions
         public static string AsOrdinal(this int n) => $"{n}{n.OrdinalSuffix()}";
 
         public static bool IsNumeric(this Type type) => _numerics.Any(_n => _n.IsAssignableFrom(type));
+
+        public static bool IsOdd(this long value) => value % 2 == 1;
+
+        public static bool IsEven(this long value) => !value.IsOdd();
+
+        public static bool IsOdd(this ulong value) => value % 2 == 1;
+
+        public static bool IsEven(this ulong value) => !value.IsOdd();
 
     }
 

@@ -1,20 +1,24 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
-using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using BenchmarkDotNet.Attributes;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Axis.Luna.Extensions.Test
 {
     [TestClass]
-    public class CommonExtensionsTests
+    public class CommonExtensionsUnitTests
     {
         [TestMethod]
         public void MiscTests()
         {
-            var value = 10;
-            var root = value.GetRoot(_v => _v - 1);
-
-            Assert.AreEqual(1, root);
         }
+    }
+
+    [TestClass]
+    public class CommonExtensionsPerfTests
+    {
+        //[Benchmark]
+        //public int ValueHash(object[] values)
+        //{
+
+        //}
     }
 }

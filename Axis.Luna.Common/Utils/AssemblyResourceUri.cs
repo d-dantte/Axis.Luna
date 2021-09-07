@@ -11,6 +11,9 @@ using Axis.Luna.Extensions;
 namespace Axis.Luna.Common.Utils
 {
 
+    /// <summary>
+    /// 
+    /// </summary>
     public class AssemblyResourceUri : Uri
     {
         static AssemblyResourceUri()
@@ -27,12 +30,19 @@ namespace Axis.Luna.Common.Utils
         /// <returns></returns>
         public static AssemblyResourceUri NewAbsoluteUri(string uri) => new AssemblyResourceUri(uri);
 
-        public static AssemblyResourceUri NewRelativeUri(string uri, string callerAssembly = null)
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="uri"></param>
+        /// <param name="targetAssembly"></param>
+        /// <returns></returns>
+        public static AssemblyResourceUri NewRelativeUri(string uri, string targetAssembly = null)
         {
-            var assemblyName = callerAssembly ?? new StackFrame(1).GetMethod().DeclaringType.Assembly.GetName().Name;
+            var assemblyName = targetAssembly ?? System.Reflection.Assembly.GetCallingAssembly().GetName().Name;
             uri = uri.Trim();
             var isCompactRelative = uri.StartsWith(";/");
-            if (!isCompactRelative && !uri.StartsWith("/")) throw new System.Exception("invalid uri");
+            if (!isCompactRelative && !uri.StartsWith("/")) 
+                throw new System.Exception("invalid uri");
 
             var asn = assemblyName.ValidateAssemblyName();
             var _uri = $"arx://{asn}{uri}";
@@ -49,14 +59,16 @@ namespace Axis.Luna.Common.Utils
         public bool IsCompact { get; private set; }
 
         public string Assembly => Authority;
+
         public string ManifestResourcePath => AbsolutePath.TrimStart("/").Replace("/", ".");
 
     }
 
     public class ARUParser : GenericUriParser
     {
-        public static readonly Regex AbsoluteFormat = new Regex(@"^(rx|arx)\:(//\w[\w\.]*\;?(?=/))?(((?<!/)(/[^/#]+)+)|((?<=\:)([^/#]+)?(/[^/#]+)+))(#[\w\.]+)?$",
-                                                                RegexOptions.IgnoreCase);
+        public static readonly Regex AbsoluteFormat = new Regex(
+            @"^(rx|arx)\:(//\w[\w\.]*\;?(?=/))?(((?<!/)(/[^/#]+)+)|((?<=\:)([^/#]+)?(/[^/#]+)+))(#[\w\.]+)?$",
+            RegexOptions.IgnoreCase);
         public static readonly Regex SchemeFormat = new Regex(@"^(rx|arx)\:", RegexOptions.IgnoreCase);
         public static readonly Regex HostFormat = new Regex(@"//\w[\w\.]*\;?(?=/)");
         public static readonly Regex SegmentFormat = new Regex(@"(?<!/)/[^/#]+");
@@ -99,85 +111,92 @@ namespace Axis.Luna.Common.Utils
             switch (components)
             {
                 case UriComponents.AbsoluteUri:
-                    {
-                        var scheme = SchemeFormat.Match(uris);
-                        var host = HostFormat.Match(uris);
-                        var path = PathFormat.Match(uris);
-                        var frag = FragmentFormat.Match(uris);
+                    var scheme = SchemeFormat.Match(uris);
+                    var host = HostFormat.Match(uris);
+                    var path = PathFormat.Match(uris);
+                    var frag = FragmentFormat.Match(uris);
 
-                        if (scheme.Success && path.Success)
-                        {
-                            return scheme.Value
-                                 + host.Value //the host is optional and will be empty if absent
-                                 + path.Value
-                                 + frag.Value; //frag is also optional and will be empty
-                        }
-                        else return "";
+                    if (scheme.Success && path.Success)
+                    {
+                        return scheme.Value
+                            + host.Value //the host is optional and will be empty if absent
+                            + path.Value
+                            + frag.Value; //frag is also optional and will be empty
                     }
+                    else return "";
+
                 case UriComponents.Path:
                 case UriComponents.PathAndQuery:
                 case UriComponents.Path | UriComponents.KeepDelimiter:
                 case UriComponents.Path | UriComponents.Query | UriComponents.KeepDelimiter:
+                    var hostString = GetComponents(uri, UriComponents.Host | UriComponents.KeepDelimiter, format);
+                    var isCompact = hostString.Contains(";");
+                    hostString = hostString.Replace("/", "").Replace(";", "");
+                    var pathMatch = PathFormat.Match(uris);
+                    if (pathMatch.Success)
                     {
-                        var host = GetComponents(uri, UriComponents.Host | UriComponents.KeepDelimiter, format);
-                        var isCompact = host.Contains(";");
-                        host = host.Replace("/", "").Replace(";", "");
-                        var path = PathFormat.Match(uris);
-                        if (path.Success)
-                        {
-                            var sb = new StringBuilder();
-                            if (isCompact)
-                                sb.Append(path.Value.StartsWith("/") ? "/" : "").Append(host).Append(path.Value.StartsWith("/") ? "" : "/");
-                            sb.Append(path.Value);
-                            return sb.ToString();
-                        }
-                        else return "";
+                        var sbuilder = new StringBuilder();
+                        if (isCompact)
+                            sbuilder
+                                .Append(pathMatch.Value.StartsWith("/") ? "/" : "")
+                                .Append(hostString)
+                                .Append(pathMatch.Value.StartsWith("/") ? "" : "/");
+
+                        sbuilder.Append(pathMatch.Value);
+                        return sbuilder.ToString();
                     }
+                    else return "";
+
                 case UriComponents.Host:
                 case UriComponents.HostAndPort:
                 case UriComponents.Host | UriComponents.Port:
                 case UriComponents.Host | UriComponents.KeepDelimiter:
+                    var hostMatch = HostFormat.Match(uris);
+                    if (hostMatch.Success)
                     {
-                        var host = HostFormat.Match(uris);
-                        if (host.Success)
-                        {
-                            if (components.HasFlag(UriComponents.KeepDelimiter)) return host.Value;
-                            else return host.Value.Replace("/", "").Replace(";", "");
-                        }
-                        else return "";
-                        //{
-                        //    var aruri = uri as AssemblyResourceUri;
-                        //    if (aruri != null && !string.IsNullOrWhiteSpace(aruri.DefaultAssembly)) return aruri.DefaultAssembly;
-                        //    else return Assembly.GetExecutingAssembly().GetName().Name;
-                        //}
+                        if (components.HasFlag(UriComponents.KeepDelimiter)) 
+                            return hostMatch.Value;
+
+                        else 
+                            return hostMatch.Value.Replace("/", "").Replace(";", "");
                     }
+                    else return "";
+                    //{
+                    //    var aruri = uri as AssemblyResourceUri;
+                    //    if (aruri != null && !string.IsNullOrWhiteSpace(aruri.DefaultAssembly)) return aruri.DefaultAssembly;
+                    //    else return Assembly.GetExecutingAssembly().GetName().Name;
+                    //}
+
                 case UriComponents.Fragment:
                 case UriComponents.Fragment | UriComponents.KeepDelimiter:
+                    var fragMatch = FragmentFormat.Match(uris);
+                    if (fragMatch.Success)
                     {
-                        var frag = FragmentFormat.Match(uris);
-                        if (frag.Success)
-                        {
-                            if (components.HasFlag(UriComponents.KeepDelimiter)) return frag.Value;
-                            else return frag.Value.Replace("#", "");
-                        }
-                        else return "";
+                        if (components.HasFlag(UriComponents.KeepDelimiter)) 
+                            return fragMatch.Value;
+
+                        else 
+                            return fragMatch.Value.Replace("#", "");
                     }
+                    else return "";
+
                 case UriComponents.NormalizedHost:
-                    {
-                        var host = GetComponents(uri, UriComponents.Host, format);
-                        return host.ToLower();
-                    }
+                    hostString = GetComponents(uri, UriComponents.Host, format);
+                    return hostString.ToLower();
+
                 case UriComponents.Scheme:
                 case UriComponents.Scheme | UriComponents.KeepDelimiter:
+                    var schemeMatch = SchemeFormat.Match(uris);
+                    if (schemeMatch.Success)
                     {
-                        var scheme = SchemeFormat.Match(uris);
-                        if (scheme.Success)
-                        {
-                            if (components.HasFlag(UriComponents.KeepDelimiter)) return scheme.Value;
-                            else return scheme.Value.Replace(":", "");
-                        }
-                        else return "";
+                        if (components.HasFlag(UriComponents.KeepDelimiter)) 
+                            return schemeMatch.Value;
+
+                        else 
+                            return schemeMatch.Value.Replace(":", "");
                     }
+                    else return "";
+
                 default: return "";
             }
         }
@@ -187,8 +206,10 @@ namespace Axis.Luna.Common.Utils
     {
         public static Stream ToResourceStream(this AssemblyResourceUri uri)
         {
-            var assembly = AppDomain.CurrentDomain.GetAssemblies()
-                                    .FirstOrDefault(ass => ass.GetName().Name == uri.Host);
+            var assembly = AppDomain.CurrentDomain
+                .GetAssemblies()
+                .FirstOrDefault(ass => ass.GetName().Name == uri.Host);
+
             if (assembly == null) //load the assembly
                 assembly = Assembly.Load(new AssemblyName { Name = uri.Host });
 

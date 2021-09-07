@@ -1,18 +1,29 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 
 namespace Axis.Luna.Operation.Lazy
 {
 
-    public struct LazyAwaiter : IAwaiter
+    public struct LazyAwaiter : IAwaiter, ICriticalNotifyCompletion
     {
+        private List<Action> _continuations;
         private readonly CustomLazy<object> _lazy;
-        private readonly Action<Exception> _errorSetter;
 
         public LazyAwaiter(CustomLazy<object> lazy, Action<Exception> errorSetter)
         {
+            _continuations = new List<Action>();
             _lazy = lazy;
-            _errorSetter = errorSetter;
+
+            OnCompleted(() =>
+            {
+                if (lazy.State == CustomLazyState.Faulted)
+                    errorSetter.Invoke(
+                        lazy.Exception
+                        ?? new Exception($"Lazy status is '{lazy.State}', yet no exception found that caused the fault."));
+            });
         }
+
 
         /// <summary>
         /// Always true so that awaiting on this awaiter will always run synchroniously
@@ -23,72 +34,107 @@ namespace Axis.Luna.Operation.Lazy
         {
             get
             {
-                switch(_lazy.State)
+                return _lazy.State switch
                 {
-                    case CustomLazyState.Faulted: return false;
-                    case CustomLazyState.Initialized: return true;
-                    case CustomLazyState.Uninitialized:
-                    default: return null;
-                }
+                    CustomLazyState.Faulted => false,
+                    CustomLazyState.Initialized => true,
+                    _ => null,
+                };
             }
         }
 
         public void GetResult()
         {
-            switch(_lazy.State)
+            try
             {
-                case CustomLazyState.Faulted:
-                case CustomLazyState.Initialized:
-                    _ = _lazy.Value;
-                    break;
-
-                case CustomLazyState.Uninitialized:
-                    try
-                    {
-                        _ = _lazy.Value;
-                    }
-                    catch(Exception e)
-                    {
-                        _errorSetter.Invoke(e);
-                        throw;
-                    }
-                    break;
-
-                default:
-                    throw new InvalidOperationException($"Invalid lazy state: {_lazy.State}");
+                _ = _lazy.Value;
+            }
+            finally
+            {
+                NotifyCompletion();
             }
         }
 
+        /// <summary>
+        /// Schedules the continuation to be run.
+        /// <para>
+        /// If the lazy construct has been evaluated, the continuation is executed immediately, else it is executed when the lazy is evaluated.
+        /// </para>
+        /// </summary>
+        /// <param name="continuation"></param>
         public void OnCompleted(Action continuation)
         {
-            GetResult();
-            continuation.Invoke();
+            lock(_continuations)
+            {
+                _continuations.Add(continuation);
+            }
+
+            NotifyCompletion();
+        }
+
+        public void UnsafeOnCompleted(Action continuation)
+        {
+            lock (_continuations)
+            {
+                _continuations.Add(continuation);
+            }
+
+            NotifyCompletion();
+        }
+
+        private void NotifyCompletion()
+        {
+            if(_lazy.State == CustomLazyState.Initialized || _lazy.State == CustomLazyState.Faulted)
+            {
+                lock(_continuations)
+                {
+                    foreach(var continuation in _continuations)
+                    {
+                        try
+                        {
+                            continuation.Invoke();
+                        }
+                        catch
+                        {
+                        }
+                    }
+
+                    _continuations.Clear();
+                }
+            }
         }
     }
 
 
-    public struct LazyAwaiter<Result> : IAwaiter<Result>
+    public struct LazyAwaiter<Result> : IAwaiter<Result>, ICriticalNotifyCompletion
     {
         private readonly CustomLazy<Result> _lazy;
-        private readonly Action<Exception> _errorSetter;
+        private List<Action> _continuations;
 
         public LazyAwaiter(CustomLazy<Result> lazy, Action<Exception> errorSetter)
         {
+            _continuations = new List<Action>();
             _lazy = lazy;
-            _errorSetter = errorSetter;
+
+            OnCompleted(() =>
+            {
+                if (lazy.State == CustomLazyState.Faulted)
+                    errorSetter.Invoke(
+                        lazy.Exception
+                        ?? new Exception($"Lazy status is '{lazy.State}', yet no exception found that caused the fault."));
+            });
         }
 
         public bool? IsSuccessful
         {
             get
             {
-                switch (_lazy.State)
+                return _lazy.State switch
                 {
-                    case CustomLazyState.Faulted: return false;
-                    case CustomLazyState.Initialized: return true;
-                    case CustomLazyState.Uninitialized:
-                    default: return null;
-                }
+                    CustomLazyState.Faulted => false,
+                    CustomLazyState.Initialized => true,
+                    _ => null,
+                };
             }
         }
 
@@ -99,33 +145,56 @@ namespace Axis.Luna.Operation.Lazy
 
         public Result GetResult()
         {
-            switch (_lazy.State)
+            try
             {
-                case CustomLazyState.Faulted:
-                case CustomLazyState.Initialized:
-                    return _lazy.Value;
-
-                case CustomLazyState.Uninitialized:
-                    try
-                    {
-                        return _lazy.Value;
-                    }
-                    catch (Exception e)
-                    {
-                        _errorSetter.Invoke(e);
-                        throw;
-                    }
-
-                default:
-                    throw new InvalidOperationException($"Invalid lazy state: {_lazy.State}");
+                return _lazy.Value;
+            }
+            finally
+            {
+                NotifyCompletion();
             }
         }
 
         public void OnCompleted(Action continuation)
         {
-            //resolve
-            _ = GetResult();
-            continuation.Invoke();
+            lock (_continuations)
+            {
+                _continuations.Add(continuation);
+            }
+
+            NotifyCompletion();
+        }
+
+        public void UnsafeOnCompleted(Action continuation)
+        {
+            lock (_continuations)
+            {
+                _continuations.Add(continuation);
+            }
+
+            NotifyCompletion();
+        }
+
+        private void NotifyCompletion()
+        {
+            if (_lazy.State == CustomLazyState.Initialized || _lazy.State == CustomLazyState.Faulted)
+            {
+                lock (_continuations)
+                {
+                    foreach (var continuation in _continuations)
+                    {
+                        try
+                        {
+                            continuation.Invoke();
+                        }
+                        catch
+                        {
+                        }
+                    }
+
+                    _continuations.Clear();
+                }
+            }
         }
     }
 }

@@ -1,15 +1,27 @@
 ﻿using Axis.Luna.Common.Contracts;
+using Axis.Luna.Common.Types;
 using Axis.Luna.Extensions;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Net;
 using System.Text;
 
 namespace Axis.Luna.Common
 {
+    /// <summary>
+    /// 
+    /// </summary>
     public static class Extensions
     {
+        private static readonly DateTimeFormatInfo DateTimeFormatInfo = new CultureInfo("en-GB").DateTimeFormat;
+
+        /// <summary>
+        /// NOTE: this method relies on a conversion method that in turn uses the "en-GB" data format to convert date-time. "dd/MM/yyyy"
+        /// </summary>
+        /// <param name="line"></param>
+        /// <returns></returns>
         public static IEnumerable<object> ParseLineAsCSV(this string line)
         {
             var valueString = new StringBuilder();
@@ -45,6 +57,12 @@ namespace Axis.Luna.Common
                 yield return ConvertValue(valueString.ToString());
         }
 
+        /// <summary>
+        /// NOTE: this method relies on a conversion method that in turn uses the "en-GB" data format to convert date-time. "dd/MM/yyyy"
+        /// </summary>
+        /// <typeparam name="V"></typeparam>
+        /// <param name="line"></param>
+        /// <returns></returns>
         public static IEnumerable<V> ParseLineAsCSV<V>(this string line)
         {
             var valueString = new StringBuilder();
@@ -80,6 +98,11 @@ namespace Axis.Luna.Common
                 yield return ConvertValue<V>(valueString.ToString());
         }
 
+        /// <summary>
+        /// NOTE: this method relies on a conversion method that in turn uses the "en-GB" data format to convert date-time. "dd/MM/yyyy"
+        /// </summary>
+        /// <param name="objects"></param>
+        /// <returns></returns>
         public static string ToCSV(this IEnumerable<object> objects)
         {
             return objects
@@ -95,7 +118,9 @@ namespace Axis.Luna.Common
                         return $"'{_obj}'";
                 })
                 .JoinUsing(",")
-                .Pipe(_line => $"[{_line}]");
+                .AsOptional()
+                .Map(_line => $"[{_line}]")
+                .Value;
         }
 
         public static Type ClrType(this CommonDataType type)
@@ -113,13 +138,14 @@ namespace Axis.Luna.Common
                 case CommonDataType.IPV4: return typeof(string);
                 case CommonDataType.IPV6: return typeof(IPAddress);
                 case CommonDataType.JsonObject: return typeof(string);
-                case CommonDataType.Location: return typeof(string);
+                case CommonDataType.Location: return typeof(GeoCoordinate);
                 case CommonDataType.Phone: return typeof(string);
                 case CommonDataType.Real: return typeof(double);
                 case CommonDataType.String: return typeof(string);
-                case CommonDataType.NVP: return typeof(string);
+                case CommonDataType.NVP: return typeof(KeyValuePair<string, string>);
                 case CommonDataType.TimeSpan: return typeof(TimeSpan);
                 case CommonDataType.UnknownType: return typeof(string);
+                case CommonDataType.UnsignedInteger: return typeof(ulong);
                 case CommonDataType.Url: return typeof(Uri);
                 default: throw new Exception($"unknown type {type}");
             }
@@ -141,13 +167,14 @@ namespace Axis.Luna.Common
                 case CommonDataType.IPV4:
                 case CommonDataType.IPV6: return IPAddress.Parse(dataItem.Data);
                 case CommonDataType.JsonObject: return dataItem.Data;
-                case CommonDataType.Location: return dataItem.Data;
+                case CommonDataType.Location: return GeoCoordinate.Parse(dataItem.Data);
                 case CommonDataType.Phone: return dataItem.Data;
                 case CommonDataType.Real: return double.Parse(dataItem.Data);
                 case CommonDataType.String: return dataItem.Data;
-                case CommonDataType.NVP: return dataItem.SerializeTag();
+                case CommonDataType.NVP: return dataItem.ParseNVPairs();
                 case CommonDataType.TimeSpan: return TimeSpan.Parse(dataItem.Data);
                 case CommonDataType.Url: return new Uri(dataItem.Data?.Trim() ?? throw new Exception("Invalid Uri"));
+                case CommonDataType.UnsignedInteger: return ulong.Parse(dataItem.Data);
                 case CommonDataType.UnknownType:
                 default: return dataItem.Data;
             }
@@ -205,7 +232,7 @@ namespace Axis.Luna.Common
             else if (decimal.TryParse(value, out var decimalValue)) return decimalValue;
             else if (double.TryParse(value, out var doubleValue)) return doubleValue;
             else if (Guid.TryParse(value, out var guidValue)) return guidValue;
-            else if (DateTimeOffset.TryParse(value, out var dateTimeOffsetValue)) return dateTimeOffsetValue;
+            else if (DateTimeOffset.TryParse(value, DateTimeFormatInfo, DateTimeStyles.None, out var dateTimeOffsetValue)) return dateTimeOffsetValue;
             else if (TimeSpan.TryParse(value, out var timespanValue)) return timespanValue;
             else if (bool.TryParse(value, out var boolValue)) return boolValue;
             else if (IPAddress.TryParse(value, out var ipaddressValue)) return ipaddressValue;
@@ -214,92 +241,32 @@ namespace Axis.Luna.Common
 
         private static V ConvertValue<V>(string value) => (V) ConvertValue(value);
 
-        #region Tags
-        private static string EncodeTagValue(string decoded)
+        private static IEnumerable<KeyValuePair<string, string>> ParseNVPairs(this IDataItem dataItem)
         {
-            return decoded
-                .Replace(";", "&scol")
-                .Replace(":", "&col");
-        }
+            if (dataItem == null)
+                throw new ArgumentNullException("data cannot be null");
 
-        private static string DecodeTagValue(string encoded)
-        {
-            return encoded
-                .Replace("&scol", ";")
-                .Replace("&col", ":");
-        }
-
-        public static IEnumerable<Tag> ParseTags<Tag>(this string serializedTags)
-        where Tag: IDataItem, new()
-        {
-            var tagType = typeof(Tag);
-
-            var tagProperties = tagType
-                .GetProperties()
-                .Select(_prop => _prop.Name.ValuePair(_prop))
-                .ToDictionary();
-
-            return serializedTags?
+            return dataItem.Data
                 .Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries)
-                .Select(ParseTag<Tag>);
-        }
-        public static bool TryParseTags<Tag>(this string serializedTags, out IEnumerable<Tag> tags)
-        where Tag: IDataItem, new()
-        {
-            try
-            {
-                tags = ParseTags<Tag>(serializedTags);
-                return true;
-            }
-            catch
-            {
-                tags = null;
-                return false;
-            }
+                .Select(v => v.Trim())
+                .Select(ParseNVPair);
         }
 
-        public static Tag ParseTag<Tag>(this string serializedTag)
-        where Tag: IDataItem, new()
+        private static KeyValuePair<string, string> ParseNVPair(this string pair)
         {
-            var tuples = serializedTag
-                .Split(new[] { '|' }, StringSplitOptions.RemoveEmptyEntries)
-                .Select(DecodeTagValue)
-                .ToArray();
+            if (pair == null)
+                throw new ArgumentNullException("pair cannot be null");
 
-            var tag = new Tag();
-            tag.Initialize(tuples);
+            var values = pair.Split(':');
 
-            return tag;
-        }
-        public static bool TryParseTag<Tag>(this string serializedTag, out IDataItem tag)
-        where Tag: IDataItem, new()
-        {
-            try
-            {
-                tag = ParseTag<Tag>(serializedTag);
-                return true;
-            }
-            catch
-            {
-                tag = null;
-                return false;
-            }
-        }
+            if (values.Length == 0 
+                || values.Length > 2
+                || values.Contains(string.Empty))
+                throw new FormatException("Input string is in the wrong format");
 
-        public static string SerializeTag(this IDataItem dataItem)
-        {
-            return dataItem
-                .Tupulize()
-                .Select(EncodeTagValue)
-                .JoinUsing("|");
+            return new KeyValuePair<string, string>(
+                values[0],
+                values.Length == 2 ? values[1] : null);
         }
-
-        public static string SerializeTags(this IEnumerable<IDataItem> dataItems)
-        {
-            return dataItems
-                .Select(SerializeTag)
-                .JoinUsing("");
-        }
-        #endregion
     }
 }

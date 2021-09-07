@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Axis.Luna.Common.Types.Base;
+using System;
 
 namespace Axis.Luna.Operation
 {
@@ -21,10 +22,10 @@ namespace Axis.Luna.Operation
 
         public string Message { get; }
         public string Code { get; }
-        public object Data { get; }
+        public StructData Data { get; }
 
 
-        public Exception GetException() => _exception ?? (_exception = new Exception(Message ?? "Unknown Error"));
+        public Exception GetException() => _exception;
 
 
         public OperationError(Exception ex)
@@ -32,12 +33,12 @@ namespace Axis.Luna.Operation
         {
         }
 
-        public OperationError(string message, string code = null, object data = null, Exception exception = null)
+        public OperationError(string message, string code = null, StructData data = null, Exception exception = null)
         {
             Message = message;
             Code = code;
             Data = data;
-            _exception = exception;
+            _exception = exception ?? new Exception(Message ?? "Unknown Error");
         }
 
         public OperationError()
@@ -45,5 +46,8 @@ namespace Axis.Luna.Operation
         { }
 
         public void Throw() => throw new OperationException(this);
+
+
+        public static implicit operator OperationError(Exception exception) => new OperationError(exception);
     }
 }

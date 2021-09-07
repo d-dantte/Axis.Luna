@@ -1,21 +1,11 @@
 ﻿using System;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
+
+[assembly: InternalsVisibleTo("Axis.Luna.Operation.Test")]
 
 namespace Axis.Luna.Operation
 {
-    /// <summary>
-    /// A construct that enables railway - style coding using delegates. It is also awaitable
-    /// </summary>
-    /// <typeparam name="R"></typeparam>
-    public abstract class Operation<R> : IAwaitable<R>
-    {
-        public abstract IAwaiter<R> GetAwaiter();
-
-        public abstract bool? Succeeded { get; }
-
-        public abstract OperationError Error { get; }
-    }
-
     /// <summary>
     /// A construct that enables railway - style coding using delegates. It is also awaitable
     /// </summary>
@@ -29,11 +19,44 @@ namespace Axis.Luna.Operation
         public abstract OperationError Error { get; }
 
 
+        #region Mappers
+
+        #region Success mappers
+        public abstract Operation Then(Action action);
+        public abstract Operation Then(Func<Task> action);
+        public abstract Operation Then(Func<Operation> action);
+        public abstract Operation<TOut> Then<TOut>(Func<TOut> action);
+        public abstract Operation<TOut> Then<TOut>(Func<Task<TOut>> action);
+        public abstract Operation<TOut> Then<TOut>(Func<Operation<TOut>> action);
+        #endregion
+
+        #region Failure mappers
+        public abstract Operation MapError(Action<OperationError> failureHandler);
+        public abstract Operation MapError(Func<OperationError, Task> failureHandler);
+        public abstract Operation MapError(Func<OperationError, Operation> failureHandler);
+        public abstract Operation<TOut> MapError<TOut>(Func<OperationError, TOut> failureHandler);
+        public abstract Operation<TOut> MapError<TOut>(Func<OperationError, Task<TOut>> failureHandler);
+        public abstract Operation<TOut> MapError<TOut>(Func<OperationError, Operation<TOut>> failureHandler);
+        #endregion
+
+        #endregion
+
+
         #region Static helpers
 
         #region Value
-        public static Operation<Result> FromResult<Result>(Result result) => new Sync.SyncOperation<Result>(result);
+        /// <summary>
+        /// Returns an already resolved operation with a value ready for returning
+        /// </summary>
+        /// <typeparam name="Result">type of the result</typeparam>
+        /// <param name="result">result value</param>
+        /// <returns>Operation of result</returns>
+        public static Operation<Result> FromResult<Result>(Result result) => new Value.ValueOperation<Result>(result);
 
+        /// <summary>
+        /// Creates a no-op operation that may or may not have been resolved, but will be successful when resolved.
+        /// </summary>
+        /// <returns>A no-op operation</returns>
         public static Operation FromVoid() => new Lazy.LazyOperation(() => { }); //<-- is there a better way to do this?
         #endregion
 
@@ -75,22 +98,65 @@ namespace Axis.Luna.Operation
 
         #region Fail
         public static Operation Fail(Exception exception = null) 
-            => new Sync.SyncOperation(
+            => new Value.ValueOperation(
                 new OperationError(
                     code: "GeneralError",
                     message: exception?.Message,
                     exception: exception));
 
         public static Operation<Result> Fail<Result>(Exception exception = null) 
-            => new Sync.SyncOperation<Result>(
+            => new Value.ValueOperation<Result>(
                 new OperationError(
                     code: "GeneralError",
                     message: exception?.Message,
                     exception: exception));
 
+
         public static Operation Fail(string message) => Fail(new Exception(message));
 
         public static Operation<Result> Fail<Result>(string message) => Fail<Result>(new Exception(message));
+
+
+        public static Operation Fail(OperationError error) 
+            => new Value.ValueOperation(error ?? throw new ArgumentNullException(nameof(error)));
+
+        public static Operation<Result> Fail<Result>(OperationError error)
+            => new Value.ValueOperation<Result>(error ?? throw new ArgumentNullException(nameof(error)));
+        #endregion
+
+        #endregion
+    }
+
+    /// <summary>
+    /// A construct that enables railway - style coding using delegates. It is also awaitable
+    /// </summary>
+    /// <typeparam name="TResult"></typeparam>
+    public abstract class Operation<TResult> : IAwaitable<TResult>
+    {
+        public abstract IAwaiter<TResult> GetAwaiter();
+
+        public abstract bool? Succeeded { get; }
+
+        public abstract OperationError Error { get; }
+
+        #region Mappers
+
+        #region Success mappers
+        public abstract Operation Then(Action<TResult> action);
+        public abstract Operation Then(Func<TResult, Task> action);
+        public abstract Operation Then(Func<TResult, Operation> action);
+        public abstract Operation<TOut> Then<TOut>(Func<TResult, TOut> action);
+        public abstract Operation<TOut> Then<TOut>(Func<TResult, Task<TOut>> action);
+        public abstract Operation<TOut> Then<TOut>(Func<TResult, Operation<TOut>> action);
+        #endregion
+
+        #region Failure mappers
+        public abstract Operation MapError(Action<OperationError> failureHandler);
+        public abstract Operation MapError(Func<OperationError, Task> failureHandler);
+        public abstract Operation MapError(Func<OperationError, Operation> failureHandler);
+        public abstract Operation<TOut> MapError<TOut>(Func<OperationError, TOut> failureHandler);
+        public abstract Operation<TOut> MapError<TOut>(Func<OperationError, Task<TOut>> failureHandler);
+        public abstract Operation<TOut> MapError<TOut>(Func<OperationError, Operation<TOut>> failureHandler);
         #endregion
 
         #endregion

@@ -4,8 +4,19 @@ namespace Axis.Luna.Operation.Lazy
 {
 	public enum CustomLazyState
 	{
+		/// <summary>
+		/// Lazy value has not been initialized
+		/// </summary>
 		Uninitialized,
+
+		/// <summary>
+		/// Lazy value has been initialized
+		/// </summary>
 		Initialized,
+
+		/// <summary>
+		/// Lazy value faulted during initialization
+		/// </summary>
 		Faulted
 	}
 
@@ -14,12 +25,19 @@ namespace Axis.Luna.Operation.Lazy
 	{
 		private readonly Lazy<TValue> _lazy;
 
+		public Exception Exception { get; private set; }
+
 		public CustomLazyState State { get; private set; }
 
 		public CustomLazy(Lazy<TValue> lazy)
 		{
 			_lazy = lazy ?? throw new ArgumentNullException(nameof(lazy));
 		}
+
+		public CustomLazy(Func<TValue> function)
+        {
+			_lazy = new Lazy<TValue>(function);
+        }
 
 		public TValue Value
 		{
@@ -33,9 +51,10 @@ namespace Axis.Luna.Operation.Lazy
 						State = CustomLazyState.Initialized;
 						return value;
 					}
-					catch
+					catch(Exception e)
 					{
 						State = CustomLazyState.Faulted;
+						Exception = e;
 						throw;
 					}
 				}

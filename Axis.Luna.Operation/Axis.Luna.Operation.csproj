@@ -1,11 +1,11 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>netstandard2.0;net461;netcoreapp2.1</TargetFrameworks>
+    <TargetFrameworks>netstandard2.1;net5.0;netcoreapp3.0</TargetFrameworks>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <AssemblyVersion>5.0.0.0</AssemblyVersion>
     <FileVersion>5.0.0.0</FileVersion>
-    <Version>5.1.0</Version>
+    <Version>5.1.1</Version>
     <Description>Operation libarary that enables railway oriented programming for c# similar to javascript's promises.</Description>
     <PackageTags>ROP railway oriented programming operation result asyncop lazop syncop</PackageTags>
     <Company>Axiis</Company>
@@ -18,6 +18,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Axis.Luna.Common\Axis.Luna.Common.csproj" />
     <ProjectReference Include="..\Axis.Luna.Extensions\Axis.Luna.Extensions.csproj" />
   </ItemGroup>
 
