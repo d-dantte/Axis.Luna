@@ -1,4 +1,4 @@
-﻿using Axis.Luna.Common.Types.Base;
+﻿using Axis.Luna.Common.Types.Basic;
 using System;
 
 namespace Axis.Luna.Operation
@@ -22,7 +22,7 @@ namespace Axis.Luna.Operation
 
         public string Message { get; }
         public string Code { get; }
-        public StructData Data { get; }
+        public BasicStruct? Data { get; }
 
 
         public Exception GetException() => _exception;
@@ -33,7 +33,7 @@ namespace Axis.Luna.Operation
         {
         }
 
-        public OperationError(string message, string code = null, StructData data = null, Exception exception = null)
+        public OperationError(string message, string code = null, BasicStruct? data = null, Exception exception = null)
         {
             Message = message;
             Code = code;

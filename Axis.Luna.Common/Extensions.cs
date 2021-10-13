@@ -1,5 +1,4 @@
-﻿using Axis.Luna.Common.Contracts;
-using Axis.Luna.Common.Types;
+﻿using Axis.Luna.Common.Types;
 using Axis.Luna.Extensions;
 using System;
 using System.Collections.Generic;
@@ -10,9 +9,7 @@ using System.Text;
 
 namespace Axis.Luna.Common
 {
-    /// <summary>
-    /// 
-    /// </summary>
+    [Obsolete]
     public static class Extensions
     {
         private static readonly DateTimeFormatInfo DateTimeFormatInfo = new CultureInfo("en-GB").DateTimeFormat;
@@ -118,9 +115,7 @@ namespace Axis.Luna.Common
                         return $"'{_obj}'";
                 })
                 .JoinUsing(",")
-                .AsOptional()
-                .Map(_line => $"[{_line}]")
-                .Value;
+                .ApplyTo(_line => $"[{_line}]");
         }
 
         public static Type ClrType(this CommonDataType type)
@@ -137,7 +132,7 @@ namespace Axis.Luna.Common
                 case CommonDataType.Integer: return typeof(long);
                 case CommonDataType.IPV4: return typeof(string);
                 case CommonDataType.IPV6: return typeof(IPAddress);
-                case CommonDataType.JsonObject: return typeof(string);
+                case CommonDataType.StructMap: return typeof(string);
                 case CommonDataType.Location: return typeof(GeoCoordinate);
                 case CommonDataType.Phone: return typeof(string);
                 case CommonDataType.Real: return typeof(double);
@@ -151,7 +146,7 @@ namespace Axis.Luna.Common
             }
         }
 
-        public static object ClrValue(this IDataItem dataItem)
+        public static object ClrValue(this DataItem dataItem)
         {
             if (dataItem == null) return null;
             switch(dataItem.Type)
@@ -166,7 +161,7 @@ namespace Axis.Luna.Common
                 case CommonDataType.Integer: return long.Parse(dataItem.Data);
                 case CommonDataType.IPV4:
                 case CommonDataType.IPV6: return IPAddress.Parse(dataItem.Data);
-                case CommonDataType.JsonObject: return dataItem.Data;
+                case CommonDataType.StructMap: return dataItem.Data;
                 case CommonDataType.Location: return GeoCoordinate.Parse(dataItem.Data);
                 case CommonDataType.Phone: return dataItem.Data;
                 case CommonDataType.Real: return double.Parse(dataItem.Data);
@@ -221,7 +216,7 @@ namespace Axis.Luna.Common
             else if (typeof(string).IsAssignableFrom(type))
                 return CommonDataType.String;
 
-            else return CommonDataType.JsonObject;
+            else return CommonDataType.StructMap;
 
         }
 
@@ -241,7 +236,7 @@ namespace Axis.Luna.Common
 
         private static V ConvertValue<V>(string value) => (V) ConvertValue(value);
 
-        private static IEnumerable<KeyValuePair<string, string>> ParseNVPairs(this IDataItem dataItem)
+        private static IEnumerable<KeyValuePair<string, string>> ParseNVPairs(this DataItem dataItem)
         {
             if (dataItem == null)
                 throw new ArgumentNullException("data cannot be null");

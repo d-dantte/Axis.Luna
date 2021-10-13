@@ -12,37 +12,27 @@ namespace Axis.Luna.Extensions
     //[DebuggerStepThrough]
     public static class Common
     {
-        public enum ObjectCopyMode
-        {
-            /// <summary>
-            /// Replace everything
-            /// </summary>
-            Replace,
-
-            /// <summary>
-            /// Ignores null values for objects
-            /// </summary>
-            IgnoreNulls,
-
-            /// <summary>
-            /// Ignores null values for objects, and defaults for value-types
-            /// </summary>
-            IgnoreNullsAndDefaults,
-
-            /// <summary>
-            /// copies only modified values
-            /// </summary>
-            CopyModified
-        };
-
 
         public static bool NullOrEquals<T>(this T operand1, T operand2)
-        where T: class
         {
             if (operand1 == null && operand2 == null)
                 return true;
 
             return operand1?.Equals(operand2) == true;
+        }
+
+        public static bool NullOrTrue<T>(this T operand1, T operand2, Func<T, T, bool> predicate)
+        {
+            if (predicate == null)
+                throw new ArgumentNullException(nameof(predicate));
+
+            if (operand1 == null && operand2 == null)
+                return true;
+
+            if (operand1 != null && operand2 != null)
+                return predicate.Invoke(operand1, operand2);
+
+            return false;
         }
 
         public static bool NullOrEquals<T>(this T operand1, T operand2, Func<T, T, bool> equalityChecker)
@@ -54,10 +44,9 @@ namespace Axis.Luna.Extensions
             if (operand1 == null && operand2 == null)
                 return true;
 
-            if (operand1 != null && operand2 != null && equalityChecker.Invoke(operand1, operand2))
-                return true;
-
-            return false;
+            return operand1 != null
+                && operand2 != null
+                && equalityChecker.Invoke(operand1, operand2);
         }
 
 
@@ -160,34 +149,6 @@ namespace Axis.Luna.Extensions
         public static bool IsNull(this object value) => value == null;
         public static bool IsNotNull(this object value) => value != null;
 
-        public static Obj CopyTo<Obj>(this Obj source, Obj dest, params string[] ignoredProperties)
-        => source.CopyTo(dest, ObjectCopyMode.Replace, ignoredProperties);
-
-        /// <summary>
-        /// Copy from source object to destination object, and return the source object
-        /// </summary>
-        /// <typeparam name="Obj"></typeparam>
-        /// <param name="source"></param>
-        /// <param name="dest"></param>
-        /// <param name="mode"></param>
-        /// <returns></returns>
-        public static Obj CopyTo<Obj>(this Obj source, Obj dest, ObjectCopyMode mode, params string[] ignoredProperties)
-        {
-            var tobj = typeof(Obj);
-            ignoredProperties ??= new string[0];
-
-            foreach (var prop in tobj.GetProperties().Where(_p => !ignoredProperties.Contains(_p.Name)))
-            {
-                var svalue = source.PropertyValue(prop.Name);
-                if (mode == ObjectCopyMode.Replace
-                    || (mode == ObjectCopyMode.IgnoreNulls && svalue != null)
-                    || (mode == ObjectCopyMode.IgnoreNullsAndDefaults && svalue != prop.PropertyType.DefaultValue())
-                    || (mode == ObjectCopyMode.CopyModified && !(svalue?.Equals(prop.GetValue(dest)) ?? false)))
-                    dest.SetPropertyValue(prop.Name, svalue);
-            }
-            return source;
-        }
-
         public static int PropertyHash(this object @this)
         => ValueHash(@this.GetType().GetProperties().OrderBy(p => p.Name).Select(p => p.GetValue(@this)));
 
@@ -200,6 +161,34 @@ namespace Axis.Luna.Extensions
         public static int ValueHash(params object[] values) 
         => ValueHash(19, 181, values);
 
+
+        #region ApplyTo/Consume/Use
+        public static TOut ApplyTo<TIn, TOut>(this TIn @in, Func<TIn, TOut> mapper)
+        {
+            if (mapper == null) 
+                throw new ArgumentNullException(nameof(mapper));
+
+            return mapper.Invoke(@in);
+        }
+
+        public static TIn Use<TIn>(this TIn @in, Action<TIn> consumer)
+        {
+            if (consumer == null)
+                throw new ArgumentNullException(nameof(Consume));
+
+            else consumer.Invoke(@in);
+
+            return @in;
+        }
+
+        public static void Consume<TIn>(this TIn @in, Action<TIn> consumer)
+        {
+            if (consumer == null)
+                throw new ArgumentNullException(nameof(consumer));
+
+            consumer.Invoke(@in);
+        }
+        #endregion
 
         #region String extensions
         public static string Trim(this string @string, string trimChars) => @string.TrimStart(trimChars).TrimEnd(trimChars);
@@ -270,13 +259,6 @@ namespace Axis.Luna.Extensions
         }
         public static bool ContainsAny(this string source, params string[] substrings) => substrings.Any(source.Contains);
         public static bool ContainsAll(this string source, params string[] substrings) => substrings.All(source.Contains);
-        public static bool ContainsOne(this string source, params string[] substrings)
-        {
-            var finds = substrings
-                .Aggregate(0, (count, sub) => source.Contains(sub) ? count + 1 : count);
-
-            return finds == 1;
-        }
 
         public static string SplitCamelCase(this string source, string separator = " ")
         => source.Aggregate(new StringBuilder(), (acc, ch) => acc.Append(char.IsUpper(ch) ? separator : "").Append(ch)).ToString().Trim();

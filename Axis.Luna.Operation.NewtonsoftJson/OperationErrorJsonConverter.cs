@@ -1,5 +1,5 @@
 ﻿using Axis.Luna.Common.NewtonsoftJson;
-using Axis.Luna.Common.Types.Base;
+using Axis.Luna.Common.Types.Basic;
 using Axis.Luna.Extensions;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -25,8 +25,8 @@ namespace Axis.Luna.Operation.NewtonsoftJson
                 : null;
 
             var data = jerror.TryGetValue(nameof(OperationError.Data), out token)
-                ? token.ToObject<StructData>(serializer)
-                : null;
+                ? token.ToObject<BasicStruct>(serializer)
+                : (BasicStruct?)null;
 
             return new OperationError(
                 message,
@@ -61,15 +61,17 @@ namespace Axis.Luna.Operation.NewtonsoftJson
                 joperationError[nameof(OperationError.Code)] = error.Code;
 
             if (error.Data != null)
-                joperationError[nameof(OperationError.Data)] = StructDataJsonConverter.ToJObject(
-                    error.Data,
-                    serializer.Converters
-                        .FirstOrDefault(c => c is StructDataJsonConverter)
-                        .As<StructDataJsonConverter>()
-                        ?.OverloadedTypeEmbedingStyle
-                        ?? StructDataJsonConverter.OverloadedTypeOutputEmbedingStyle.Explicit);
+                joperationError[nameof(OperationError.Data)] = GetBasicStructConverter(serializer).ToJObject(error.Data.Value);
 
             return joperationError;
+        }
+
+        private static BasicStructJsonConverter GetBasicStructConverter(JsonSerializer serializer)
+        {
+            return serializer.Converters
+                .FirstOrDefault(c => c is BasicStructJsonConverter)
+                .As<BasicStructJsonConverter>()
+                ?? new BasicStructJsonConverter();
         }
     }
 }

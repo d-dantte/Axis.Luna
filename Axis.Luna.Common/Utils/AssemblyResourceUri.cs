@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -31,7 +30,8 @@ namespace Axis.Luna.Common.Utils
         public static AssemblyResourceUri NewAbsoluteUri(string uri) => new AssemblyResourceUri(uri);
 
         /// <summary>
-        /// 
+        /// Creates a new Assembly resource uri of the form 
+        /// "rx|arx://{assembly-short-name}/{path-to-resource-file}#{ResouceName}"
         /// </summary>
         /// <param name="uri"></param>
         /// <param name="targetAssembly"></param>
@@ -42,7 +42,7 @@ namespace Axis.Luna.Common.Utils
             uri = uri.Trim();
             var isCompactRelative = uri.StartsWith(";/");
             if (!isCompactRelative && !uri.StartsWith("/")) 
-                throw new System.Exception("invalid uri");
+                throw new Exception("invalid uri");
 
             var asn = assemblyName.ValidateAssemblyName();
             var _uri = $"arx://{asn}{uri}";
@@ -60,7 +60,9 @@ namespace Axis.Luna.Common.Utils
 
         public string Assembly => Authority;
 
-        public string ManifestResourcePath => AbsolutePath.TrimStart("/").Replace("/", ".");
+        public string ManifestResourcePath => _manifestResourcePath ??= AbsolutePath.TrimStart("/").Replace("/", ".");
+
+        private string _manifestResourcePath = null;
 
     }
 
@@ -86,19 +88,20 @@ namespace Axis.Luna.Common.Utils
 
         protected override void InitializeAndValidate(Uri uri, out UriFormatException parsingError)
         {
-            if (!AbsoluteFormat.IsMatch(uri.OriginalString)) parsingError = new UriFormatException();
+            if (!AbsoluteFormat.IsMatch(uri.OriginalString)) 
+                parsingError = new UriFormatException();
+
             else parsingError = null;
         }
 
         public static new bool Equals(Object objA, Object objB)
         {
-            var uria = objA as Uri;
-            var urib = objB as Uri;
-
-            return uria != null && urib != null &&
-                   uria.Scheme == urib.Scheme &&
-                   uria.Segments.SequenceEqual(urib.Segments) &&
-                   uria.Fragment == urib.Fragment;
+            return objA is Uri uria
+                && objB is Uri urib
+                && urib != null 
+                && uria.Scheme == urib.Scheme
+                && uria.Segments.SequenceEqual(urib.Segments)
+                && uria.Fragment == urib.Fragment;
         }
 
         protected override bool IsWellFormedOriginalString(Uri uri) => true;
@@ -161,11 +164,6 @@ namespace Axis.Luna.Common.Utils
                             return hostMatch.Value.Replace("/", "").Replace(";", "");
                     }
                     else return "";
-                    //{
-                    //    var aruri = uri as AssemblyResourceUri;
-                    //    if (aruri != null && !string.IsNullOrWhiteSpace(aruri.DefaultAssembly)) return aruri.DefaultAssembly;
-                    //    else return Assembly.GetExecutingAssembly().GetName().Name;
-                    //}
 
                 case UriComponents.Fragment:
                 case UriComponents.Fragment | UriComponents.KeepDelimiter:
@@ -218,7 +216,7 @@ namespace Axis.Luna.Common.Utils
 
         internal static string ValidateAssemblyName(this string defaultAssembly)
         {
-            if (defaultAssembly == null) throw new System.Exception("null assembly root");
+            if (defaultAssembly == null) throw new Exception("null assembly root");
 
             else if (string.Empty.Equals(defaultAssembly.Trim()))
                 throw new ArgumentException(nameof(defaultAssembly));

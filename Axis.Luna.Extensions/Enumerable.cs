@@ -4,38 +4,49 @@ using System.Linq;
 using System.Security.Cryptography;
 using System.Threading.Tasks;
 
-using static Axis.Luna.Extensions.Async;
-
 namespace Axis.Luna.Extensions
 {
 
     //[DebuggerStepThrough]
-    public static class EnumerableExtensions
+    public static class Enumerable
     {
-        public static bool ContainsAll<V>(this IEnumerable<V> enumerable, IEnumerable<V> items)
+        public static T[] ArrayOf<T>(params T[] values) => values;
+
+        public static bool ContainsAll<V>(this IEnumerable<V> superSet, IEnumerable<V> subSet)
         {
-            var itemArray = items.ToArray();
-            return enumerable.Intersect(itemArray).Count() == itemArray.Length;
+            return subSet.IsSubsetOf(superSet);
         }
 
-        public static bool IsSubsetOf<V>(this IEnumerable<V> subset, IEnumerable<V> enumerable)
+        public static bool IsSubsetOf<V>(this IEnumerable<V> subset, IEnumerable<V> superSet)
         {
-            var subsetArr = subset.ToArray(); //inevitable
-            if (subsetArr.Length == 0) return true;
-            var searchIndex = 0;
-            var comparer = EqualityComparer<V>.Default;
-            foreach (var t in enumerable)
-            {
-                if (searchIndex == subsetArr.Length) break;
-                else if (comparer.Equals(t, subsetArr[searchIndex])) searchIndex++;
-                else searchIndex = 0;
-            }
-
-            return searchIndex == subsetArr.Length;
+            return !subset.Except(superSet).Any();
         }
 
         public static IEnumerable<TOut> SelectMany<TOut>(this IEnumerable<IEnumerable<TOut>> enumerable) 
         => enumerable.SelectMany(enm => enm);
+
+        /// <summary>
+        /// Finds the first value that satisfies the provided predicate, or the first value in the enumerable if no predicate is supplied;
+        /// if no values are found, return null.
+        /// </summary>
+        /// <typeparam name="TValue"></typeparam>
+        /// <param name="enumerable"></param>
+        /// <param name="predicate"></param>
+        /// <returns></returns>
+        public static TValue? FirstOrNull<TValue>(this IEnumerable<TValue> enumerable, Func<TValue, bool> predicate = null)
+        where TValue: struct
+        {
+            if (predicate == null)
+                predicate = v => true;
+
+            foreach(var value in enumerable)
+            {
+                if (predicate.Invoke(value))
+                    return value;
+            }
+
+            return null;
+        }
 
         /// <summary>
         /// Snips the enumerable at the specified POSITIVE index, making it the head of the enumerable, splicing the old head at the tail
@@ -106,12 +117,10 @@ namespace Axis.Luna.Extensions
 
         public static IEnumerable<KeyValuePair<K, V>> PairWith<K, V>(this IEnumerable<K> keys, IEnumerable<V> values)
         {
-            using (var ktor = keys.GetEnumerator())
-            using (var vtor = values.GetEnumerator())
-            {
-                while (ktor.MoveNext() && vtor.MoveNext())
-                    yield return ktor.Current.ValuePair(vtor.Current);
-            }
+            using var ktor = keys.GetEnumerator();
+            using var vtor = values.GetEnumerator();
+            while (ktor.MoveNext() && vtor.MoveNext())
+                yield return ktor.Current.ValuePair(vtor.Current);
         }
 
         public static IEnumerable<KeyValuePair<K, V>> PairWith<K, V>(this IEnumerable<K> keys, IEnumerable<V> values, bool padWithDefault)
@@ -121,12 +130,10 @@ namespace Axis.Luna.Extensions
 
         private static IEnumerable<KeyValuePair<K, V>> PairWithPad<K, V>(this IEnumerable<K> keys, IEnumerable<V> values)
         {
-            using (var ktor = keys.GetEnumerator())
-            using (var vtor = values.GetEnumerator())
-            {
-                while (ktor.MoveNext())
-                    yield return ktor.Current.ValuePair(vtor.MoveNext() ? vtor.Current : default(V));
-            }
+            using var ktor = keys.GetEnumerator();
+            using var vtor = values.GetEnumerator();
+            while (ktor.MoveNext())
+                yield return ktor.Current.ValuePair(vtor.MoveNext() ? vtor.Current : default);
         }
 
         public static void ForAll<T>(this IEnumerable<T> enumerable, Action<long, T> loopAction)
@@ -234,12 +241,12 @@ namespace Axis.Luna.Extensions
         public static IEnumerable<T> Concat<T>(
             this IEnumerable<T> initialValues,
             params T[] otherValue)
-            => Enumerable.Concat(initialValues, otherValue);
+            => System.Linq.Enumerable.Concat(initialValues, otherValue);
 
         public static IEnumerable<T> Concat<T>(
             this IEnumerable<T> initialValues,
             IEnumerable<T> otherValue)
-            => Enumerable.Concat(initialValues, otherValue);
+            => System.Linq.Enumerable.Concat(initialValues, otherValue);
         #endregion
 
         public static int PositionOf<T>(this IEnumerable<T> enumerable, T item, IEqualityComparer<T> equalityComparer = null)
@@ -260,7 +267,17 @@ namespace Axis.Luna.Extensions
             if (index < 0) throw new IndexOutOfRangeException();
             else if (enumerable is IList<T>) return (enumerable as IList<T>)[index];
             else if (enumerable is Array) return (T)((enumerable as Array).GetValue(index));
-            else return new List<T>(enumerable)[index];
+            else
+            {
+                int _index = 0;
+                foreach(var item in enumerable)
+                {
+                    if (_index == index)
+                        return item;
+                }
+
+                throw new IndexOutOfRangeException();
+            }
         }
 
         public static ICollection<Value> AddRange<Value>(this ICollection<Value> collection, IEnumerable<Value> values)
@@ -271,8 +288,11 @@ namespace Axis.Luna.Extensions
 
         public static TValue GetOrAdd<TKey, TValue>(this IDictionary<TKey, TValue> @this, TKey key, Func<TKey, TValue> valueFactory)
         {
+            if (valueFactory == null)
+                throw new ArgumentNullException(nameof(valueFactory));
+
             if (!@this.TryGetValue(key, out TValue value))
-                @this.Add(key, value = valueFactory(key));
+                @this.Add(key, value = valueFactory.Invoke(key));
 
             return value;
         }
@@ -293,6 +313,17 @@ namespace Axis.Luna.Extensions
             return value;
         }
 
+        public static TValue GetOrDefault<TKey, TValue>(this IDictionary<TKey, TValue> @this, TKey key)
+        {
+            if (@this == null)
+                throw new ArgumentNullException(nameof(@this));
+
+            if (!@this.TryGetValue(key, out var value))
+                return default;
+
+            return value;
+        }
+
         public static void RemoveAll<V>(this ICollection<V> collection, params V[] values)
         => values.ForAll(v => collection.Remove(v));
 
@@ -301,7 +332,9 @@ namespace Axis.Luna.Extensions
 
         public static Dictionary<K, V> AddAll<K, V>(this Dictionary<K, V> dict, IEnumerable<KeyValuePair<K, V>> values)
         {
-            foreach (var v in values) dict.Add(v.Key, v.Value);
+            foreach (var v in values) 
+                dict.Add(v.Key, v.Value);
+
             return dict;
         }
 
@@ -344,7 +377,7 @@ namespace Axis.Luna.Extensions
                     .SelectMany((value, index) =>
                     {
                         var primary = new[] { value };
-                        return EnumerableExtensions
+                        return Enumerable
                             .Permutations(Splice(values, index))
                             .Select(perm =>
                             {

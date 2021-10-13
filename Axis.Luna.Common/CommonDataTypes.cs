@@ -1,10 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace Axis.Luna.Common
 {
-
+    [Obsolete]
     public enum CommonDataType
     {
         /// <summary>
@@ -45,12 +43,12 @@ namespace Axis.Luna.Common
         /// <summary>
         /// Json object/value-map
         /// </summary>
-        JsonObject,
+        StructMap,
 
         /// <summary>
         /// Date-time value
         /// </summary>
-        DateTime,
+        DateTime ,
 
         /// <summary>
         /// A time-stamp

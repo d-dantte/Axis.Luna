@@ -33,7 +33,6 @@ namespace Axis.Luna.Extensions
 
         #endregion
 
-
         #region Type Names and Signatures
         public static string MinimalAQName(this Type type)
         => MinimalAQNames.GetOrAdd(type, t =>
@@ -80,7 +79,6 @@ namespace Axis.Luna.Extensions
         ////private static string AccessorSignature(this FieldInfo finfo)
         ////=> $"[{finfo.DeclaringType.MinimalAQName()}].@{finfo.Name}";
         #endregion
-
 
         #region Inheritance
 
@@ -170,20 +168,10 @@ namespace Axis.Luna.Extensions
                 else regularBases.Add(@base);
             });
 
-            var tempBases = type
-                .ThrowIf(t => t.IsInterface, new ArgumentException($"argument '{nameof(type)}' cannot be an interface"))
+            var actualBases = type
                 .BaseTypes()
-                .SelectMany(type =>
-                {
-                    var types = new List<Type> { type };
-
-                    if (type.IsGenericType)
-                        types.Add(type.GetGenericTypeDefinition());
-
-                    return types;
-                });
-
-            var actualBases = new HashSet<Type>(bases);
+                .SelectMany(FlattenIfGeneric)
+                .ApplyTo(types => new HashSet<Type>(types));
 
             //check bases are contained. Note that empty collections return true for the "All(...)" function.
             return regularBases.All(@base => actualBases.Contains(@base))
@@ -192,6 +180,11 @@ namespace Axis.Luna.Extensions
 
         public static IEnumerable<Type> TypeLineage(this Type type) => type.GetInterfaces().Concat(type.BaseTypes());
 
+        /// <summary>
+        /// Returns this type, along with all the types it inherits from, all the way back to "object"
+        /// </summary>
+        /// <param name="type"></param>
+        /// <returns></returns>
         public static IEnumerable<Type> BaseTypes(this Type type)
         {
             Type @base = type;
@@ -236,7 +229,6 @@ namespace Axis.Luna.Extensions
         }
 
         #endregion
-
 
         #region Property access
 
@@ -312,8 +304,7 @@ namespace Axis.Luna.Extensions
         => (V)obj.SetPropertyValue(propertyName, (object)value);
 
         #endregion
-
-               
+                       
         #region Misc
 
         public static object DefaultValue(this Type type)
@@ -407,6 +398,14 @@ namespace Axis.Luna.Extensions
                     return @delegate;
                 })
                 .As<Action<object, object>>();
+        }
+
+        private static IEnumerable<Type> FlattenIfGeneric(Type type)
+        {
+            yield return type;
+
+            if (type.IsGenericType)
+                yield return type.GetGenericTypeDefinition();
         }
     }
 }

@@ -9,12 +9,13 @@ namespace Axis.Luna.Common
         where TOut : class;
 
         /// <summary>
-        /// 
+        /// Maps a nullable struct to another nullable struct
         /// </summary>
-        /// <typeparam name="TIn"></typeparam>
-        /// <typeparam name="TOut"></typeparam>
+        /// <typeparam name="TIn">The input type</typeparam>
+        /// <typeparam name="TOut">The output type</typeparam>
         /// <param name="nullable"></param>
-        /// <param name="mapper"></param>
+        /// <param name="mapper">mapper function executed when a value exists in the nullable</param>
+        /// <param name="nullMapper">mapper function executed when no value exists in the nullable</param>
         /// <returns></returns>
         public static Optional<TOut> Map<TIn, TOut>(
             this Nullable<TIn> nullable,
@@ -27,18 +28,19 @@ namespace Axis.Luna.Common
                 throw new ArgumentNullException(nameof(mapper));
 
             if (!nullable.HasValue)
-                return nullMapper?.Invoke()?.AsOptional() ?? default;
+                return nullMapper?.Invoke();
 
             return new Optional<TOut>(mapper.Invoke(nullable.Value));
         }
 
         /// <summary>
-        /// 
+        /// Maps a nullable struct to an optional
         /// </summary>
-        /// <typeparam name="TIn"></typeparam>
-        /// <typeparam name="TOut"></typeparam>
-        /// <param name="nullable"></param>
-        /// <param name="mapper"></param>
+        /// <typeparam name="TIn">The input type</typeparam>
+        /// <typeparam name="TOut">The output type</typeparam>
+        /// <param name="nullable">The nullable</param>
+        /// <param name="mapper">mapper function executed when a value exists in the nullable</param>
+        /// <param name="nullMapper">mapper function executed when no value exists in the nullable</param>
         /// <returns></returns>
         public static Optional<TOut> Map<TIn, TOut>(
             this Nullable<TIn> nullable,
@@ -51,7 +53,7 @@ namespace Axis.Luna.Common
                 throw new ArgumentNullException(nameof(mapper));
 
             if (!nullable.HasValue)
-                return nullMapper?.Invoke()?.AsOptional() ?? default;
+                return nullMapper?.Invoke();
 
             return mapper.Invoke(nullable.Value);
         }

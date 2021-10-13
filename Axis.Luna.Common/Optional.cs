@@ -15,15 +15,14 @@ namespace Axis.Luna.Common
 
         public delegate TResult RefMapper<out TResult>(T arg) where TResult: class;
 
-        /// <summary>
-        /// The reference value
-        /// </summary>
-        public T Value { get; private set; }
+
+        private readonly T _value;
+
 
         /// <summary>
         /// Indicates if there is a value contained
         /// </summary>
-        public bool HasValue => Value != null;
+        public bool HasValue => _value != null;
 
         /// <summary>
         /// Indicates that there is no value - opposite of <c>Optional.HasValue</c>
@@ -36,10 +35,10 @@ namespace Axis.Luna.Common
         /// <param name="value"></param>
         public Optional(T value)
         {
-            Value = value;
+            _value = value;
         }
 
-        #region Map
+        #region Map/Bind
 
         /// <summary>
         /// Map to another ref type
@@ -54,9 +53,9 @@ namespace Axis.Luna.Common
                 throw new ArgumentNullException(nameof(mapper));
 
             if (!HasValue)
-                return nullMapper?.Invoke()?.AsOptional() ?? default;
+                return nullMapper?.Invoke();
 
-            return new Optional<TOut>(mapper.Invoke(Value));
+            return new Optional<TOut>(mapper.Invoke(_value));
         }
 
         /// <summary>
@@ -72,9 +71,9 @@ namespace Axis.Luna.Common
                 throw new ArgumentNullException(nameof(mapper));
 
             if (!HasValue)
-                return nullMapper?.Invoke()?.AsOptional() ?? default;
+                return nullMapper?.Invoke();
 
-            return mapper.Invoke(Value);
+            return mapper.Invoke(_value);
         }
 
         /// <summary>
@@ -90,9 +89,9 @@ namespace Axis.Luna.Common
                 throw new ArgumentNullException(nameof(mapper));
 
             if (!HasValue)
-                return nullMapper?.Invoke().AsNullable() ?? default;
+                return nullMapper?.Invoke();
 
-            return new TOut?(mapper.Invoke(Value));
+            return new TOut?(mapper.Invoke(_value));
         }
 
         /// <summary>
@@ -108,42 +107,58 @@ namespace Axis.Luna.Common
                 throw new ArgumentNullException(nameof(mapper));
 
             if (!HasValue)
-                return nullMapper?.Invoke().AsNullable() ?? default;
+                return nullMapper?.Invoke();
 
-            return mapper.Invoke(Value);
+            return mapper.Invoke(_value);
         }
 
         #endregion
 
-        #region Do
-        public void Do(Action<T> action, Action nullAction = null)
+        #region Consume
+        public void Consume(Action<T> action, Action nullAction = null)
         {
             if (action == null)
                 throw new ArgumentNullException(nameof(action));
 
             else if (HasValue)
-                action.Invoke(Value);
+                action.Invoke(_value);
 
             else nullAction?.Invoke();
         }
         #endregion
+
+        #region Value
+        /// <summary>
+        /// Returns the value if it exists, else throws an exception
+        /// </summary>
+        /// <returns>The value if present</returns>
+        public T Value() => _value ?? throw new InvalidOperationException("Optional is empty");
+
+        /// <summary>
+        /// Returns the value if it exists, or default(T);
+        /// </summary>
+        /// <returns></returns>
+        public T ValueOrDefault() => ValueOr(default);
 
         /// <summary>
         /// Returns the given value if this <c>Optional</c> is empty.
         /// </summary>
         /// <param name="alternateValue"></param>
         /// <returns></returns>
-        public T ValueOr(T alternateValue) => HasValue ? Value : alternateValue;
+        public T ValueOr(T alternateValue) => HasValue ? _value : alternateValue;
+        #endregion
 
+        #region Equality
         public override bool Equals(object obj)
         {
             return obj is Optional<T> other
-                && Value.NullOrEquals(other.Value);
+                && _value.NullOrEquals(other._value);
         }
 
-        public override int GetHashCode() => HashCode.Combine(Value);
+        public override int GetHashCode() => HashCode.Combine(_value);
+        #endregion
 
-
+        #region Operators
         public static implicit operator Optional<T>(T value)
         {
             if (value == null)
@@ -152,9 +167,10 @@ namespace Axis.Luna.Common
             return new Optional<T>(value);
         }
 
-        public static bool operator ==(Optional<T> op1, Optional<T> op2) => op1.Value.NullOrEquals(op2.Value);
+        public static bool operator ==(Optional<T> op1, Optional<T> op2) => op1._value.NullOrEquals(op2._value);
 
         public static bool operator !=(Optional<T> op1, Optional<T> op2) => !(op1 == op2);
+        #endregion
     }
 
     public static class Optional
@@ -166,6 +182,13 @@ namespace Axis.Luna.Common
         where TOut: class
         {
             return new Optional<TOut>(value);
+        }
+
+        public static Optional<TOut> MapToOptional<TIn, TOut>(this TIn value, Func<TIn, TOut> mapper)
+        where TOut : class
+        where TIn : class
+        {
+            return value.AsOptional().Map(@in => mapper.Invoke(@in));
         }
     }
 }

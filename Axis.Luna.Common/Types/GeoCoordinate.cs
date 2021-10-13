@@ -13,17 +13,17 @@ namespace Axis.Luna.Common.Types
         /// <summary>
         /// Longitude
         /// </summary>
-        public double Longitude { get; private set; }
+        public double Longitude { get; }
 
         /// <summary>
         /// Latitude
         /// </summary>
-        public double Latitude { get; private set; }
+        public double Latitude { get; }
 
         /// <summary>
         /// Altitude
         /// </summary>
-        public double? Altitude { get; private set; }
+        public double? Altitude { get; }
 
         private readonly string stringValue;
 
@@ -84,14 +84,17 @@ namespace Axis.Luna.Common.Types
         #region Overrides
         public override bool Equals(object obj)
         {
-            return obj != null
-                && obj is GeoCoordinate other
+            return obj is GeoCoordinate other
                 && Equals(other);
         }
 
         public override int GetHashCode() => ValueHash(Longitude, Latitude, Altitude);
 
         public override string ToString() => stringValue;
+
+        public static bool operator ==(GeoCoordinate first, GeoCoordinate second) => first.Equals(second);
+
+        public static bool operator !=(GeoCoordinate first, GeoCoordinate second) => !first.Equals(second);
         #endregion
     }
 }

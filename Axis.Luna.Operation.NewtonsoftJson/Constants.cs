@@ -15,10 +15,9 @@ namespace Axis.Luna.Operation.NewtonsoftJson
             {
                 new OperationJsonConverter(),
                 new OperationErrorJsonConverter(),
-                new StructDataJsonConverter
+                new BasicStructJsonConverter
                 {
-                    OverloadedTypeEmbedingStyle = StructDataJsonConverter.OverloadedTypeOutputEmbedingStyle.Explicit,
-                    ParseInfo = new StructDataJsonConverter.DateTimeParseInfo()
+                    ParseInfo = new BasicStructJsonConverter.DateTimeParseInfo()
                 }
             }
         };

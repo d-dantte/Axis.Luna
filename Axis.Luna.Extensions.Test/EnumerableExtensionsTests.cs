@@ -19,7 +19,7 @@ namespace Axis.Luna.Extensions.Test
             result = empty.ExactlyAll(_v => _v % 2 == 0);
             Assert.IsFalse(result);
 
-            sequence = Enumerable.Range(0, 20).ToArray();
+            sequence = System.Linq.Enumerable.Range(0, 20).ToArray();
 
             var skipped = sequence.SkipEvery(1, (_cnt, _v) => _v >= 10).ToArray();
             Assert.IsTrue(new[] { 1, 3, 5, 7, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19 }.SequenceEqual(skipped));
@@ -31,7 +31,7 @@ namespace Axis.Luna.Extensions.Test
         [TestMethod]
         public void SubsetTests()
         {
-            var sequence = Enumerable.Range(0, 100).ToArray().Reverse();
+            var sequence = System.Linq.Enumerable.Range(0, 100).ToArray().Reverse();
             var subset = new[] { 8, 7, 6, 5 };
             Assert.IsTrue(subset.IsSubsetOf(sequence));
 
@@ -41,10 +41,10 @@ namespace Axis.Luna.Extensions.Test
             subset = new int[0];
             Assert.IsTrue(subset.IsSubsetOf(sequence));
 
-            subset = Enumerable.Range(0, 101).Reverse().ToArray();
+            subset = System.Linq.Enumerable.Range(0, 101).Reverse().ToArray();
             Assert.IsFalse(subset.IsSubsetOf(sequence));
 
-            subset = Enumerable.Range(0, 100).Reverse().ToArray();
+            subset = System.Linq.Enumerable.Range(0, 100).Reverse().ToArray();
             Assert.IsTrue(subset.IsSubsetOf(sequence));
         }
 

@@ -17,7 +17,7 @@ namespace Axis.Luna.Common.Test
             var optional = nullableValue.Map(i => $"Value is: {i}");
 
             Assert.IsTrue(optional.HasValue);
-            Assert.AreEqual($"Value is: {nullableValue}", optional.Value);
+            Assert.AreEqual($"Value is: {nullableValue}", optional.Value());
         }
 
         [TestMethod]
@@ -27,7 +27,6 @@ namespace Axis.Luna.Common.Test
             var optional = nullableValue.Map(i => (string)null);
 
             Assert.IsFalse(optional.HasValue);
-            Assert.AreEqual(null, optional.Value);
         }
 
         [TestMethod]
@@ -43,7 +42,6 @@ namespace Axis.Luna.Common.Test
 
             Assert.IsFalse(isMapperCalled);
             Assert.IsFalse(optional.HasValue);
-            Assert.AreEqual(null, optional.Value);
         }
 
         [TestMethod]
@@ -67,7 +65,7 @@ namespace Axis.Luna.Common.Test
             Assert.IsFalse(isMapperCalled);
             Assert.IsTrue(isNullMapperCalled);
             Assert.IsTrue(optional.HasValue);
-            Assert.AreEqual($"Null mapper: bleh", optional.Value);
+            Assert.AreEqual($"Null mapper: bleh", optional.Value());
         }
 
         [TestMethod]
@@ -98,7 +96,7 @@ namespace Axis.Luna.Common.Test
             var optional = nullableValue.Map(i => $"Value is: {i}".AsOptional());
 
             Assert.IsTrue(optional.HasValue);
-            Assert.AreEqual($"Value is: {nullableValue}", optional.Value);
+            Assert.AreEqual($"Value is: {nullableValue}", optional.Value());
         }
 
         [TestMethod]
@@ -108,7 +106,6 @@ namespace Axis.Luna.Common.Test
             var optional = nullableValue.Map(i => Optional.Empty<string>());
 
             Assert.IsFalse(optional.HasValue);
-            Assert.AreEqual(null, optional.Value);
         }
 
         [TestMethod]
@@ -132,7 +129,7 @@ namespace Axis.Luna.Common.Test
             Assert.IsFalse(isMapperCalled);
             Assert.IsTrue(isNullMapperCalled);
             Assert.IsTrue(optional.HasValue);
-            Assert.AreEqual($"Null mapper: bleh", optional.Value);
+            Assert.AreEqual($"Null mapper: bleh", optional.Value());
         }
 
         [TestMethod]
@@ -148,7 +145,6 @@ namespace Axis.Luna.Common.Test
 
             Assert.IsFalse(isMapperCalled);
             Assert.IsFalse(optional.HasValue);
-            Assert.AreEqual(null, optional.Value);
         }
 
         [TestMethod]

@@ -1,8 +1,5 @@
-﻿using Axis.Luna.Common.Types.Base;
-using Axis.Luna.Extensions;
+﻿using Axis.Luna.Common.Types.Basic;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using System.Collections.Generic;
-using System.Linq;
 
 namespace Axis.Luna.Operation.Test.Utils
 {
@@ -12,26 +9,16 @@ namespace Axis.Luna.Operation.Test.Utils
         [TestMethod]
         public void SampleTest()
         {
-            var @struct = new StructData
+            var @struct = new BasicStruct
             {
                 ["stuff"] = 5,
-                ["multiple-stuff"] = new DataType[] { 6, "me", false },
-                ["inner"] = new StructData
+                ["multiple-stuff"] = new BasicValue[] { 6, "me", false },
+                ["inner"] = new BasicStruct
                 {
                     ["inner-inner"] = 5.4m
                 }
             };
-
             Assert.IsNotNull(@struct);
-
-            @struct.Value = null;
-            Assert.AreEqual(0, @struct.Count);
-
-            @struct.Value = new KeyValuePair<string, DataType>[]
-            {
-                "abcd".ValuePair<string, DataType>(5)
-            };
-            Assert.AreEqual("abcd", @struct.Keys.First());
         }
     }
 }

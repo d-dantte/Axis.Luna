@@ -20,16 +20,12 @@ namespace Axis.Luna.Extensions
                 {
                     var uexp = expr.Body as UnaryExpression;
                     var maccess = uexp.Operand as MemberExpression;
-                    //(maccess.Member as FieldInfo).GetValue((maccess.Expression as ConstantExpression).Value)
-                    //                             .ThrowIfNull(new ArgumentException(maccess.Member.Name));
                     if (maccess.CapturedValue() == null)
                         throw new ArgumentNullException(maccess.Member.Name);
                 }
                 else if (expr.Body is MemberExpression)
                 {
                     var maccess = expr.Body as MemberExpression;
-                    //(maccess.Member as FieldInfo).GetValue((maccess.Expression as ConstantExpression).Value)
-                    //                             .ThrowIfNull(new ArgumentException(maccess.Member.Name));
                     if (maccess.CapturedValue() == null)
                         throw new ArgumentNullException(maccess.Member.Name);
                 }
@@ -48,7 +44,7 @@ namespace Axis.Luna.Extensions
            ? memberAccess.Member.As<FieldInfo>().GetValue(memberAccess.Expression.As<ConstantExpression>().Value)
            : memberAccess.Expression.As<MemberExpression>().CapturedValue();
 
-        public static T ThrowIf<T>(this T value, T compare, System.Exception ex)
+        public static T ThrowIf<T>(this T value, T compare, Exception ex)
         {
             if (EqualityComparer<T>.Default.Equals(value, compare))
             {
@@ -62,7 +58,7 @@ namespace Axis.Luna.Extensions
         public static T ThrowIf<T>(this T value, T compare, string message = null) => value.ThrowIf(compare, new Exception(message));
 
 
-        public static T? ThrowIf<T>(this T? value, T? compare, System.Exception ex)
+        public static T? ThrowIf<T>(this T? value, T? compare, Exception ex)
         where T : struct
         {
             if ((value == null && compare == null) 
@@ -79,7 +75,7 @@ namespace Axis.Luna.Extensions
         where T : struct => value.ThrowIf(compare, new Exception(message));
 
 
-        public static T ThrowIfNot<T>(this T value, T compare, System.Exception ex)
+        public static T ThrowIfNot<T>(this T value, T compare, Exception ex)
         {
             if (!EqualityComparer<T>.Default.Equals(value, compare))
             {
