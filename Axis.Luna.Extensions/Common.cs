@@ -12,6 +12,12 @@ namespace Axis.Luna.Extensions
     //[DebuggerStepThrough]
     public static class Common
     {
+        public static bool IsBoxed<T>(this T value)
+        {
+            return (typeof(T).IsInterface || typeof(T) == typeof(object)) 
+                && value != null
+                && value.GetType().IsValueType;
+        }
 
         public static bool NullOrEquals<T>(this T operand1, T operand2)
         {

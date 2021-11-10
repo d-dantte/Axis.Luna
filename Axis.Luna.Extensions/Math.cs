@@ -68,6 +68,12 @@ namespace Axis.Luna.Extensions
 
         public static bool IsEven(this long value) => !value.IsOdd();
 
+        public static bool IsNegative(this long value) => value < 0;
+
+        public static bool IsNegative(this double value) => value < 0;
+
+        public static bool IsNegative(this decimal value) => value < 0;
+
         public static bool IsOdd(this ulong value) => value % 2 == 1;
 
         public static bool IsEven(this ulong value) => !value.IsOdd();

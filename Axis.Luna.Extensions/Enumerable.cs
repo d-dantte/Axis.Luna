@@ -10,6 +10,45 @@ namespace Axis.Luna.Extensions
     //[DebuggerStepThrough]
     public static class Enumerable
     {
+        /// <summary>
+        /// Get a slice/chunk of an array
+        /// </summary>
+        /// <typeparam name="T">The type of the array</typeparam>
+        /// <param name="array">The array</param>
+        /// <param name="offset">The offset at which the slice is made, i.e, how many elements to skip</param>
+        /// <param name="length"> The length of the slice/chunk. <c>null</c> indicates using whatever length remains after the offset </param>
+        /// <returns></returns>
+        public static ArraySegment<T> Slice<T>(this T[] array, int offset, int? length = null)
+        {
+            return new ArraySegment<T>(array, offset, length ?? array.Length - offset);
+        }
+
+        /// <summary>
+        /// Splits an array into 2 <see cref="ArraySegment{T}"/> instances, using the given index as a pivot. Note that the element at the pivot index will always
+        /// become the first element in the "right" <see cref="ArraySegment{T}"/>.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="array"></param>
+        /// <param name="pivotIndex"></param>
+        /// <returns></returns>
+        public static (ArraySegment<T>, ArraySegment<T>) Split<T>(this T[] array, int pivotIndex)
+        {
+            ArraySegment<T> segment = array;
+            return segment.Split(pivotIndex);
+        }
+
+        /// <summary>
+        /// Splits an input into 2 <see cref="ArraySegment{T}"/> instances, using the given index as a pivot. Note that the element at the pivot index will always
+        /// become the first element in the "right" <see cref="ArraySegment{T}"/>.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="array"></param>
+        /// <param name="pivotIndex"></param>
+        /// <returns></returns>
+        public static (ArraySegment<T>, ArraySegment<T>) Split<T>(this ArraySegment<T> segment, int pivotIndex)
+        {
+            return (segment.Slice(0, pivotIndex), segment.Slice(pivotIndex));
+        }
         public static T[] ArrayOf<T>(params T[] values) => values;
 
         public static bool ContainsAll<V>(this IEnumerable<V> superSet, IEnumerable<V> subSet)
