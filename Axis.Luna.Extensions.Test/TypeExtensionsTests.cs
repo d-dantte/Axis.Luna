@@ -93,6 +93,7 @@ namespace Axis.Luna.Extensions.Test
         public void ImplementationTests()
         {
             Assert.IsTrue(typeof(List<int>).ImplementsGenericInterface(typeof(IList<>)));
+            Assert.IsTrue(typeof(int[]).ImplementsGenericInterface(typeof(IEnumerable<>)));
         }
     }
 

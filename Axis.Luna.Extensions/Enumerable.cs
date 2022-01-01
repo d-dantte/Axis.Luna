@@ -10,6 +10,17 @@ namespace Axis.Luna.Extensions
     //[DebuggerStepThrough]
     public static class Enumerable
     {
+        public static bool IsEmpty<T>(this T[] array)
+            => array
+                .ThrowIfNull(new ArgumentNullException(nameof(array)))
+                .Length == 0;
+
+        public static bool IsNullOrEmpty<T>(this T[] array)
+        {
+            return array == null
+                || array.Length == 0;
+        }
+
         /// <summary>
         /// Get a slice/chunk of an array
         /// </summary>

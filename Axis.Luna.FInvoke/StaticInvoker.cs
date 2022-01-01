@@ -57,7 +57,8 @@ namespace Axis.Luna.FInvoke
 
 			var emitter = Emit<Func<object[], object>>.NewDynamicMethod(
 				method.DeclaringType,
-				$"{StaticInvokerNamePrefix}_{guid}");
+				$"{StaticInvokerNamePrefix}_{guid}",
+				false);
 
 			//push arguments unto the stack
 			var arguments = method.GetParameters() ?? new ParameterInfo[0];

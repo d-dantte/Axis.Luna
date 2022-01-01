@@ -147,7 +147,7 @@ namespace Axis.Luna.Extensions
         }
 
         public static T ThrowIfNotNull<T>(this T value, string message = null)
-        where T : class => value.ThrowIfNotNull(new NullReferenceException(message));
+        where T : class => value.ThrowIfNotNull(new Exception(message));
 
 
         public static T? ThrowIfNotNull<T>(this T? value, System.Exception ex)
@@ -162,7 +162,7 @@ namespace Axis.Luna.Extensions
         }
 
         public static T? ThrowIfNotNull<T>(this T? value, string message = null)
-        where T : struct => value.ThrowIfNotNull(new NullReferenceException(message));
+        where T : struct => value.ThrowIfNotNull(new Exception(message));
 
 
         public static T ThrowIfDefault<T>(this T value, System.Exception ex) where T : struct => value.ThrowIf(default(T), ex);

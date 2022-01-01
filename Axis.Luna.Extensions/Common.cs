@@ -148,7 +148,7 @@ namespace Axis.Luna.Extensions
 
         public static dynamic AsDynamic(this object value) => value;
 
-        public static bool IsStructural(this object value) => value?.GetType().IsValueType == true;
+        public static bool IsStructValue(this object value) => value?.GetType().IsValueType == true;
         public static bool IsPrimitive(this object value) => value?.GetType().IsPrimitive == true;
         public static bool IsIntegral(this object value) => value?.GetType().IsIntegral() ?? false;
         public static bool IsDecimal(this object value) => value?.GetType().IsDecimal() ?? false;
@@ -169,6 +169,15 @@ namespace Axis.Luna.Extensions
 
 
         #region ApplyTo/Consume/Use
+
+        /// <summary>
+        /// Applies the mapping function to the given input argument
+        /// </summary>
+        /// <typeparam name="TIn">Input argument type</typeparam>
+        /// <typeparam name="TOut">Output argument type</typeparam>
+        /// <param name="in">Input argument</param>
+        /// <param name="mapper">mapping function</param>
+        /// <returns>transformed output</returns>
         public static TOut ApplyTo<TIn, TOut>(this TIn @in, Func<TIn, TOut> mapper)
         {
             if (mapper == null) 
@@ -177,6 +186,13 @@ namespace Axis.Luna.Extensions
             return mapper.Invoke(@in);
         }
 
+        /// <summary>
+        /// Consumes the given input using the consumer action, and returns the input
+        /// </summary>
+        /// <typeparam name="TIn">Input argument type</typeparam>
+        /// <param name="in">input argument</param>
+        /// <param name="consumer">consumer function</param>
+        /// <returns>The Input argument</returns>
         public static TIn Use<TIn>(this TIn @in, Action<TIn> consumer)
         {
             if (consumer == null)
@@ -187,6 +203,12 @@ namespace Axis.Luna.Extensions
             return @in;
         }
 
+        /// <summary>
+        /// Consumes the given input using the consumer action.
+        /// </summary>
+        /// <typeparam name="TIn">Input argument type</typeparam>
+        /// <param name="in">input argument</param>
+        /// <param name="consumer">consumer function</param>
         public static void Consume<TIn>(this TIn @in, Action<TIn> consumer)
         {
             if (consumer == null)

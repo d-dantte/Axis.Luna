@@ -57,7 +57,8 @@ namespace Axis.Luna.FInvoke
 
 			var emitter = Emit<Func<object, object[], object>>.NewDynamicMethod(
 				method.DeclaringType,
-				$"{InstanceInvokerNamePrefix}_{guid}");
+				$"{InstanceInvokerNamePrefix}_{guid}",
+				false);
 
 			//push 'this' unto the stack
 			emitter.LoadArgument(0);

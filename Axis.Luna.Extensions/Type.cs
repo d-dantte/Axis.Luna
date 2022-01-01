@@ -109,20 +109,43 @@ namespace Axis.Luna.Extensions
 
         public static Type GetGenericBase(this Type type, Type genericDefinitionBaseType)
         {
-            if (!genericDefinitionBaseType.IsGenericTypeDefinition) 
-                throw new System.Exception("ancestor is not a generic type definition");
+            genericDefinitionBaseType
+                .ThrowIf(t => !t.IsGenericTypeDefinition, new ArgumentException("base type is not a generic type definition"))
+                .ThrowIf(t => !t.IsClass, new ArgumentException($"supplied {nameof(genericDefinitionBaseType)} type is not a class"));
 
             return type
                 .BaseTypes()
+                .Where(_bt => _bt.IsGenericType)
                 .Where(_bt => _bt.GetGenericTypeDefinition() == genericDefinitionBaseType)
                 .FirstOrDefault();
         }
 
+        public static Type GetGenericInterface(this Type type, Type genericDefinitionInterface)
+        {
+            genericDefinitionInterface
+                .ThrowIf(t => !t.IsGenericTypeDefinition, new ArgumentException("interface is not a generic type definition"))
+                .ThrowIf(t => !t.IsInterface, new ArgumentException($"supplied {nameof(genericDefinitionInterface)} type is not an interface"));
+
+            return type
+                .GetInterfaces()
+                .Where(_i => _i.IsGenericType)
+                .Where(_i => _i.GetGenericTypeDefinition() == genericDefinitionInterface)
+                .FirstOrDefault();
+        }
+
+        /// <summary>
+        /// Verifies that the given type implements all of the supplied interfaces.
+        /// </summary>
+        /// <param name="type">The type to test against. Can be a class or struct, or interface, etc.</param>
+        /// <param name="firstInterface">The first interface to check for implementation</param>
+        /// <param name="implementedInterfaces">Multiple interfaces to check for implementation</param>
+        /// <returns></returns>
         public static bool Implements(this Type type, Type firstInterface, params Type[] implementedInterfaces)
         {
             var interfaces = type.GetInterfaces();
-            return firstInterface.Concat()
-                .Union(implementedInterfaces)
+            return firstInterface
+                .Concat(implementedInterfaces)
+                .Distinct()
                 .Where(@interface => @interface.IsInterface)
                 .All(interfaces.Contains);
         }
