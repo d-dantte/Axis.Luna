@@ -5,6 +5,7 @@
 	* Added `EventTimer` type.
 	* Added more methods for `AsyncLock`
 	* Added `Fold` extension methods for Operations.
+	* Covariance support for Operations via `IOperation` is not fully implemented.
 
 ## Released 5.1.0 - 2020/05/04
 
