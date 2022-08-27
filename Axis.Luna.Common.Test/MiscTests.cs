@@ -108,6 +108,15 @@ namespace Axis.Luna.Common.Test
     public class MiscTests
     {
         [TestMethod]
+        public void t()
+        {
+            var dict = new Dictionary<string, string>();
+            Console.WriteLine(dict.TryAdd("me", "you"));
+            Console.WriteLine(dict.TryAdd("me", "not you"));
+            Console.WriteLine(dict["me"]);
+        }
+
+        [TestMethod]
         public void Test()
         {
             var page = new SequencePage<int>

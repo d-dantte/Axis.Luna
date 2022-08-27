@@ -73,12 +73,15 @@ namespace Axis.Luna.Extensions
         }
 
         public static TIn ValueOr<TIn>(this Nullable<TIn> @in, TIn @out)
-            where TIn: struct
+        where TIn: struct
         {
-            if (@in == null)
-                return @in.Value;
+            return @in ?? @out;
+        }
 
-            return @out;
+        public static TIn ValueOrDefault<TIn>(this Nullable<TIn> @in)
+        where TIn : struct
+        {
+            return @in.ValueOr(default);
         }
 
 

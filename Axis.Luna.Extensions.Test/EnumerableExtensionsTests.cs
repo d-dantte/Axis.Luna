@@ -55,7 +55,9 @@ namespace Axis.Luna.Extensions.Test
                 .Permutations()
                 .Select(arr => new string(arr.ToArray()))
                 .Distinct()
-                .ForAll(Console.WriteLine);
+                .WithEach(Console.WriteLine)
+                .Count()
+                .Consume(count => Console.WriteLine("Total combination count: " + count));
 
         }
     }

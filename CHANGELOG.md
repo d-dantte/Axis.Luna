@@ -1,4 +1,11 @@
 
+## Release 6.0.0 - 2022/08/27
+* Axis.*
+	* Added support for `net6.0`
+	* Added `EventTimer` type.
+	* Added more methods for `AsyncLock`
+	* Added `Fold` extension methods for Operations.
+
 ## Released 5.1.0 - 2020/05/04
 
 * Axis.Luna.Extensions

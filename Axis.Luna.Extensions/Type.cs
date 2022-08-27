@@ -107,17 +107,36 @@ namespace Axis.Luna.Extensions
                 .Any(_i => _i.IsGenericType && _i.GetGenericTypeDefinition() == genericDefinitionInterfaceType);
 
 
-        public static Type GetGenericBase(this Type type, Type genericDefinitionBaseType)
+        public static Type GetGenericBase(this Type type, Type genericBaseDefinition)
         {
-            genericDefinitionBaseType
+            genericBaseDefinition
                 .ThrowIf(t => !t.IsGenericTypeDefinition, new ArgumentException("base type is not a generic type definition"))
-                .ThrowIf(t => !t.IsClass, new ArgumentException($"supplied {nameof(genericDefinitionBaseType)} type is not a class"));
+                .ThrowIf(t => !t.IsClass, new ArgumentException($"supplied {nameof(genericBaseDefinition)} type is not a class"));
 
             return type
                 .BaseTypes()
                 .Where(_bt => _bt.IsGenericType)
-                .Where(_bt => _bt.GetGenericTypeDefinition() == genericDefinitionBaseType)
+                .Where(_bt => _bt.GetGenericTypeDefinition() == genericBaseDefinition)
                 .FirstOrDefault();
+        }
+
+        public static bool TryGetGenericBase(this Type type, Type genericBaseDefinition, out Type genericBase)
+        {
+            genericBase = null;
+
+            if (!genericBaseDefinition.IsGenericTypeDefinition)
+                return false;
+
+            if (!genericBaseDefinition.IsClass)
+                return false;
+
+            genericBase = type
+                .BaseTypes()
+                .Where(_bt => _bt.IsGenericType)
+                .Where(_bt => _bt.GetGenericTypeDefinition() == genericBaseDefinition)
+                .FirstOrDefault();
+
+            return genericBase != null;
         }
 
         public static Type GetGenericInterface(this Type type, Type genericDefinitionInterface)
@@ -131,6 +150,25 @@ namespace Axis.Luna.Extensions
                 .Where(_i => _i.IsGenericType)
                 .Where(_i => _i.GetGenericTypeDefinition() == genericDefinitionInterface)
                 .FirstOrDefault();
+        }
+
+        public static bool TryGetGenericInterface(this Type type, Type genericInterfaceDefinition, out Type genericInterface)
+        {
+            genericInterface = null;
+
+            if (!genericInterfaceDefinition.IsGenericTypeDefinition)
+                return false;
+
+            if (!genericInterfaceDefinition.IsInterface)
+                return false;
+
+            genericInterface = type
+                .GetInterfaces()
+                .Where(_bt => _bt.IsGenericType)
+                .Where(_bt => _bt.GetGenericTypeDefinition() == genericInterfaceDefinition)
+                .FirstOrDefault();
+
+            return genericInterface != null;
         }
 
         /// <summary>
@@ -218,6 +256,10 @@ namespace Axis.Luna.Extensions
             }
         }
 
+        #endregion
+
+        #region Property access
+
         public static MemberInfo Member(Expression<Func<object>> expr)
         {
             if (!(expr is LambdaExpression lambda)) return null;
@@ -250,10 +292,6 @@ namespace Axis.Luna.Extensions
             }
             else return null;
         }
-
-        #endregion
-
-        #region Property access
 
         public static PropertyInfo Property<V>(Expression<Func<V>> expr) => Member(expr).As<PropertyInfo>();
 

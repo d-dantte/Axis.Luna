@@ -303,6 +303,9 @@ namespace Axis.Luna.Common.Types.Basic
 
     }
 
+    /// <summary>
+    /// Key value pair formated like css properties: <c>key-1:value1;</c>
+    /// </summary>
     public struct BasicMetadata
     {
         public string Key { get; }

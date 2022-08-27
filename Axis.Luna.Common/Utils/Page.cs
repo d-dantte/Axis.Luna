@@ -5,23 +5,40 @@ using System.Linq;
 namespace Axis.Luna.Common.Utils
 {
     /// <summary>
-    /// 
+    /// Represents an indexed chunk of continguous data from a stream of data
     /// </summary>
-    /// <typeparam name="TData"></typeparam>
+    /// <typeparam name="TData">The type of data</typeparam>
     public struct Page<TData>
     {
-        private TData[] _data;
+        private readonly TData[] _data;
         private readonly int _dataHash;
 
         public IEnumerable<TData> Data => _data;
 
+        /// <summary>
+        /// Index of the current page. Indices start from 0.
+        /// <para>
+        /// If the original stream is divided by the value of <c>MaxCount</c> into chunks, this index represents the <c>n-1th</c> chunk
+        /// </para>
+        /// </summary>
         public int Index { get; }
 
+        /// <summary>
+        /// Ordinal page number. This is effectively <see cref="Page{TData}.Index"/> <c>+ 1</c>
+        /// </summary>
         public int PageNumber => Index + 1;
 
+        /// <summary>
+        /// The maximum number of items that can be contained by a page
+        /// </summary>
         public int MaxCount { get; }
 
-
+        /// <summary>
+        /// Creates a new page given a chunk of data
+        /// </summary>
+        /// <param name="index">The page index</param>
+        /// <param name="maxCount">The max count value</param>
+        /// <param name="data">The data chunk</param>
         public Page(int index, int maxCount, params TData[] data)
         {
             _data = new TData[data.Length];
@@ -32,6 +49,12 @@ namespace Axis.Luna.Common.Utils
             _dataHash = Luna.Extensions.Common.ValueHash(_data);
         }
 
+
+        /// <summary>
+        /// Creates a new page given a chunk of data
+        /// </summary>
+        /// <param name="index">The page index</param>
+        /// <param name="data">The data chunk</param>
         public Page(int index, params TData[] data)
             :this(index, data.Length, data)
         {
@@ -51,22 +74,36 @@ namespace Axis.Luna.Common.Utils
     }
 
     /// <summary>
-    /// 
+    /// This struct is used to generate pagination references - i.e, given some parameters, it creates an array of consecutive page indexes.
     /// </summary>
     public struct PageAdjacencySet
     {
         private readonly int[] _adjacencySet;
         private readonly int _adjacencyHash;
 
+        /// <summary>
+        /// The total number of values in the orignal sequence of items
+        /// </summary>
         public int SequenceLength { get; }
 
+        /// <summary>
+        /// The maximum number of times that can reside in a page
+        /// </summary>
         public int PageLength { get; }
 
+        /// <summary>
+        /// The index of the page that sits in the relative center of the Adjacency set
+        /// </summary>
         public int PageIndex { get; }
 
+        /// <summary>
+        /// The list of page indices.
+        /// </summary>
         public IEnumerable<int> PageRefs => _adjacencySet;
 
-
+        /// <summary>
+        /// Create an adjacency set
+        /// </summary>
         public PageAdjacencySet(int sequenceLength, int pageLength, int pageIndex, int setLength = 1)
         {
             if (sequenceLength < 0)

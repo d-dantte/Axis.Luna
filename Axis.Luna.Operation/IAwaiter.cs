@@ -25,7 +25,7 @@ namespace Axis.Luna.Operation
         void GetResult();
     }
 
-    public interface IAwaiter<Result> : INotifyCompletion
+    public interface IAwaiter<out Result> : INotifyCompletion
     {
         /// <summary>
         /// Indicates if the operation has completed

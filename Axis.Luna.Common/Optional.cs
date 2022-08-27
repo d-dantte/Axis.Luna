@@ -188,7 +188,9 @@ namespace Axis.Luna.Common
         where TOut : class
         where TIn : class
         {
-            return value.AsOptional().Map(@in => mapper.Invoke(@in));
+            return value
+                .AsOptional()
+                .Map(mapper.Invoke);
         }
     }
 }

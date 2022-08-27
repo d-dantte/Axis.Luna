@@ -6,7 +6,7 @@ namespace Axis.Luna.Operation
         IAwaiter GetAwaiter();
     }
 
-    public interface IAwaitable<Result>
+    public interface IAwaitable<out Result>
     {
         IAwaiter<Result> GetAwaiter();
     }

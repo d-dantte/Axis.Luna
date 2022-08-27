@@ -8,7 +8,7 @@ namespace Axis.Luna.Extensions
 {
 
     //[DebuggerStepThrough]
-    public static class Enumerable
+    public static class EnumerableExtensions
     {
         public static bool IsEmpty<T>(this T[] array)
             => array
@@ -427,7 +427,7 @@ namespace Axis.Luna.Extensions
                     .SelectMany((value, index) =>
                     {
                         var primary = new[] { value };
-                        return Enumerable
+                        return EnumerableExtensions
                             .Permutations(Splice(values, index))
                             .Select(perm =>
                             {

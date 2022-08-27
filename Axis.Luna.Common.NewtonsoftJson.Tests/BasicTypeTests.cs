@@ -8,7 +8,7 @@ using static Axis.Luna.Common.Types.Basic.BaseExtensions;
 namespace Axis.Luna.Common.NewtonsoftJson.Tests
 {
     [TestClass]
-    public class MiscTest
+    public class BasicTypeTests
     {
         [TestMethod]
         public void TestMethod1()

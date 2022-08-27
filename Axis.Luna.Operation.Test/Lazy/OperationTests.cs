@@ -763,6 +763,31 @@ namespace Axis.Luna.Operation.Test.Lazy
 
         #endregion
 
+        #region Functional Tests
+        [TestMethod]
+        public async Task Try_ShouldNotExecutTillResolved()
+        {
+            var isExecuted = false;
+            var op = Operation.Try(() => isExecuted = true);
+
+            Assert.IsFalse(isExecuted);
+            _ = await op;
+            Assert.IsTrue(isExecuted);
+        }
+
+        [TestMethod]
+        public async Task MapError_FromNonExecutedOperation_ShouldReturnANonExecutedOperation()
+        {
+            var op = Operation.Try(() => new Exception().Throw<int>());
+            var eop = op.MapError(error => Console.WriteLine("mapped"));
+
+            Assert.AreEqual(null, eop.Succeeded);
+            await eop;
+            Assert.AreEqual(true, eop.Succeeded);
+            Assert.AreEqual(false, op.Succeeded);
+        }
+        #endregion
+
 
         public class SpecialException: Exception
         {

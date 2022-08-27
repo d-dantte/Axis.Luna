@@ -2,7 +2,6 @@
 {
 	public interface IResolvable
 	{
-
 		void Resolve();
 
 		bool TryResolve(out OperationError error);

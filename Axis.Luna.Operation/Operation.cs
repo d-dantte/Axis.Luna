@@ -10,7 +10,7 @@ namespace Axis.Luna.Operation
     /// A construct that enables railway - style coding using delegates. It is also awaitable
     /// </summary>
     /// <typeparam name="R"></typeparam>
-    public abstract class Operation : IAwaitable
+    public abstract class Operation : IAwaitable //, IOperation
     {
         public abstract IAwaiter GetAwaiter();
 
@@ -80,7 +80,7 @@ namespace Axis.Luna.Operation
             }
             catch(Exception e)
             {
-                return Operation.Fail<Result>(e);
+                return Fail<Result>(e);
             }
         }
         public static Operation Try(Func<Operation> op)
@@ -91,7 +91,7 @@ namespace Axis.Luna.Operation
             }
             catch (Exception e)
             {
-                return Operation.Fail(e);
+                return Fail(e);
             }
         }
         #endregion
@@ -131,7 +131,7 @@ namespace Axis.Luna.Operation
     /// A construct that enables railway - style coding using delegates. It is also awaitable
     /// </summary>
     /// <typeparam name="TResult"></typeparam>
-    public abstract class Operation<TResult> : IAwaitable<TResult>
+    public abstract class Operation<TResult> : IAwaitable<TResult> //, IOperation<TResult>
     {
         public abstract IAwaiter<TResult> GetAwaiter();
 

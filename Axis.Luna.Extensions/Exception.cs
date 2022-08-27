@@ -170,6 +170,14 @@ namespace Axis.Luna.Extensions
         public static T ThrowIfDefault<T>(this T value, string message = null)
         where T : struct => value.ThrowIfDefault(new Exception(message));
 
+        public static T? ThrowIfDefault<T>(this T? value, System.Exception ex) where T : struct
+        {
+            if (default(T?).Equals(value.Value))
+                return ex.Throw<T?>();
+
+            return value;
+        }
+
         public static T ThrowIf<T>(this T value, Func<T, bool> predicate, System.Exception e)
         {
             if (predicate(value))

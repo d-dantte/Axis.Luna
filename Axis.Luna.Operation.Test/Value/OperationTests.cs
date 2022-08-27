@@ -1,10 +1,17 @@
-﻿using System;
+﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System;
 using System.Collections.Generic;
 using System.Text;
 
 namespace Axis.Luna.Operation.Test.Value
 {
-    class OperationTests
+    [TestClass]
+    public class OperationTests
     {
+        [TestMethod]
+        public void MapError_FromNonExecutedOperation_ShouldReturnANonExecutedOperation()
+        {
+
+        }
     }
 }

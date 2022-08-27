@@ -168,7 +168,7 @@ namespace Axis.Luna.Extensions
         => ValueHash(19, 181, values);
 
 
-        #region ApplyTo/Consume/Use
+        #region Apply/Consume/Use
 
         /// <summary>
         /// Applies the mapping function to the given input argument
