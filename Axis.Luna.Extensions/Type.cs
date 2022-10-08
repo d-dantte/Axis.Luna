@@ -83,6 +83,28 @@ namespace Axis.Luna.Extensions
         #region Inheritance
 
         /// <summary>
+        /// Verifies that the given GENERIC interface type has the supplied generic type definition defined on it.
+        /// </summary>
+        /// <param name="interfaceType">The generic interface</param>
+        /// <param name="genericTypeDefinition">The generic interface type definition</param>
+        public static bool HasGenericInterfaceDefinition(this Type interfaceType, Type genericTypeDefinition)
+        {
+            if (interfaceType == null)
+                throw new ArgumentNullException(nameof(interfaceType));
+
+            if (genericTypeDefinition == null)
+                throw new ArgumentNullException(nameof(genericTypeDefinition));
+
+            if (!interfaceType.IsInterface || !interfaceType.IsGenericType)
+                return false;
+
+            if (!genericTypeDefinition.IsGenericTypeDefinition)
+                return false;
+
+            return interfaceType.GetGenericTypeDefinition().Equals(genericTypeDefinition);
+        }
+
+        /// <summary>
         /// NOTE: his will fail if <c>genericDefinitionBaseType</c> is the <c>GenericTypeDefinition</c> of <c>type</c>
         /// </summary>
         /// <param name="type"></param>
@@ -176,16 +198,31 @@ namespace Axis.Luna.Extensions
         /// </summary>
         /// <param name="type">The type to test against. Can be a class or struct, or interface, etc.</param>
         /// <param name="firstInterface">The first interface to check for implementation</param>
-        /// <param name="implementedInterfaces">Multiple interfaces to check for implementation</param>
-        /// <returns></returns>
-        public static bool Implements(this Type type, Type firstInterface, params Type[] implementedInterfaces)
+        /// <param name="otherInterfaces">Multiple interfaces to check for implementation</param>
+        public static bool Implements(this Type type, Type firstInterface, params Type[] otherInterfaces)
         {
-            var interfaces = type.GetInterfaces();
+            var interfaces = new HashSet<Type>(type.GetInterfaces());
             return firstInterface
-                .Concat(implementedInterfaces)
+                .EnumerateWith(otherInterfaces)
                 .Distinct()
                 .Where(@interface => @interface.IsInterface)
                 .All(interfaces.Contains);
+        }
+
+        /// <summary>
+        /// Verifies that the given type implements any of the supplied interfaces.
+        /// </summary>
+        /// <param name="type">The type to test against. Can be a class or struct, or interface, etc.</param>
+        /// <param name="firstInterface">The first interface to check for implementation</param>
+        /// <param name="otherInterfaces">Multiple interfaces to check for implementation</param>
+        public static bool ImplementsAny(this Type type, Type firstInterface, params Type[] otherInterfaces)
+        {
+            var interfaces = new HashSet<Type>(type.GetInterfaces());
+            return firstInterface
+                .EnumerateWith(otherInterfaces)
+                .Distinct()
+                .Where(@interface => @interface.IsInterface)
+                .Any(interfaces.Contains);
         }
 
         /// <summary>
@@ -200,7 +237,7 @@ namespace Axis.Luna.Extensions
             Type type,
             Type baseType,
             params Type[] otherBases)
-            => type.Extends(baseType.Concat(otherBases).ToArray());
+            => type.Extends(baseType.EnumerateWith(otherBases).ToArray());
 
         /// <summary>
         /// 

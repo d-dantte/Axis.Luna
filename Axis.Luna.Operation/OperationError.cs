@@ -18,7 +18,7 @@ namespace Axis.Luna.Operation
 
     public class OperationError
     {
-        private Exception _exception;
+        private readonly Exception _exception;
 
         public string Message { get; }
         public string Code { get; }

@@ -18,7 +18,7 @@ namespace Axis.Luna.Extensions
         public static bool IsNullOrEmpty<T>(this T[] array)
         {
             return array == null
-                || array.Length == 0;
+                || array.IsEmpty();
         }
 
         /// <summary>
@@ -98,6 +98,7 @@ namespace Axis.Luna.Extensions
             return null;
         }
 
+
         /// <summary>
         /// Snips the enumerable at the specified POSITIVE index, making it the head of the enumerable, splicing the old head at the tail
         /// e.g
@@ -165,25 +166,27 @@ namespace Axis.Luna.Extensions
             else return enumerable.All(xpredicate) && count > 0;
         }
 
-        public static IEnumerable<KeyValuePair<K, V>> PairWith<K, V>(this IEnumerable<K> keys, IEnumerable<V> values)
+        public static IEnumerable<(K, V)> PairWith<K, V>(this IEnumerable<K> keys, IEnumerable<V> values)
         {
             using var ktor = keys.GetEnumerator();
             using var vtor = values.GetEnumerator();
             while (ktor.MoveNext() && vtor.MoveNext())
-                yield return ktor.Current.ValuePair(vtor.Current);
+                yield return (ktor.Current, vtor.Current);
         }
 
-        public static IEnumerable<KeyValuePair<K, V>> PairWith<K, V>(this IEnumerable<K> keys, IEnumerable<V> values, bool padWithDefault)
+        public static IEnumerable<(K, V)> PairWith<K, V>(this IEnumerable<K> keys, IEnumerable<V> values, bool padWithDefault)
         {
             return !padWithDefault ? keys.PairWith(values) : keys.PairWithPad(values);
         }
 
-        private static IEnumerable<KeyValuePair<K, V>> PairWithPad<K, V>(this IEnumerable<K> keys, IEnumerable<V> values)
+        private static IEnumerable<(K, V)> PairWithPad<K, V>(this IEnumerable<K> keys, IEnumerable<V> values)
         {
             using var ktor = keys.GetEnumerator();
             using var vtor = values.GetEnumerator();
-            while (ktor.MoveNext())
-                yield return ktor.Current.ValuePair(vtor.MoveNext() ? vtor.Current : default);
+            while(ktor.TryGetNext(out K kvalue) | vtor.TryGetNext(out V vvalue))
+            {
+                yield return (kvalue, vvalue);
+            }
         }
 
         public static void ForAll<T>(this IEnumerable<T> enumerable, Action<long, T> loopAction)
@@ -254,14 +257,14 @@ namespace Axis.Luna.Extensions
             return newValue;
         }
 
-        #region Concat
-        public static IEnumerable<T> Concat<T>(this T value, T otherValue)
+        #region Conca 
+        public static IEnumerable<T> EnumerateWith<T>(this T value, T otherValue)
         {
             yield return value;
             yield return otherValue;
         }
 
-        public static IEnumerable<T> Concat<T>(this T value, IEnumerable<T> values)
+        public static IEnumerable<T> EnumerateWith<T>(this T value, IEnumerable<T> values)
         {
             yield return value;
             foreach (var t in values)
@@ -270,7 +273,7 @@ namespace Axis.Luna.Extensions
             }
         }
 
-        public static IEnumerable<T> Concat<T>(this T value, params T[] values)
+        public static IEnumerable<T> EnumerateWith<T>(this T value, params T[] values)
         {
             yield return value;
             foreach (var t in values)
@@ -349,14 +352,6 @@ namespace Axis.Luna.Extensions
 
         public static async Task<TValue> GetOrAddAsync<TKey, TValue>(this IDictionary<TKey, TValue> @this, TKey key, Func<TKey, Task<TValue>> valueFactory)
         {
-            //return await AsyncLock(async () =>
-            //{
-            //    if (!@this.TryGetValue(key, out TValue value))
-            //        @this.Add(key, value = await valueFactory(key));
-
-            //    return value;
-            //});
-
             if (!@this.TryGetValue(key, out TValue value))
                 @this.Add(key, value = await valueFactory(key));
 
@@ -409,7 +404,7 @@ namespace Axis.Luna.Extensions
            });
 
         /// <summary>
-        /// 
+        /// Resolve the permutations of the given enumerable
         /// </summary>
         /// <param name="values"></param>
         /// <returns></returns>
@@ -595,5 +590,19 @@ namespace Axis.Luna.Extensions
         public static int BatchCount<T>(this IQueryable<T> source, int batchSize)
         => (int)Math.Round(((double)source.Count()) / batchSize, MidpointRounding.AwayFromZero);
         #endregion
+
+        public static bool TryGetNext<T>(this IEnumerator<T> enumerator, out T value)
+        {
+            if(enumerator.MoveNext())
+            {
+                value = enumerator.Current;
+                return true;
+            }
+            else
+            {
+                value = default;
+                return false;
+            }
+        }
     }
 }

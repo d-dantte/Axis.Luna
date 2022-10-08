@@ -16,7 +16,7 @@
 	[Done]
 
  -	Make IOperation into an awaitable type: currently, AsyncOperation is the only awaitable implementation
-	[Next Version]
+	[Done]
 
  -	Make Operation functions debugger pass-through 
 	[Next Version]
@@ -28,7 +28,7 @@
 	[Done]
 
  -  ResolvedOps should have special recognition for functions that return Operations - it should return the inner operation. 
-	[Next Version]
+	[Done]
 
  -	AsyncOps should have special recognition for functions that return tasks. 
     [Done]

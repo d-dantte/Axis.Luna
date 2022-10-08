@@ -642,5 +642,24 @@ namespace Axis.Luna.Common.Test
             Assert.AreEqual(0, nullable2.Value);
         }
         #endregion
+
+        [TestMethod]
+        public void NullableContextTests()
+        {
+            Exception e = null;
+            Optional<string>? t = e?.InnerException?.Message.AsOptional();
+
+            Assert.IsFalse(t.HasValue);
+            Assert.AreEqual(default, t);
+
+            // escape the nullable context by using the brackets
+            Optional<string> t2 = (e?.InnerException?.Message).AsOptional();
+            Assert.IsFalse(t2.HasValue);
+            Assert.AreEqual(default, t2);
+
+
+            // the point of this test is to highlight how using null-coalescing operator greedily converts
+            // values to nullable types, unless a bracket is used to disable the greedy behavior
+        }
     }
 }

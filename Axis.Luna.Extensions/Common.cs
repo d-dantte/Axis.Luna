@@ -1,5 +1,4 @@
-﻿
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Cryptography;
@@ -19,13 +18,18 @@ namespace Axis.Luna.Extensions
                 && value.GetType().IsValueType;
         }
 
-        public static bool NullOrEquals<T>(this T operand1, T operand2)
-        {
-            if (operand1 == null && operand2 == null)
-                return true;
+        public static bool IsDefault<T>(this T value) => EqualityComparer<T>.Default.Equals(default, value);
 
-            return operand1?.Equals(operand2) == true;
-        }
+        public static void NoOp() { }
+
+        public static void NoOp<T>(T arg) { }
+
+        public static T Default<T>() => default;
+
+        public static TOut Default<TIn, TOut>(TIn @in) => default;
+
+        public static bool NullOrEquals<T>(this T operand1, T operand2)
+            => EqualityComparer<T>.Default.Equals(operand1, operand2);
 
         public static bool NullOrTrue<T>(this T operand1, T operand2, Func<T, T, bool> predicate)
         {
@@ -39,20 +43,6 @@ namespace Axis.Luna.Extensions
                 return predicate.Invoke(operand1, operand2);
 
             return false;
-        }
-
-        public static bool NullOrEquals<T>(this T operand1, T operand2, Func<T, T, bool> equalityChecker)
-        where T : class
-        {
-            if (equalityChecker == null)
-                throw new ArgumentNullException(nameof(equalityChecker));
-
-            if (operand1 == null && operand2 == null)
-                return true;
-
-            return operand1 != null
-                && operand2 != null
-                && equalityChecker.Invoke(operand1, operand2);
         }
 
 
@@ -199,6 +189,23 @@ namespace Axis.Luna.Extensions
                 throw new ArgumentNullException(nameof(Consume));
 
             else consumer.Invoke(@in);
+
+            return @in;
+        }
+
+        public static TIn UseIf<TIn>(this
+            TIn @in,
+            Func<TIn, bool> predicate,
+            Action<TIn> consumer)
+        {
+            if (predicate == null)
+                throw new ArgumentNullException(nameof(predicate));
+
+            if (consumer == null)
+                throw new ArgumentNullException(nameof(consumer));
+
+            if (predicate.Invoke(@in))
+                consumer.Invoke(@in);
 
             return @in;
         }

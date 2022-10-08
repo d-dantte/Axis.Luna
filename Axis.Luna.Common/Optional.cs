@@ -1,5 +1,7 @@
 ﻿using Axis.Luna.Extensions;
 using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace Axis.Luna.Common
 {
@@ -191,6 +193,18 @@ namespace Axis.Luna.Common
             return value
                 .AsOptional()
                 .Map(mapper.Invoke);
+        }
+
+        public static Optional<TValue> FirstOrOptional<TValue>(this
+            IEnumerable<TValue> enumerable,
+            Func<TValue, bool> predicate = null)
+            where TValue : class
+        {
+            if (predicate == null)
+                return enumerable.FirstOrDefault().AsOptional();
+
+            else
+                return enumerable.FirstOrDefault(predicate).AsOptional();
         }
     }
 }

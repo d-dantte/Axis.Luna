@@ -5,9 +5,9 @@ using System.Threading.Tasks;
 namespace Axis.Luna.Operation.Async
 {
     /// <summary>
-    /// 
+    /// Reresents operations for asynchronious executions
     /// </summary>
-    public class AsyncOperation : Operation, IResolvable<Task>
+    public class AsyncOperation : IOperation, IResolvable<Task>
     {
         private OperationError _error;
         private readonly Task _task;
@@ -15,17 +15,12 @@ namespace Axis.Luna.Operation.Async
 
         /// <summary>
         /// Creates a new AsyncOperation.
-        /// 
-        /// <para>
-        /// NOTE: if the task producer returns a task that was created with a synchronization context in effect,
-        /// Calling "Resolve" will result in a deadlock.
-        /// </para>
         /// </summary>
         /// <param name="taskProducer">A delegate that returns the task that this operation encapsulates</param>
         internal AsyncOperation(Func<Task> taskProducer)
         {
             if (taskProducer == null)
-                throw new NullReferenceException("Invalid Task Producer Supplied");
+                throw new ArgumentNullException(nameof(taskProducer));
 
             try
             {
@@ -35,7 +30,7 @@ namespace Axis.Luna.Operation.Async
                 if (_task.Status == TaskStatus.Created)
                     _task.Start();
 
-               this._task = _task.ContinueWith(_t =>
+                this._task = _task.ContinueWith(_t =>
                 {
                     if (_t.Status == TaskStatus.Faulted
                         || _t.Status == TaskStatus.Canceled)
@@ -73,8 +68,7 @@ namespace Axis.Luna.Operation.Async
         }
 
         /// <summary>
-        /// Creates a new AsyncOperation.
-        /// 
+        /// Creates a new AsyncOperation.        /// 
         /// <para>
         /// NOTE: if the task supplied was created with a synchronization context in effect,
         /// Calling "Resolve" will result in a deadlock.
@@ -84,7 +78,7 @@ namespace Axis.Luna.Operation.Async
         internal AsyncOperation(Task task)
         {
             if(task == null)
-                throw new NullReferenceException("Invalid task supplied");
+                throw new ArgumentNullException(nameof(task));
 
             //start the task else it cannot be awaited
             if (task.Status == TaskStatus.Created)
@@ -108,7 +102,7 @@ namespace Axis.Luna.Operation.Async
         }
 
 
-        public override bool? Succeeded
+        public bool? Succeeded
         {
             get
             {
@@ -124,9 +118,9 @@ namespace Axis.Luna.Operation.Async
             }
         }
 
-        public override IAwaiter GetAwaiter() => _taskAwaiter;
+        public IAwaiter GetAwaiter() => _taskAwaiter;
 
-        public override OperationError Error => _error;
+        public OperationError Error => _error;
 
         public Task GetTask() => _task;
 
@@ -163,72 +157,114 @@ namespace Axis.Luna.Operation.Async
         #region Mappers
 
         #region Success mappers
-        public override Operation Then(Action action)
+        public IOperation Then(Action action)
         {
-            if (TryInvalidateArguments(this, action, out var next))
-                return next;
+            if (action == null)
+                throw new ArgumentNullException(nameof(action));
 
-            else return Operation.Try(async () =>
+            if (Succeeded == true)
+                return Operation.Try(action);
+
+            if (Succeeded == false)
+                return this;
+
+            //Succeeded == null
+            return Operation.Try(async () =>
             {
                 await this;
                 action.Invoke();
             });
         }
 
-        public override Operation Then(Func<Task> action)
+        public IOperation Then(Func<Task> action)
         {
-            if (TryInvalidateArguments(this, action, out var next))
-                return next;
+            if (action == null)
+                throw new ArgumentNullException(nameof(action));
 
-            else return Operation.Try(async () =>
+            if (Succeeded == true)
+                return Operation.Try(action);
+
+            if (Succeeded == false)
+                return this;
+
+            //Succeeded == null
+            return Operation.Try(async () =>
             {
                 await this;
                 await action.Invoke();
             });
         }
 
-        public override Operation Then(Func<Operation> action)
+        public IOperation Then(Func<IOperation> action)
         {
-            if (TryInvalidateArguments(this, action, out var next))
-                return next;
+            if (action == null)
+                throw new ArgumentNullException(nameof(action));
 
-            else return Operation.Try(async () =>
+            if (Succeeded == true)
+                return Operation.Try(action);
+
+            if (Succeeded == false)
+                return this;
+
+            //Succeeded == null
+            return Operation.Try(async () =>
             {
                 await this;
                 await action.Invoke();
             });
         }
 
-        public override Operation<TOut> Then<TOut>(Func<TOut> action)
+        public IOperation<TOut> Then<TOut>(Func<TOut> action)
         {
-            if (TryInvalidateArguments<TOut>(this, action, out var next))
-                return next;
+            if (action == null)
+                throw new ArgumentNullException(nameof(action));
 
-            else return Operation.Try(async () =>
+            if (Succeeded == true)
+                return Operation.Try(action);
+
+            if (Succeeded == false)
+                return Operation.Fail<TOut>(Error);
+
+            //Succeeded == null
+            return Operation.Try(async () =>
             {
                 await this;
                 return action.Invoke();
             });
         }
 
-        public override Operation<TOut> Then<TOut>(Func<Task<TOut>> action)
+        public IOperation<TOut> Then<TOut>(Func<Task<TOut>> action)
         {
-            if (TryInvalidateArguments<TOut>(this, action, out var next))
-                return next;
+            if (action == null)
+                throw new ArgumentNullException(nameof(action));
 
-            else return Operation.Try(async () =>
+            if (Succeeded == true)
+                return Operation.Try(action);
+
+            if (Succeeded == false)
+                return Operation.Fail<TOut>();
+
+            //Succeeded == null
+            return Operation.Try(async () =>
             {
                 await this;
                 return await action.Invoke();
             });
         }
 
-        public override Operation<TOut> Then<TOut>(Func<Operation<TOut>> action)
+        public IOperation<TOut> Then<TOut>(Func<IOperation<TOut>> action)
         {
-            if (TryInvalidateArguments<TOut>(this, action, out var next))
-                return next;
+            if (action == null)
+                throw new ArgumentNullException(nameof(action));
 
-            else return Operation.Try(async () =>
+            if (Succeeded == true)
+                return Operation.Try(action);
+
+            if (Succeeded == false)
+                return Operation.Fail<TOut>(Error);
+
+            //Succeeded == null
+            return Operation.Try(async () =>
             {
                 await this;
                 return await action.Invoke();
@@ -237,12 +273,19 @@ namespace Axis.Luna.Operation.Async
         #endregion
 
         #region Failure mappers
-        public override Operation MapError(Action<OperationError> failureHandler)
+        public IOperation MapError(Action<OperationError> failureHandler)
         {
-            if (TryInvalidateArguments(this, failureHandler, out var next, true))
-                return next;
+            if (failureHandler == null)
+                throw new ArgumentNullException(nameof(failureHandler));
 
-            else return Operation.Try(async () =>
+            if (Succeeded == true)
+                return this;
+
+            if (Succeeded == false)
+                return Operation.Try(() => failureHandler.Invoke(Error));
+
+            //Succeeded == null
+            return Operation.Try(async () =>
             {
                 try
                 {
@@ -250,17 +293,24 @@ namespace Axis.Luna.Operation.Async
                 }
                 catch
                 {
-                    failureHandler.Invoke(this.Error);
+                    failureHandler.Invoke(Error);
                 }
             });
         }
 
-        public override Operation MapError(Func<OperationError, Task> failureHandler)
+        public IOperation MapError(Func<OperationError, Task> failureHandler)
         {
-            if (TryInvalidateArguments(this, failureHandler, out var next, true))
-                return next;
+            if (failureHandler == null)
+                throw new ArgumentNullException(nameof(failureHandler));
 
-            else return Operation.Try(async () =>
+            if (Succeeded == true)
+                return this;
+
+            if (Succeeded == false)
+                return Operation.Try(() => failureHandler.Invoke(Error));
+
+            //Succeeded == null
+            return Operation.Try(async () =>
             {
                 try
                 {
@@ -268,17 +318,24 @@ namespace Axis.Luna.Operation.Async
                 }
                 catch
                 {
-                    await failureHandler.Invoke(this.Error);
+                    await failureHandler.Invoke(Error);
                 }
             });
         }
 
-        public override Operation MapError(Func<OperationError, Operation> failureHandler)
+        public IOperation MapError(Func<OperationError, IOperation> failureHandler)
         {
-            if (TryInvalidateArguments(this, failureHandler, out var next, true))
-                return next;
+            if (failureHandler == null)
+                throw new ArgumentNullException(nameof(failureHandler));
 
-            else return Operation.Try(async () =>
+            if (Succeeded == true)
+                return this;
+
+            if (Succeeded == false)
+                return Operation.Try(() => failureHandler.Invoke(Error));
+
+            //Succeeded == null
+            return Operation.Try(async () =>
             {
                 try
                 {
@@ -286,122 +343,11 @@ namespace Axis.Luna.Operation.Async
                 }
                 catch
                 {
-                    await failureHandler.Invoke(this.Error);
-                }
-            });
-        }
-
-        public override Operation<TOut> MapError<TOut>(Func<OperationError, TOut> failureHandler)
-        {
-            if (TryInvalidateArguments<TOut>(this, failureHandler, out var next, true))
-                return next;
-
-            else return Operation.Try(async () =>
-            {
-                try
-                {
-                    await this;
-                    return default;
-                }
-                catch
-                {
-                    return failureHandler.Invoke(this.Error);
-                }
-            });
-        }
-
-        public override Operation<TOut> MapError<TOut>(Func<OperationError, Task<TOut>> failureHandler)
-        {
-            if (TryInvalidateArguments<TOut>(this, failureHandler, out var next, true))
-                return next;
-
-            else return Operation.Try(async () =>
-            {
-                try
-                {
-                    await this;
-                    return default;
-                }
-                catch
-                {
-                    return await failureHandler.Invoke(this.Error);
-                }
-            });
-        }
-
-        public override Operation<TOut> MapError<TOut>(Func<OperationError, Operation<TOut>> failureHandler)
-        {
-            if (TryInvalidateArguments<TOut>(this, failureHandler, out var next, true))
-                return next;
-
-            else return Operation.Try(async () =>
-            {
-                try
-                {
-                    await this;
-                    return default;
-                }
-                catch
-                {
-                    return await failureHandler.Invoke(this.Error);
+                    await failureHandler.Invoke(Error);
                 }
             });
         }
         #endregion
-
-        private static bool TryInvalidateArguments(
-            Operation prev,
-            object next,
-            out Operation @out,
-            bool invalidTryState = false)
-        {
-            if (prev == null)
-                @out = Operation.Fail(new ArgumentNullException("Previous operation cannot be null"));
-
-            else if (next == null)
-                @out = Operation.Fail(new ArgumentNullException("Next action cannot be null"));
-
-            else if (invalidTryState == false && prev.Succeeded == invalidTryState)
-                @out = Operation.Fail(prev.Error);
-
-            else if (invalidTryState == true && prev.Succeeded == invalidTryState)
-                @out = prev;
-
-            else
-            {
-                @out = null;
-                return false;
-            }
-
-            return true;
-        }
-
-        private static bool TryInvalidateArguments<TOut>(
-            Operation prev,
-            object next,
-            out Operation<TOut> @out,
-            bool invalidTryState = false)
-        {
-            if (prev == null)
-                @out = Operation.Fail<TOut>(new ArgumentNullException("Previous operation cannot be null"));
-
-            else if (next == null)
-                @out = Operation.Fail<TOut>(new ArgumentNullException("Next action cannot be null"));
-
-            else if (invalidTryState == false && prev.Succeeded == invalidTryState)
-                @out = Operation.Fail<TOut>(prev.Error);
-
-            else if (invalidTryState == true && prev.Succeeded == invalidTryState)
-                @out = Operation.FromResult<TOut>(default);
-
-            else
-            {
-                @out = null;
-                return false;
-            }
-
-            return true;
-        }
 
         #endregion
 
@@ -413,10 +359,10 @@ namespace Axis.Luna.Operation.Async
 
 
     /// <summary>
-    /// 
+    /// Reresents operations for asynchronious, result producing executions
     /// </summary>
     /// <typeparam name="TResult"></typeparam>
-    public class AsyncOperation<TResult> : Operation<TResult>, IResolvable<Task<TResult>>
+    public class AsyncOperation<TResult> : IOperation<TResult>, IResolvable<Task<TResult>>
     {
         private OperationError _error;
         private readonly Task<TResult> _task;
@@ -424,17 +370,12 @@ namespace Axis.Luna.Operation.Async
 
         /// <summary>
         /// Creates a new AsyncOperation.
-        /// 
-        /// <para>
-        /// NOTE: if the task producer returns a task that was created with a synchronization context in effect,
-        /// Calling "Resolve" will result in a deadlock.
-        /// </para>
         /// </summary>
         /// <param name="taskProducer">A delegate that returns the task that this operation encapsulates</param>
         internal AsyncOperation(Func<Task<TResult>> taskProducer)
         {
             if (taskProducer == null)
-                throw new NullReferenceException("Invalid Task Producer Supplied");
+                throw new ArgumentNullException("Invalid Task Producer Supplied");
 
             try
             {
@@ -496,7 +437,7 @@ namespace Axis.Luna.Operation.Async
         /// <param name="task">The task that this operation encapsulates</param>
         internal AsyncOperation(Task<TResult> task)
         {
-            var _task = task ?? throw new NullReferenceException("Invalid task supplied");
+            var _task = task ?? throw new ArgumentNullException("Invalid task supplied");
 
             if (_task.Status == TaskStatus.Created)
                 _task.Start();
@@ -523,7 +464,7 @@ namespace Axis.Luna.Operation.Async
             _taskAwaiter = new AsyncAwaiter<TResult>(this._task);
         }
         
-        public override bool? Succeeded
+        public bool? Succeeded
         {
             get
             {
@@ -539,9 +480,9 @@ namespace Axis.Luna.Operation.Async
             }
         }
 
-        public override OperationError Error => _error;
+        public OperationError Error => _error;
         
-        public override IAwaiter<TResult> GetAwaiter() => _taskAwaiter;
+        public IAwaiter<TResult> GetAwaiter() => _taskAwaiter;
 
         internal Task<TResult> GetTask() => _task;
 
@@ -549,19 +490,15 @@ namespace Axis.Luna.Operation.Async
         {
             if (_error == null)
             {
-                switch (e)
+                _error = e switch
                 {
-                    case OperationException oe:
-                        _error = oe.Error;
-                        break;
+                    OperationException oe => oe.Error,
 
-                    default:
-                        _error = new OperationError(
-                            message: e.Message,
-                            code: "GeneralError",
-                            exception: e);
-                        break;
-                }
+                    _ => new OperationError(
+                        message: e.Message,
+                        code: "GeneralError",
+                        exception: e),
+                };
             }
         }
 
@@ -580,260 +517,78 @@ namespace Axis.Luna.Operation.Async
         #region Mappers
 
         #region Success mappers
-        public override Operation Then(Action<TResult> action)
+        public IOperation Then(Action<TResult> action)
         {
-            if (TryInvalidateArguments(this, action, out var next))
-                return next;
+            if (action == null)
+                throw new ArgumentNullException(nameof(action));
 
-            else return Operation.Try(async () =>
-            {
-                var result = await this;
-                action.Invoke(result);
-            });
+            if (Succeeded == false)
+                return Operation.Fail();
+
+            //Succeeded == true || null
+            return Operation.Try(async () => action.Invoke(await this));
         }
 
-        public override Operation Then(Func<TResult, Task> action)
+        public IOperation Then(Func<TResult, Task> action)
         {
-            if (TryInvalidateArguments(this, action, out var next))
-                return next;
+            if (action == null)
+                throw new ArgumentNullException(nameof(action));
 
-            else return Operation.Try(async () =>
-            {
-                var result = await this;
-                await action.Invoke(result);
-            });
+            if (Succeeded == false)
+                return Operation.Fail(Error);
+
+            //Succeeded == true || null
+            return Operation.Try(async () => await action.Invoke(await this));
         }
 
-        public override Operation Then(Func<TResult, Operation> action)
+        public IOperation Then(Func<TResult, IOperation> action)
         {
-            if (TryInvalidateArguments(this, action, out var next))
-                return next;
+            if (action == null)
+                throw new ArgumentNullException(nameof(action));
 
-            else return Operation.Try(async () =>
-            {
-                var result = await this;
-                await action.Invoke(result);
-            });
+            if (Succeeded == false)
+                return Operation.Fail(Error);
+
+            //Succeeded == true || null
+            return Operation.Try(async () => await action.Invoke(await this));
         }
 
-        public override Operation<TOut> Then<TOut>(Func<TResult, TOut> action)
+        public IOperation<TOut> Then<TOut>(Func<TResult, TOut> action)
         {
-            if (TryInvalidateArguments<TResult, TOut>(this, action, out var next))
-                return next;
+            if (action == null)
+                throw new ArgumentNullException(nameof(action));
 
-            else return Operation.Try(async () =>
-            {
-                var result = await this;
-                return action.Invoke(result);
-            });
+            if (Succeeded == false)
+                return Operation.Fail<TOut>(Error);
+
+            //Succeeded == true || null
+            return Operation.Try(async () => action.Invoke(await this));
         }
 
-        public override Operation<TOut> Then<TOut>(Func<TResult, Task<TOut>> action)
+        public IOperation<TOut> Then<TOut>(Func<TResult, Task<TOut>> action)
         {
-            if (TryInvalidateArguments<TResult, TOut>(this, action, out var next))
-                return next;
+            if (action == null)
+                throw new ArgumentNullException(nameof(action));
 
-            else return Operation.Try(async () =>
-            {
-                var result = await this;
-                return await action.Invoke(result);
-            });
+            if (Succeeded == false)
+                return Operation.Fail<TOut>();
+
+            //Succeeded == true || null
+            return Operation.Try(async () => await action.Invoke(await this));
         }
 
-        public override Operation<TOut> Then<TOut>(Func<TResult, Operation<TOut>> action)
+        public IOperation<TOut> Then<TOut>(Func<TResult, IOperation<TOut>> action)
         {
-            if (TryInvalidateArguments<TResult, TOut>(this, action, out var next))
-                return next;
+            if (action == null)
+                throw new ArgumentNullException(nameof(action));
 
-            else return Operation.Try(async () =>
-            {
-                var result = await this;
-                return await action.Invoke(result);
-            });
-        }
-        #endregion
+            if (Succeeded == false)
+                return Operation.Fail<TOut>();
 
-        #region Failure mappers
-        public override Operation MapError(Action<OperationError> failureHandler)
-        {
-            if (TryInvalidateArguments(this, failureHandler, out var next, true))
-                return next;
-
-            else return Operation.Try(async () =>
-            {
-                try
-                {
-                    _ = await this;
-                }
-                catch
-                {
-                    failureHandler.Invoke(this.Error);
-                }
-            });
-        }
-
-        public override Operation MapError(Func<OperationError, Task> failureHandler)
-        {
-            if (TryInvalidateArguments(this, failureHandler, out var next, true))
-                return next;
-
-            else return Operation.Try(async () =>
-            {
-                try
-                {
-                    _ = await this;
-                }
-                catch
-                {
-                    await failureHandler.Invoke(this.Error);
-                }
-            });
-        }
-
-        public override Operation MapError(Func<OperationError, Operation> failureHandler)
-        {
-            if (TryInvalidateArguments(this, failureHandler, out var next, true))
-                return next;
-
-            else return Operation.Try(async () =>
-            {
-                try
-                {
-                    _ = await this;
-                }
-                catch
-                {
-                    await failureHandler.Invoke(this.Error);
-                }
-            });
-        }
-
-        public override Operation<TOut> MapError<TOut>(Func<OperationError, TOut> failureHandler)
-        {
-            if (TryInvalidateArguments<TResult, TOut>(this, failureHandler, out var next, true))
-                return next;
-
-            else return Operation.Try(async () =>
-            {
-                try
-                {
-                    var result = await this;
-
-                    if (result is TOut @out)
-                        return @out;
-
-                    else
-                        return default;
-                }
-                catch
-                {
-                    return failureHandler.Invoke(this.Error);
-                }
-            });
-        }
-
-        public override Operation<TOut> MapError<TOut>(Func<OperationError, Task<TOut>> failureHandler)
-        {
-            if (TryInvalidateArguments<TResult, TOut>(this, failureHandler, out var next, true))
-                return next;
-
-            else return Operation.Try(async () =>
-            {
-                try
-                {
-                    var result = await this;
-
-                    if (result is TOut @out)
-                        return @out;
-
-                    else
-                        return default;
-                }
-                catch
-                {
-                    return await failureHandler.Invoke(this.Error);
-                }
-            });
-        }
-
-        public override Operation<TOut> MapError<TOut>(Func<OperationError, Operation<TOut>> failureHandler)
-        {
-            if (TryInvalidateArguments<TResult, TOut>(this, failureHandler, out var next, true))
-                return next;
-
-            else return Operation.Try(async () =>
-            {
-                try
-                {
-                    var result = await this;
-
-                    if (result is TOut @out)
-                        return @out;
-
-                    else
-                        return default;
-                }
-                catch
-                {
-                    return await failureHandler.Invoke(this.Error);
-                }
-            });
+            //Succeeded == true || null
+            return Operation.Try(async () => await action.Invoke(await this));
         }
         #endregion
-
-        private static bool TryInvalidateArguments<TIn>(
-            Operation<TIn> prev,
-            object next,
-            out Operation @out,
-            bool invalidTryState = false)
-        {
-            if (prev == null)
-                @out = Operation.Fail(new ArgumentNullException("Previous operation cannot be null"));
-
-            else if (next == null)
-                @out = Operation.Fail(new ArgumentNullException("Next action cannot be null"));
-
-            else if (invalidTryState == false && prev.Succeeded == invalidTryState)
-                @out = Operation.Fail(prev.Error);
-
-            else if (invalidTryState == true && prev.Succeeded == invalidTryState)
-                @out = Operation.FromVoid();
-
-            else
-            {
-                @out = null;
-                return false;
-            }
-
-            return true;
-        }
-
-        private static bool TryInvalidateArguments<TIn, TOut>(
-            Operation<TIn> prev,
-            object next,
-            out Operation<TOut> @out,
-            bool invalidTryState = false)
-        {
-            if (prev == null)
-                @out = Operation.Fail<TOut>(new ArgumentNullException("Previous operation cannot be null"));
-
-            else if (next == null)
-                @out = Operation.Fail<TOut>(new ArgumentNullException("Next action cannot be null"));
-
-            else if (invalidTryState == false && prev.Succeeded == invalidTryState)
-                @out = Operation.Fail<TOut>(prev.Error);
-
-            else if (invalidTryState == true && prev.Succeeded == invalidTryState)
-                @out = Operation.FromResult<TOut>(default);
-
-            else
-            {
-                @out = null;
-                return false;
-            }
-
-            return true;
-        }
 
         #endregion
 

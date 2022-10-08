@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Axis.Luna.Extensions;
+using System;
 using System.Runtime.ExceptionServices;
 using System.Threading.Tasks;
 
@@ -7,14 +8,15 @@ namespace Axis.Luna.Operation.Lazy
     /// <summary>
     /// 
     /// </summary>
-    public class LazyOperation : Operation, IResolvable
+    public class LazyOperation : IOperation, IResolvable
     {
         private OperationError _error;
         private readonly LazyAwaiter _awaiter;
 
         internal LazyOperation(Action action)
         {
-            if (action == null) throw new NullReferenceException("Invalid delegate supplied");
+            if (action == null) 
+                throw new ArgumentNullException("Invalid delegate supplied");
 
             _awaiter = new LazyAwaiter(
                 errorSetter: SetError,
@@ -27,13 +29,17 @@ namespace Axis.Luna.Operation.Lazy
                     }));
         }
 
-        public override bool? Succeeded => _awaiter.IsSuccessful;
+        // <inheritdoc/>
+        public bool? Succeeded => _awaiter.IsSuccessful;
 
-        public override OperationError Error => _error;
+        // <inheritdoc/>
+        public OperationError Error => _error;
 
-        public override IAwaiter GetAwaiter() => _awaiter;
+        // <inheritdoc/>
+        public IAwaiter GetAwaiter() => _awaiter;
 
         #region Resolvable
+        // <inheritdoc/>
         void IResolvable.Resolve()
         {
             if (Succeeded == true)
@@ -45,14 +51,14 @@ namespace Axis.Luna.Operation.Lazy
             }
         }
 
+        // <inheritdoc/>
         bool IResolvable.TryResolve(out OperationError error)
         {
             if (Succeeded == null)
             {
                 try
                 {
-                    (this as IResolvable).Resolve();
-
+                    this.As<IResolvable>().Resolve();
                     error = null;
                     return true;
                 }
@@ -62,116 +68,197 @@ namespace Axis.Luna.Operation.Lazy
                     return false;
                 }
             }
-
-            error = _error;
-            return Succeeded.Value;
+            else
+            {
+                error = _error;
+                return Succeeded.Value;
+            }
         }
         #endregion
 
         #region Mappers
 
         #region Success mappers
-        public override Operation Then(Action action)
+        public IOperation Then(Action action)
         {
-            if (TryInvalidateArguments(this, action, out var next))
-                return next;
+            if (action == null)
+                throw new ArgumentNullException(nameof(action));
 
-            else return Operation.Try(() =>
+            if (Succeeded == true)
+                return Operation.Try(action);
+
+            if (Succeeded == false)
+                return this;
+
+            //Succeeded == null
+            return Operation.Try(() =>
             {
                 //this is safe from a lazy operation, and keeps us in the lazy operation domain.
-                (this as IResolvable).Resolve(); 
+                this.As<IResolvable>().Resolve();
                 action.Invoke();
             });
         }
 
-        public override Operation Then(Func<Task> action)
+        public IOperation Then(Func<Task> action)
         {
-            if (TryInvalidateArguments(this, action, out var next))
-                return next;
+            if (action == null)
+                throw new ArgumentNullException(nameof(action));
 
-            else return Operation.Try(async () =>
+            if (Succeeded == true)
+                return Operation.Try(action);
+
+            if (Succeeded == false)
+                return this;
+
+            //Succeeded == null
+            return Operation.Try(async () =>
             {
-                await this;
+                this.As<IResolvable>().Resolve();
                 await action.Invoke();
             });
         }
 
-        public override Operation Then(Func<Operation> action)
+        public IOperation Then(Func<IOperation> action)
         {
-            if (TryInvalidateArguments(this, action, out var next))
-                return next;
+            if (action == null)
+                throw new ArgumentNullException(nameof(action));
 
-            else return Operation.Try(async () =>
+            if (Succeeded == true)
+                return Operation.Try(action);
+
+            if (Succeeded == false)
+                return this;
+
+            //Succeeded == null
+            return Operation.Try(async () =>
             {
-                await this;
+                this.As<IResolvable>().Resolve();
                 await action.Invoke();
             });
         }
 
-        public override Operation<TOut> Then<TOut>(Func<TOut> action)
+        public IOperation<TOut> Then<TOut>(Func<TOut> action)
         {
-            if (TryInvalidateArguments<TOut>(this, action, out var next))
-                return next;
+            if (action == null)
+                throw new ArgumentNullException(nameof(action));
 
-            else return Operation.Try(() =>
+            if (Succeeded == true)
+                return Operation.Try(action);
+
+            if (Succeeded == false)
+                return Operation.Fail<TOut>(Error);
+
+            //Succeeded == null
+            return Operation.Try(() =>
             {
-                //this is safe from a lazy operation, and keeps us in the lazy operatio domain.
-                (this as IResolvable).Resolve();
+                this.As<IResolvable>().Resolve();
                 return action.Invoke();
             });
         }
 
-        public override Operation<TOut> Then<TOut>(Func<Task<TOut>> action)
+        public IOperation<TOut> Then<TOut>(Func<Task<TOut>> action)
         {
-            if (TryInvalidateArguments<TOut>(this, action, out var next))
-                return next;
+            if (action == null)
+                throw new ArgumentNullException(nameof(action));
 
-            else return Operation.Try(async () =>
+            if (Succeeded == true)
+                return Operation.Try(action);
+
+            if (Succeeded == false)
+                return Operation.Fail<TOut>(Error);
+
+            //Succeeded == null
+            return Operation.Try(async () =>
             {
-                await this;
+                this.As<IResolvable>().Resolve();
                 return await action.Invoke();
             });
         }
 
-        public override Operation<TOut> Then<TOut>(Func<Operation<TOut>> action)
+        public IOperation<TOut> Then<TOut>(Func<IOperation<TOut>> action)
         {
-            if (TryInvalidateArguments<TOut>(this, action, out var next))
-                return next;
+            if (action == null)
+                throw new ArgumentNullException(nameof(action));
 
-            else return Operation.Try(async () =>
+            if (Succeeded == true)
+                return Operation.Try(action);
+
+            if (Succeeded == false)
+                return Operation.Fail<TOut>(Error);
+
+            //Succeeded == null
+            return Operation.Try(async () =>
             {
-                await this;
-                return await  action.Invoke();
+                this.As<IResolvable>().Resolve();
+                return await action.Invoke();
             });
         }
         #endregion
 
         #region Failure mappers
-        public override Operation MapError(Action<OperationError> failureHandler)
+        public IOperation MapError(Action<OperationError> failureHandler)
         {
-            if (TryInvalidateArguments(this, failureHandler, out var next, true))
-                return next;
+            if (failureHandler == null)
+                throw new ArgumentNullException(nameof(failureHandler));
 
-            else return Operation.Try(() =>
+            if (Succeeded == true)
+                return this;
+
+            if (Succeeded == false)
+                return Operation.Try(() => failureHandler.Invoke(Error));
+
+            //Succeeded == null
+            return Operation.Try(() =>
             {
                 try
                 {
-                    //this is safe from a lazy operation, and keeps us in the lazy operation domain.
-                    (this as IResolvable).Resolve();
+                    this.As<IResolvable>().Resolve();
                 }
                 catch
                 {
-                    failureHandler.Invoke(this.Error);
+                    failureHandler.Invoke(Error);
                 }
             });
         }
 
-        public override Operation MapError(Func<OperationError, Task> failureHandler)
+        public IOperation MapError(Func<OperationError, Task> failureHandler)
         {
-            if (TryInvalidateArguments(this, failureHandler, out var next, true))
-                return next;
+            if (failureHandler == null)
+                throw new ArgumentNullException(nameof(failureHandler));
 
-            else return Operation.Try(async () =>
+            if (Succeeded == true)
+                return this;
+
+            if (Succeeded == false)
+                return Operation.Try(() => failureHandler.Invoke(Error));
+
+            //Succeeded == null
+            return Operation.Try(async () =>
+            {
+                try
+                {
+                    this.As<IResolvable>().Resolve();
+                }
+                catch
+                {
+                    await failureHandler.Invoke(Error);
+                }
+            });
+        }
+
+        public IOperation MapError(Func<OperationError, IOperation> failureHandler)
+        {
+            if (failureHandler == null)
+                throw new ArgumentNullException(nameof(failureHandler));
+
+            if (Succeeded == true)
+                return this;
+
+            if (Succeeded == false)
+                return Operation.Try(() => failureHandler.Invoke(Error));
+
+            //Succeeded == null
+            return Operation.Try(async () =>
             {
                 try
                 {
@@ -179,159 +266,25 @@ namespace Axis.Luna.Operation.Lazy
                 }
                 catch
                 {
-                    await failureHandler.Invoke(this.Error);
-                }
-            });
-        }
-
-        public override Operation MapError(Func<OperationError, Operation> failureHandler)
-        {
-            if (TryInvalidateArguments(this, failureHandler, out var next, true))
-                return next;
-
-            else return Operation.Try(async () =>
-            {
-                try
-                {
-                    await this;
-                }
-                catch
-                {
-                    await failureHandler.Invoke(this.Error);
-                }
-            });
-        }
-
-        public override Operation<TOut> MapError<TOut>(Func<OperationError, TOut> failureHandler)
-        {
-            if (TryInvalidateArguments<TOut>(this, failureHandler, out var next, true))
-                return next;
-
-            else return Operation.Try(() =>
-            {
-                try
-                {
-                    //this is safe from a lazy operation, and keeps us in the lazy operation domain.
-                    (this as IResolvable).Resolve();
-                    return default;
-                }
-                catch
-                {
-                    return failureHandler.Invoke(this.Error);
-                }
-            });
-        }
-
-        public override Operation<TOut> MapError<TOut>(Func<OperationError, Task<TOut>> failureHandler)
-        {
-            if (TryInvalidateArguments<TOut>(this, failureHandler, out var next, true))
-                return next;
-
-            else return Operation.Try(async () =>
-            {
-                try
-                {
-                    await this;
-                    return default;
-                }
-                catch
-                {
-                    return await failureHandler.Invoke(this.Error);
-                }
-            });
-        }
-
-        public override Operation<TOut> MapError<TOut>(Func<OperationError, Operation<TOut>> failureHandler)
-        {
-            if (TryInvalidateArguments<TOut>(this, failureHandler, out var next, true))
-                return next;
-
-            else return Operation.Try(async () =>
-            {
-                try
-                {
-                    await this;
-                    return default;
-                }
-                catch
-                {
-                    return await failureHandler.Invoke(this.Error);
+                    await failureHandler.Invoke(Error);
                 }
             });
         }
         #endregion
-
-        private static bool TryInvalidateArguments(
-            Operation prev,
-            object next,
-            out Operation @out,
-            bool invalidTryState = false)
-        {
-            if (prev == null)
-                @out = Operation.Fail(new ArgumentNullException("Previous operation cannot be null"));
-
-            else if (next == null)
-                @out = Operation.Fail(new ArgumentNullException("Next action cannot be null"));
-
-            else if (invalidTryState == false && prev.Succeeded == invalidTryState)
-                @out = Operation.Fail(prev.Error);
-
-            else if (invalidTryState == true && prev.Succeeded == invalidTryState)
-                @out = prev;
-
-            else
-            {
-                @out = null;
-                return false;
-            }
-
-            return true;
-        }
-
-        private static bool TryInvalidateArguments<TOut>(
-            Operation prev,
-            object next,
-            out Operation<TOut> @out,
-            bool invalidTryState = false)
-        {
-            if (prev == null)
-                @out = Operation.Fail<TOut>(new ArgumentNullException("Previous operation cannot be null"));
-
-            else if (next == null)
-                @out = Operation.Fail<TOut>(new ArgumentNullException("Next action cannot be null"));
-
-            else if (invalidTryState == false && prev.Succeeded == invalidTryState)
-                @out = Operation.Fail<TOut>(prev.Error);
-
-            else if (invalidTryState == true && prev.Succeeded == invalidTryState)
-                @out = Operation.FromResult<TOut>(default);
-
-            else
-            {
-                @out = null;
-                return false;
-            }
-
-            return true;
-        }
 
         #endregion
 
         private void SetError(Exception e)
         {
-            switch (e)
+            _error = e switch
             {
-                case OperationException oe:
-                    _error = oe.Error;
-                    break;
+                OperationException oe => oe.Error,
 
-                default:
-                    _error = new OperationError(
-                        message: e.Message,
-                        code: "GeneralError",
-                        exception: e);
-                    break;
-            }
+                _ => new OperationError(
+                    message: e.Message,
+                    code: "GeneralError",
+                    exception: e),
+            };
         }
 
         public static implicit operator LazyOperation(Action action) => new LazyOperation(action);
@@ -342,45 +295,48 @@ namespace Axis.Luna.Operation.Lazy
     /// 
     /// </summary>
     /// <typeparam name="TResult"></typeparam>
-    public class LazyOperation<TResult> : Operation<TResult>, IResolvable<TResult>
+    public class LazyOperation<TResult> : IOperation<TResult>, IResolvable<TResult>
     {
         private OperationError _error;
         private readonly LazyAwaiter<TResult> _awaiter;
 
         internal LazyOperation(Func<TResult> func)
         {
-            if (func == null) throw new NullReferenceException("Invalid delegate supplied");
-
             _awaiter = new LazyAwaiter<TResult>(
-                new Lazy<TResult>(func, true),
-                SetError);
+                errorSetter: SetError,
+                lazy: new Lazy<TResult>(
+                    func ?? throw new ArgumentNullException("Invalid delegate supplied"),
+                    true));
         }
 
         internal LazyOperation(Lazy<TResult> lazy)
         {
             _awaiter = new LazyAwaiter<TResult>(
-                lazy ?? throw new NullReferenceException("Invalid Lazy factory supplied"),
+                lazy ?? throw new ArgumentNullException("Invalid Lazy factory supplied"),
                 SetError);
         }
 
-        public override bool? Succeeded => _awaiter.IsSuccessful;
+        // <inheritdoc/>
+        public bool? Succeeded => _awaiter.IsSuccessful;
 
+        // <inheritdoc/>
+        public OperationError Error => _error;
 
-        public override IAwaiter<TResult> GetAwaiter() => _awaiter;
+        // <inheritdoc/>
+        public IAwaiter<TResult> GetAwaiter() => _awaiter;
 
-        public override OperationError Error => _error;
+        #region Resolvable
+        // <inheritdoc/>
+        TResult IResolvable<TResult>.Resolve() => _awaiter.GetResult();
 
-		#region Resolvable
-		TResult IResolvable<TResult>.Resolve() => _awaiter.GetResult();
-
+        // <inheritdoc/>
         bool IResolvable<TResult>.TryResolve(out TResult result, out OperationError error)
         {
             if (Succeeded == null)
             {
                 try
                 {
-                    result = (this as IResolvable<TResult>).Resolve();
-
+                    result = this.As<IResolvable<TResult>>().Resolve();
                     error = null;
                     return true;
                 }
@@ -391,292 +347,146 @@ namespace Axis.Luna.Operation.Lazy
                     return false;
                 }
             }
-
-            result = default;
-            error = _error;
-            return Succeeded.Value;
+            else
+            {
+                error = _error;
+                result = Succeeded == true ? this.As<IResolvable<TResult>>().Resolve() : default;
+                return Succeeded.Value;
+            }
         }
         #endregion
 
         #region Mappers
 
         #region Success mappers
-        public override Operation Then(Action<TResult> action)
+        public IOperation Then(Action<TResult> action)
         {
-            if (TryInvalidateArguments(this, action, out var next))
-                return next;
+            if (action == null)
+                throw new ArgumentNullException(nameof(action));
 
-            else return Operation.Try(() =>
+            if (Succeeded == true)
+                return Operation.Try(() => action.Invoke(this.As<IResolvable<TResult>>().Resolve()));
+
+            if (Succeeded == false)
+                return Operation.Fail(Error);
+
+            //Succeeded == null
+            return Operation.Try(() =>
             {
-                //this is safe from a lazy operation, and keeps us in the lazy operation domain.
-                var result = (this as IResolvable<TResult>).Resolve();
+                var result = this.As<IResolvable<TResult>>().Resolve();
                 action.Invoke(result);
             });
         }
 
-        public override Operation Then(Func<TResult, Task> action)
+        public IOperation Then(Func<TResult, Task> action)
         {
-            if (TryInvalidateArguments(this, action, out var next))
-                return next;
+            if (action == null)
+                throw new ArgumentNullException(nameof(action));
 
-            else return Operation.Try(async () =>
+            if (Succeeded == true)
+                return Operation.Try(() => action.Invoke(this.As<IResolvable<TResult>>().Resolve()));
+
+            if (Succeeded == false)
+                return Operation.Fail(Error);
+
+            //Succeeded == null
+            return Operation.Try(() =>
             {
-                var result = await this;
-                await action.Invoke(result);
-            });
-        }
-
-        public override Operation Then(Func<TResult, Operation> action)
-        {
-            if (TryInvalidateArguments(this, action, out var next))
-                return next;
-
-            else return Operation.Try(async () =>
-            {
-                var result = await this;
-                await action.Invoke(result);
-            });
-        }
-
-        public override Operation<TOut> Then<TOut>(Func<TResult, TOut> action)
-        {
-            if (TryInvalidateArguments<TResult, TOut>(this, action, out var next))
-                return next;
-
-            else return Operation.Try(() =>
-            {
-                //this is safe from a lazy operation, and keeps us in the lazy operatio domain.
-                var result = (this as IResolvable<TResult>).Resolve();
+                var result = this.As<IResolvable<TResult>>().Resolve();
                 return action.Invoke(result);
             });
         }
 
-        public override Operation<TOut> Then<TOut>(Func<TResult, Task<TOut>> action)
+        public IOperation Then(Func<TResult, IOperation> action)
         {
-            if (TryInvalidateArguments<TResult, TOut>(this, action, out var next))
-                return next;
+            if (action == null)
+                throw new ArgumentNullException(nameof(action));
 
-            else return Operation.Try(async () =>
+            if (Succeeded == true)
+                return Operation.Try(() => action.Invoke(this.As<IResolvable<TResult>>().Resolve()));
+
+            if (Succeeded == false)
+                return Operation.Fail(Error);
+
+            //Succeeded == null
+            return Operation.Try(() =>
             {
-                var result = await this;
-                return await action.Invoke(result);
+                var result = this.As<IResolvable<TResult>>().Resolve();
+                return action.Invoke(result);
             });
         }
 
-        public override Operation<TOut> Then<TOut>(Func<TResult, Operation<TOut>> action)
+        public IOperation<TOut> Then<TOut>(Func<TResult, TOut> action)
         {
-            if (TryInvalidateArguments<TResult, TOut>(this, action, out var next))
-                return next;
+            if (action == null)
+                throw new ArgumentNullException(nameof(action));
 
-            else return Operation.Try(async () =>
+            if (Succeeded == true)
+                return Operation.Try(() => action.Invoke(this.As<IResolvable<TResult>>().Resolve()));
+
+            if (Succeeded == false)
+                return Operation.Fail<TOut>(Error);
+
+            //Succeeded == null
+            return Operation.Try(() =>
             {
-                var result = await this;
-                return await action.Invoke(result);
-            });
-        }
-        #endregion
-
-        #region Failure mappers
-        public override Operation MapError(Action<OperationError> failureHandler)
-        {
-            if (TryInvalidateArguments(this, failureHandler, out var next, true))
-                return next;
-
-            else return Operation.Try(() =>
-            {
-                try
-                {
-                    //this is safe from a lazy operation, and keeps us in the lazy operation domain.
-                    _ = (this as IResolvable<TResult>).Resolve();
-                }
-                catch
-                {
-                    failureHandler.Invoke(this.Error);
-                }
+                var result = this.As<IResolvable<TResult>>().Resolve();
+                return action.Invoke(result);
             });
         }
 
-        public override Operation MapError(Func<OperationError, Task> failureHandler)
+        public IOperation<TOut> Then<TOut>(Func<TResult, Task<TOut>> action)
         {
-            if (TryInvalidateArguments(this, failureHandler, out var next, true))
-                return next;
+            if (action == null)
+                throw new ArgumentNullException(nameof(action));
 
-            else return Operation.Try(async () =>
+            if (Succeeded == true)
+                return Operation.Try(() => action.Invoke(this.As<IResolvable<TResult>>().Resolve()));
+
+            if (Succeeded == false)
+                return Operation.Fail<TOut>(Error);
+
+            //Succeeded == null
+            return Operation.Try(() =>
             {
-                try
-                {
-                    _ = await this;
-                }
-                catch
-                {
-                    await failureHandler.Invoke(this.Error);
-                }
+                var result = this.As<IResolvable<TResult>>().Resolve();
+                return action.Invoke(result);
             });
         }
 
-        public override Operation MapError(Func<OperationError, Operation> failureHandler)
+        public IOperation<TOut> Then<TOut>(Func<TResult, IOperation<TOut>> action)
         {
-            if (TryInvalidateArguments(this, failureHandler, out var next, true))
-                return next;
+            if (action == null)
+                throw new ArgumentNullException(nameof(action));
 
-            else return Operation.Try(async () =>
+            if (Succeeded == true)
+                return Operation.Try(() => action.Invoke(this.As<IResolvable<TResult>>().Resolve()));
+
+            if (Succeeded == false)
+                return Operation.Fail<TOut>(Error);
+
+            //Succeeded == null
+            return Operation.Try(() =>
             {
-                try
-                {
-                    _ = await this;
-                }
-                catch
-                {
-                    await failureHandler.Invoke(this.Error);
-                }
-            });
-        }
-
-        public override Operation<TOut> MapError<TOut>(Func<OperationError, TOut> failureHandler)
-        {
-            if (TryInvalidateArguments<TResult, TOut>(this, failureHandler, out var next, true))
-                return next;
-
-            else return Operation.Try(() =>
-            {
-                try
-                {
-                    //this is safe from a lazy operation, and keeps us in the lazy operation domain.
-                    var result = (this as IResolvable<TResult>).Resolve();
-
-                    if (result is TOut @out)
-                        return @out;
-
-                    else
-                        return default;
-                }
-                catch
-                {
-                    return failureHandler.Invoke(this.Error);
-                }
-            });
-        }
-
-        public override Operation<TOut> MapError<TOut>(Func<OperationError, Task<TOut>> failureHandler)
-        {
-            if (TryInvalidateArguments<TResult, TOut>(this, failureHandler, out var next, true))
-                return next;
-
-            else return Operation.Try(async () =>
-            {
-                try
-                {
-                    var result = await this;
-
-                    if (result is TOut @out)
-                        return @out;
-
-                    else
-                        return default;
-                }
-                catch
-                {
-                    return await failureHandler.Invoke(this.Error);
-                }
-            });
-        }
-
-        public override Operation<TOut> MapError<TOut>(Func<OperationError, Operation<TOut>> failureHandler)
-        {
-            if (TryInvalidateArguments<TResult, TOut>(this, failureHandler, out var next, true))
-                return next;
-
-            else return Operation.Try(async () =>
-            {
-                try
-                {
-                    var result = await this;
-
-                    if (result is TOut @out)
-                        return @out;
-
-                    else
-                        return default;
-                }
-                catch
-                {
-                    return await failureHandler.Invoke(this.Error);
-                }
+                var result = this.As<IResolvable<TResult>>().Resolve();
+                return action.Invoke(result);
             });
         }
         #endregion
-
-        private static bool TryInvalidateArguments<TIn>(
-            Operation<TIn> prev,
-            object next,
-            out Operation @out,
-            bool invalidTryState = false)
-        {
-            if (prev == null)
-                @out = Operation.Fail(new ArgumentNullException("Previous operation cannot be null"));
-
-            else if (next == null)
-                @out = Operation.Fail(new ArgumentNullException("Next action cannot be null"));
-
-            else if (invalidTryState == false && prev.Succeeded == invalidTryState)
-                @out = Operation.Fail(prev.Error);
-
-            else if (invalidTryState == true && prev.Succeeded == invalidTryState)
-                @out = Operation.FromVoid();
-
-            else
-            {
-                @out = null;
-                return false;
-            }
-
-            return true;
-        }
-
-        private static bool TryInvalidateArguments<TIn, TOut>(
-            Operation<TIn> prev,
-            object next,
-            out Operation<TOut> @out,
-            bool invalidTryState = false)
-        {
-            if (prev == null)
-                @out = Operation.Fail<TOut>(new ArgumentNullException("Previous operation cannot be null"));
-
-            else if (next == null)
-                @out = Operation.Fail<TOut>(new ArgumentNullException("Next action cannot be null"));
-
-            else if (invalidTryState == false && prev.Succeeded == invalidTryState)
-                @out = Operation.Fail<TOut>(prev.Error);
-
-            else if (invalidTryState == true && prev.Succeeded == invalidTryState)
-                @out = Operation.FromResult<TOut>(default);
-
-            else
-            {
-                @out = null;
-                return false;
-            }
-
-            return true;
-        }
 
         #endregion
 
         private void SetError(Exception e)
         {
-            switch(e)
+            _error = e switch
             {
-                case OperationException oe:
-                    _error = oe.Error;
-                    break;
+                OperationException oe => oe.Error,
 
-                default:
-                    _error = new OperationError(
-                        message: e.Message,
-                        code: "GeneralError",
-                        exception: e);
-                    break;
-            }
+                _ => new OperationError(
+                    message: e.Message,
+                    code: "GeneralError",
+                    exception: e),
+            };
         }
 
 		public static implicit operator LazyOperation<TResult>(Func<TResult> func) => new LazyOperation<TResult>(func);

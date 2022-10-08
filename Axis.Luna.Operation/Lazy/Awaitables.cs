@@ -7,7 +7,7 @@ namespace Axis.Luna.Operation.Lazy
 
     public struct LazyAwaiter : IAwaiter, ICriticalNotifyCompletion
     {
-        private List<Action> _continuations;
+        private readonly List<Action> _continuations;
         private readonly CustomLazy<object> _lazy;
 
         public LazyAwaiter(CustomLazy<object> lazy, Action<Exception> errorSetter)
@@ -109,7 +109,7 @@ namespace Axis.Luna.Operation.Lazy
     public struct LazyAwaiter<Result> : IAwaiter<Result>, ICriticalNotifyCompletion
     {
         private readonly CustomLazy<Result> _lazy;
-        private List<Action> _continuations;
+        private readonly List<Action> _continuations;
 
         public LazyAwaiter(CustomLazy<Result> lazy, Action<Exception> errorSetter)
         {

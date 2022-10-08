@@ -17,7 +17,7 @@ namespace Axis.Luna.Operation.Test.Async
             var task = Task.FromResult(5);
             var awaiter = new AsyncAwaiter(task);
 
-            Assert.IsNotNull(awaiter.Task);
+            Assert.AreEqual(task, awaiter.Task);
             Assert.AreNotEqual(default, awaiter.TaskAwaitable);
             Assert.AreNotEqual(default, awaiter.TaskAwaiter);
             Assert.IsTrue(awaiter.IsCompleted);
@@ -38,15 +38,14 @@ namespace Axis.Luna.Operation.Test.Async
 
             awaiter = new AsyncAwaiter(task);
 
-            Assert.IsNotNull(awaiter.Task);
+            Assert.AreEqual(task, awaiter.Task);
             Assert.AreNotEqual(default, awaiter.TaskAwaitable);
             Assert.AreNotEqual(default, awaiter.TaskAwaiter);
             Assert.IsFalse(awaiter.IsCompleted);
             Assert.IsNull(awaiter.IsSuccessful);
 
-            await Task.Yield(); //force this current method to yield so 'task' can run
             cancellationSource.Cancel();
-            await Task.WhenAll(task);
+            await task;
             Assert.IsTrue(awaiter.IsCompleted);
             Assert.IsTrue(awaiter.IsSuccessful == true);
 
@@ -56,7 +55,7 @@ namespace Axis.Luna.Operation.Test.Async
             awaiter = new AsyncAwaiter(task);
             var awaitable = new SampleAwaitable(awaiter);
 
-            Assert.IsNotNull(awaiter.Task);
+            Assert.AreEqual(task, awaiter.Task);
             Assert.AreNotEqual(default, awaiter.TaskAwaitable);
             Assert.AreNotEqual(default, awaiter.TaskAwaiter);
             Assert.IsTrue(awaiter.IsCompleted);
@@ -65,7 +64,7 @@ namespace Axis.Luna.Operation.Test.Async
         }
 
         [TestMethod]
-        public async Task OnCompleted_ShouldNotifyDelegatesProperly()
+        public async Task OnCompleted_ShouldNotifyDelegates()
         {
             var task = Task.FromException(new Exception());
             var awaiter = new AsyncAwaiter(task);
@@ -73,7 +72,7 @@ namespace Axis.Luna.Operation.Test.Async
             var awaitable = new SampleAwaitable(awaiter);
 
             //if awaiting this awaitable behaves properly, then the continuation is working.
-            await Assert.ThrowsExceptionAsync<Exception>(async() => await awaitable);
+            await Assert.ThrowsExceptionAsync<Exception>(async () => await awaitable);
             Assert.IsTrue(awaiter.IsCompleted);
             Assert.IsTrue(awaiter.IsSuccessful == false);
         }
@@ -87,7 +86,7 @@ namespace Axis.Luna.Operation.Test.Async
             var task = Task.FromResult(5);
             var awaiter = new AsyncAwaiter<int>(task);
 
-            Assert.IsNotNull(awaiter.Task);
+            Assert.AreEqual(task, awaiter.Task);
             Assert.AreNotEqual(default, awaiter.TaskAwaitable);
             Assert.AreNotEqual(default, awaiter.TaskAwaiter);
             Assert.IsTrue(awaiter.IsCompleted);
@@ -102,32 +101,36 @@ namespace Axis.Luna.Operation.Test.Async
                 function: async () =>
                 {
                     while (!cancellationSource.IsCancellationRequested)
+                    {
                         await Task.Yield();
+                    }
 
                     return 5;
                 });
 
             awaiter = new AsyncAwaiter<int>(task);
 
-            Assert.IsNotNull(awaiter.Task);
+            Assert.AreEqual(task, awaiter.Task);
             Assert.AreNotEqual(default, awaiter.TaskAwaitable);
             Assert.AreNotEqual(default, awaiter.TaskAwaiter);
             Assert.IsFalse(awaiter.IsCompleted);
             Assert.IsNull(awaiter.IsSuccessful);
 
-            await Task.Yield(); //force this current method to yield so 'task' can run
+            // delay because sometimes, 'task' isn't given the opportunity to run before the cancellation token is signalled.
+            await Task.Delay(100);
             cancellationSource.Cancel();
-            Task.WaitAll(task);
+            await task;
             Assert.IsTrue(awaiter.IsCompleted);
-            Assert.IsTrue(awaiter.IsSuccessful == true);
+            Assert.AreEqual(true, awaiter.IsSuccessful);
             Assert.AreEqual(5, awaiter.GetResult());
+            cancellationSource.Dispose();
 
 
             //failed task
             task = Task.FromException<int>(new Exception());
             awaiter = new AsyncAwaiter<int>(task);
 
-            Assert.IsNotNull(awaiter.Task);
+            Assert.AreEqual(task, awaiter.Task);
             Assert.AreNotEqual(default, awaiter.TaskAwaitable);
             Assert.AreNotEqual(default, awaiter.TaskAwaiter);
             Assert.IsTrue(awaiter.IsCompleted);
@@ -153,7 +156,7 @@ namespace Axis.Luna.Operation.Test.Async
 
     internal class SampleAwaitable
     {
-        private AsyncAwaiter _awaiter;
+        private readonly AsyncAwaiter _awaiter;
 
         public SampleAwaitable(AsyncAwaiter awaiter)
         {
@@ -165,7 +168,7 @@ namespace Axis.Luna.Operation.Test.Async
 
     internal class SampleAwaitable<T>
     {
-        private AsyncAwaiter<T> _awaiter;
+        private readonly AsyncAwaiter<T> _awaiter;
 
         public SampleAwaitable(AsyncAwaiter<T> awaiter)
         {

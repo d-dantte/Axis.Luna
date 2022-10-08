@@ -56,9 +56,11 @@ namespace Axis.Luna.FInvoke
 				.Replace("-", "_");
 
 			var emitter = Emit<Func<object, object[], object>>.NewDynamicMethod(
-				method.DeclaringType,
-				$"{InstanceInvokerNamePrefix}_{guid}",
-				false);
+				name: $"{InstanceInvokerNamePrefix}_{guid}",
+				doVerify: false,
+				owner: method.DeclaringType.IsValidDynamicMethodOwner()
+					? method.DeclaringType
+					: null);
 
 			//push 'this' unto the stack
 			emitter.LoadArgument(0);

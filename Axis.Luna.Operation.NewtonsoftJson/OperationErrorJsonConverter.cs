@@ -41,13 +41,12 @@ namespace Axis.Luna.Operation.NewtonsoftJson
 
             else
             {
-                var jobj = ToJObject(error, serializer) as JObject;
-
+                var jobj = ToJToken(error, serializer) as JObject;
                 jobj.WriteTo(writer);
             }
         }
 
-        public static JToken ToJObject(OperationError error, JsonSerializer serializer)
+        public static JToken ToJToken(OperationError error, JsonSerializer serializer)
         {
             if (error == null)
                 return JValue.CreateNull();

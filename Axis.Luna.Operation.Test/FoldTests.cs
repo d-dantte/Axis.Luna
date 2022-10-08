@@ -91,7 +91,6 @@ namespace Axis.Luna.Operation.Test
             Assert.IsNull(exception);
         }
 
-
         [TestMethod]
         public async Task OprationTFold_WithPassingOperations_MustRunAllOperations()
         {

@@ -4,6 +4,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Reflection;
+using System.Threading.Tasks;
 
 namespace Axis.Luna.Operation.NewtonsoftJson
 {
@@ -24,56 +25,57 @@ namespace Axis.Luna.Operation.NewtonsoftJson
                 | BindingFlags.Instance);
 
         public override bool CanConvert(Type objectType)
-            => objectType.Extends(typeof(Operation)) || objectType.Extends(typeof(Operation<>));
+            => objectType is IOperation
+            || objectType.Implements(typeof(IOperation))
+            || objectType.HasGenericInterfaceDefinition(typeof(IOperation<>))
+            || objectType.ImplementsGenericInterface(typeof(IOperation<>));
 
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="reader"></param>
-        /// <param name="objectType"></param>
-        /// <param name="existingValue"></param>
-        /// <param name="serializer"></param>
-        /// <returns></returns>
         public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
         {
             var operationToken = JObject.Load(reader);
 
-            if (objectType.Extends(typeof(Operation<>)))
+            if(objectType is IOperation || objectType.Implements(typeof(IOperation)))
+            {
+                var isSucceeded = operationToken.Value<bool>(nameof(IOperation.Succeeded));
+                if (isSucceeded)
+                    return Operation.FromVoid();
+
+                else
+                {
+                    if (operationToken.TryGetValue(nameof(IOperation.Error), out var error))
+                        return error != null
+                            ? Operation.Fail(error.ToObject<OperationError>(serializer)) //JsonSerializer.Create(Constants.JsonSettings)))
+                            : Operation.Fail();
+
+                    else return Operation.Fail();
+                }
+            }
+            else
             {
                 //get the generic type of the operation, then call the "ReadOperation" method dynamically.
-                var genericType = objectType
-                    .GetGenericBase(typeof(Operation<>))
-                    .GetGenericArguments()
-                    [0];
+                var genericType =
+                    objectType.ImplementsGenericInterface(typeof(IOperation<>)) ? objectType
+                        .GetGenericInterface(typeof(IOperation<>))
+                        .GetGenericArguments()
+                        [0] :
+                    objectType.HasGenericInterfaceDefinition(typeof(IOperation<>)) ? objectType
+                        .GetGenericArguments()
+                        [0] :
+                    throw new ArgumentException($"invalid object type: {objectType}");
 
                 var readOperationMethod = ReadOperationMethod.MakeGenericMethod(genericType);
 
                 return this.InvokeFunc(
                     readOperationMethod,
                     operationToken,
-                    JsonSerializer.Create(Constants.JsonSettings));
-            }
-            else
-            {
-                var isSucceeded = operationToken.Value<bool>(nameof(Operation.Succeeded));
-                if (isSucceeded)
-                    return Operation.FromVoid();
-
-                else
-                {
-                    if (operationToken.TryGetValue(nameof(Operation.Error), out var error))
-                        return error != null
-                            ? Operation.Fail(error.ToObject<OperationError>(JsonSerializer.Create(Constants.JsonSettings)))
-                            : Operation.Fail();
-
-                    else return Operation.Fail();
-                }
-            }
+                    serializer);
+                    //JsonSerializer.Create(Constants.JsonSettings));
+            }            
         }
 
-        private Operation<TResult> ReadOperation<TResult>(JObject operationToken, JsonSerializer serializer)
+        private IOperation<TResult> ReadOperation<TResult>(JObject operationToken, JsonSerializer serializer)
         {
-            var isSucceeded = operationToken.Value<bool>(nameof(Operation.Succeeded));
+            var isSucceeded = operationToken.Value<bool>(nameof(IOperation.Succeeded));
             if (isSucceeded)
             {
                 if (operationToken.TryGetValue(ResultJsonPropertyName, out var result))
@@ -84,10 +86,10 @@ namespace Axis.Luna.Operation.NewtonsoftJson
             }
             else
             {
-                var errorProp = nameof(Operation.Error);
+                var errorProp = nameof(IOperation.Error);
                 if (operationToken.TryGetValue(errorProp, out var error))
                     return error != null
-                        ? Operation.Fail<TResult>(error.ToObject<OperationError>(JsonSerializer.Create(Constants.JsonSettings)))
+                        ? Operation.Fail<TResult>(error.ToObject<OperationError>(serializer)) //JsonSerializer.Create(Constants.JsonSettings)))
                         : Operation.Fail<TResult>();
 
                 else return Operation.Fail<TResult>();
@@ -105,69 +107,92 @@ namespace Axis.Luna.Operation.NewtonsoftJson
             if (value == null)
                 writer.WriteNull();
 
-            else if(value.GetType().Extends(typeof(Operation<>)))
+            else if(value.GetType().Equals(typeof(IOperation)) || value.GetType().Implements(typeof(IOperation)))
             {
-                var genericType = value
-                    .GetType()
-                    .GetGenericArguments()
-                    [0];
+                OperationJsonConverter
+                    .ToJToken((IOperation)value, serializer)
+                    .WriteTo(writer);
+            }
 
-                var synthesizedMethod = WriteOperationMethod.MakeGenericMethod(genericType);
+            else
+            {
+                var objectType = value.GetType();
+                var genericType =
+                    objectType.ImplementsGenericInterface(typeof(IOperation<>)) ? objectType
+                        .GetGenericInterface(typeof(IOperation<>))
+                        .GetGenericArguments()
+                        [0] :
+                    objectType.HasGenericInterfaceDefinition(typeof(IOperation<>)) ? objectType
+                        .GetGenericArguments()
+                        [0] :
+                    throw new ArgumentException($"invalid object type: {objectType}");
+
+                var writeOperationMethod = WriteOperationMethod.MakeGenericMethod(genericType);
                 this.InvokeAction(
-                    synthesizedMethod,
+                    writeOperationMethod,
                     writer,
                     value,
                     serializer);
             }
-            else
-            {
-                OperationJsonConverter
-                    .ToJObject(value as Operation, serializer)
-                    .WriteTo(writer);
-            }
+            
         }
 
-        private void WriteOperation<TResult>(JsonWriter writer, Operation<TResult> operation, JsonSerializer serializer)
+        private void WriteOperation<TResult>(JsonWriter writer, IOperation<TResult> operation, JsonSerializer serializer)
         {
             OperationJsonConverter
-                .ToJObject(operation, serializer)
+                .ToJToken(operation, serializer)
                 .WriteTo(writer);
         }
 
-        public static JObject ToJObject(Operation operation, JsonSerializer serializer)
+        public static JToken ToJToken(IOperation operation, JsonSerializer serializer)
         {
+            if (operation == null)
+                return JValue.CreateNull();
+
+            if (operation.Succeeded == null)
+                throw new InvalidOperationException("Cannot serialize an unresolved operation");
+
             JObject joperation = new JObject
             {
-                [nameof(Operation.Succeeded)] = operation.Succeeded
+                [nameof(IOperation.Succeeded)] = operation.Succeeded ?? throw new InvalidOperationException("Cannot serialize an unresolved operation")
             };
 
             if (operation.Error != null)
-                joperation[nameof(Operation.Error)] = OperationErrorJsonConverter.ToJObject(operation.Error, serializer);
+                joperation[nameof(IOperation.Error)] = OperationErrorJsonConverter.ToJToken(operation.Error, serializer);
 
             return joperation;
         }
 
-        public static JToken ToJObject<TResult>(Operation<TResult> operation, JsonSerializer serializer)
+        public static JToken ToJToken<TResult>(IOperation<TResult> operation, JsonSerializer serializer)
         {
-            var resolvable = operation as IResolvable<TResult>;
-            TResult result = default;
+            if (operation == null)
+                return JValue.CreateNull();
 
             if (operation.Succeeded == null)
-                resolvable.TryResolve(out result, out var _);
+                throw new InvalidOperationException("Cannot serialize an unresolved operation");
 
             JObject joperation = new JObject
             {
-                [nameof(Operation.Succeeded)] = operation.Succeeded
+                [nameof(IOperation.Succeeded)] = operation.Succeeded
             };
 
             if (operation.Succeeded == true)
             {
+                TResult result = operation switch
+                {
+                    IResolvable<TResult> valueResolvable => valueResolvable.Resolve(),
+
+                    IResolvable<Task<TResult>> taskResolvable => taskResolvable.Resolve().Result, //safe because operation.Succeed == true
+
+                    _ => throw new ArgumentException($"Invalid operation type: {operation.GetType()}")
+                };
+
                 joperation[ResultJsonPropertyName] = result != null
-                    ? JObject.FromObject(result) as JToken
+                    ? JObject.FromObject(result, serializer).As<JToken>()
                     : JValue.CreateNull();
             }
             else 
-                joperation[nameof(Operation.Error)] = OperationErrorJsonConverter.ToJObject(operation.Error, serializer);
+                joperation[nameof(IOperation.Error)] = OperationErrorJsonConverter.ToJToken(operation.Error, serializer);
 
             return joperation;
         }

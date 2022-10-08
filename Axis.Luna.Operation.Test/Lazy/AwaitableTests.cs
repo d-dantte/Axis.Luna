@@ -27,7 +27,7 @@ namespace Axis.Luna.Operation.Test.Lazy
             Assert.IsTrue(awaiter.IsSuccessful == true);
 
 
-            //failed task
+            //failed function
             lazy = new CustomLazy<object>(() => throw new Exception());
             awaiter = new LazyAwaiter(lazy, errorSetter);
 

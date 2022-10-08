@@ -45,7 +45,7 @@ namespace Axis.Luna.Operation.Value
         }
         public ValueAwaiter(Exception exception)
         {
-            Exception = exception ?? new Exception("General Error");
+            Exception = exception ?? throw new ArgumentNullException(nameof(exception));
             this.Result = default;
             IsSuccessful = false;
         }

@@ -1,30 +1,22 @@
 using Axis.Luna.Extensions;
-using System;
 using System.Diagnostics;
-using Xunit;
 
-
-namespace Axis.Luna.FInvoke.Test
+namespace Axis.Luna.FInvoke.Tests
 {
+    [TestClass]
     public class UnitTest1
     {
-        private readonly Xunit.Abstractions.ITestOutputHelper Console;
 
-        public UnitTest1(Xunit.Abstractions.ITestOutputHelper helper)
-        {
-            Console = helper;
-        }
-
-        [Fact]
+        [TestMethod]
         public void PerformanceTest()
         {
             var type = typeof(SampleClass);
             var instance = new SampleClass();
-            
+
             const int callCount = 1000000;
 
-			#region Action1
-			var method = type.GetMethod("Action1");
+            #region Action1
+            var method = type.GetMethod("Action1");
             var iinvoker = InstanceInvoker.InvokerFor(method);
             iinvoker.Func(instance, null); //warmup
             iinvoker.Func(instance, null); //warmup
@@ -68,11 +60,11 @@ namespace Axis.Luna.FInvoke.Test
                     $"direct-time: {directTime}",
                 });
 
-            Console.WriteLine(output+"\n\n");
-			#endregion
+            Console.WriteLine(output + "\n\n");
+            #endregion
 
-			#region Action2
-			method = type.GetMethod("Action2");
+            #region Action2
+            method = type.GetMethod("Action2");
             iinvoker = InstanceInvoker.InvokerFor(method);
             var @params = new object[] { 654 };
             iinvoker.Func(instance, @params); //warm up
@@ -102,13 +94,13 @@ namespace Axis.Luna.FInvoke.Test
                 });
 
             Console.WriteLine(output + "\n\n");
-			#endregion
+            #endregion
 
-			#region Action3
-			object i = 654, l = 654L, s = "me";
+            #region Action3
+            object i = 654, l = 654L, s = "me";
             method = type.GetMethod("Action3");
             iinvoker = InstanceInvoker.InvokerFor(method);
-            @params = new object[] { 654, 654l, "me" }; 
+            @params = new object[] { 654, 654l, "me" };
             iinvoker.Func(instance, @params); //warm up
             iinvoker.Func(instance, @params); //warm up
             timer = Stopwatch.StartNew();

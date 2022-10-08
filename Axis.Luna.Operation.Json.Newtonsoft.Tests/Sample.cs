@@ -32,7 +32,7 @@ namespace Axis.Luna.Operation.Json.Newtonsoft.Tests
             Console.WriteLine($"First Serialization: {timer.Elapsed}");
 
             timer = Stopwatch.StartNew();
-            var op2 = JsonConvert.DeserializeObject<Operation<int>>(json, Constants.JsonSettings);
+            var op2 = JsonConvert.DeserializeObject<IOperation<int>>(json, Constants.JsonSettings);
             timer.Stop();
             Console.WriteLine($"First Deserialization: {timer.Elapsed}");
 
@@ -47,7 +47,7 @@ namespace Axis.Luna.Operation.Json.Newtonsoft.Tests
             Console.WriteLine($"Second Serialization: {timer.Elapsed}");
 
             timer = Stopwatch.StartNew();
-            _ = JsonConvert.DeserializeObject<Operation<int>>(json, Constants.JsonSettings);
+            _ = JsonConvert.DeserializeObject<IOperation<int>>(json, Constants.JsonSettings);
             timer.Stop();
             Console.WriteLine($"Second Deserialization: {timer.Elapsed}");
         }
