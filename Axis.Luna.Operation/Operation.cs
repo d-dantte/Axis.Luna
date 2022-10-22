@@ -140,6 +140,11 @@ namespace Axis.Luna.Operation
         /// <summary>
         /// Folds all given operations into a single operation, aggregating any errors encountered, and exiting depending on the <see cref="FoldBias"/>.
         /// The fold operation ensures that all individual operations are given a chance to execute.
+        /// <para>
+        /// NOTE: considering that the <paramref name="operations"/> arg is an <see cref="IEnumerable{T}"/>, it may consist of prior chained lambdas/functions
+        /// that may themselves throw exceptions. The fold operation ignores these exceptions and allows them bleed out, only catering to exceptions
+        /// thrown by the <see cref="IOperation"/>
+        /// </para>
         /// </summary>
         /// <param name="operations">A list of operations to fold</param>
         /// <param name="bias">The bias to apply to the folded operations</param>
@@ -149,8 +154,10 @@ namespace Axis.Luna.Operation
             => Operation.Try(async () =>
             {
                 if (operations == null)
-                    throw new ArgumentException(nameof(operations));
+                    throw new ArgumentNullException(nameof(operations));
 
+                // this executes any chained delegate in the IEnumerable, and as such, exceptions can be thrown.
+                // this means Aggregate exceptions will not be thrown in this case
                 var oparray = operations.ToArray();
                 if (oparray.Length == 0)
                     return;
@@ -180,6 +187,11 @@ namespace Axis.Luna.Operation
         /// <summary>
         /// Folds all given operations into a single operation, aggregating any errors encountered, and exiting depending on the <see cref="FoldBias"/>.
         /// The fold operation ensures that all individual operations are given a chance to execute.
+        /// <para>
+        /// NOTE: considering that the <paramref name="operations"/> arg is an <see cref="IEnumerable{T}"/>, it may consist of prior chained lambdas/functions
+        /// that may themselves throw exceptions. The fold operation ignores these exceptions and allows them bleed out, only catering to exceptions
+        /// thrown by the <see cref="IOperation{TResult}"/>
+        /// </para>
         /// </summary>
         /// <param name="operations">A list of operations to fold</param>
         /// <param name="bias">The bias to apply to the folded operations</param>
@@ -189,8 +201,10 @@ namespace Axis.Luna.Operation
             => Operation.Try(async () =>
             {
                 if (operations == null)
-                    throw new ArgumentException(nameof(operations));
+                    throw new ArgumentNullException(nameof(operations));
 
+                // this executes any chained delegate in the IEnumerable, and as such, exceptions can be thrown.
+                // this means Aggregate exceptions will not be thrown in this case
                 var oparray = operations.ToArray();
                 if (oparray.Length == 0)
                     return Array.Empty<TResult>();

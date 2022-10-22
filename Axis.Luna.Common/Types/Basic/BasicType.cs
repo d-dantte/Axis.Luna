@@ -5,7 +5,7 @@ using System.Collections.Generic;
 namespace Axis.Luna.Common.Types.Basic
 {
     /// <summary>
-    /// TODO: add support for UnsignedInt, Uri, GeoLocation, KvpList
+    /// TODO: add support for UnsignedInt, Uri, GeoLocation
     /// </summary>
     public enum BasicTypes
     {
@@ -17,6 +17,7 @@ namespace Axis.Luna.Common.Types.Basic
         Struct,
         List,
         Int,
+        UInt,
         Real,
         Decimal,
         Bool,
@@ -49,6 +50,9 @@ namespace Axis.Luna.Common.Types.Basic
         TValue Value { get; }
     }
 
+    /// <summary>
+    /// 
+    /// </summary>
     public struct BasicValue : IBasicValue
     {
         private readonly IBasicValue _innerValue;
@@ -99,6 +103,18 @@ namespace Axis.Luna.Common.Types.Basic
             if (_innerValue is BasicInt)
             {
                 value = (BasicInt)this;
+                return true;
+            }
+
+            value = null;
+            return false;
+        }
+
+        public bool TryGetUInt(out BasicUInt? value)
+        {
+            if (_innerValue is BasicUInt)
+            {
+                value = (BasicUInt)this;
                 return true;
             }
 
@@ -218,6 +234,7 @@ namespace Axis.Luna.Common.Types.Basic
         #region Direct conversions
         public BasicBool? AsBool() => _innerValue is BasicBool b ? b : (BasicBool?)null;
         public BasicInt? AsInt() => _innerValue is BasicInt b ? b : (BasicInt?)null;
+        public BasicUInt? AsUInt() => _innerValue is BasicUInt b ? b : (BasicUInt?)null;
         public BasicReal? AsReal() => _innerValue is BasicReal b ? b : (BasicReal?)null;
         public BasicDecimal? AsDecimal() => _innerValue is BasicDecimal b ? b : (BasicDecimal?)null;
         public BasicBytes? AsBytes() => _innerValue is BasicBytes b ? b : (BasicBytes?)null;
@@ -232,6 +249,8 @@ namespace Axis.Luna.Common.Types.Basic
         public static implicit operator BasicValue(bool value) => new BasicValue(new BasicBool(value));
 
         public static implicit operator BasicValue(long value) => new BasicValue(new BasicInt(value));
+
+        public static implicit operator BasicValue(ulong value) => new BasicValue(new BasicUInt(value));
 
         public static implicit operator BasicValue(double value) => new BasicValue(new BasicReal(value));
 
@@ -258,6 +277,8 @@ namespace Axis.Luna.Common.Types.Basic
 
         public static implicit operator BasicValue(BasicInt value) => new BasicValue(value);
 
+        public static implicit operator BasicValue(BasicUInt value) => new BasicValue(value);
+
         public static implicit operator BasicValue(BasicReal value) => new BasicValue(value);
 
         public static implicit operator BasicValue(BasicDecimal value) => new BasicValue(value);
@@ -281,6 +302,8 @@ namespace Axis.Luna.Common.Types.Basic
         public static explicit operator BasicBool(BasicValue value) => (BasicBool)value._innerValue;
 
         public static explicit operator BasicInt(BasicValue value) => (BasicInt)value._innerValue;
+
+        public static explicit operator BasicUInt(BasicValue value) => (BasicUInt)value._innerValue;
 
         public static explicit operator BasicReal(BasicValue value) => (BasicReal)value._innerValue;
 
@@ -321,6 +344,10 @@ namespace Axis.Luna.Common.Types.Basic
             : this(metadata.Key, metadata.Value)
         { }
 
+        public BasicMetadata((string key, string value) metadata)
+            : this(metadata.key, metadata.value)
+        { }
+
         public override string ToString()
         {
             if (this == default)
@@ -341,14 +368,27 @@ namespace Axis.Luna.Common.Types.Basic
 
         public override int GetHashCode() => HashCode.Combine(Key, Value);
 
-        public static bool operator ==(BasicMetadata first, BasicMetadata second) => first.Equals(second);
+        public static bool TryParse(string value, out BasicMetadata metadata)
+        {
+            if (TryParse(value, out IResult<BasicMetadata> result))
+            {
+                metadata = result
+                    .As<IResult<BasicMetadata>.DataResult>()
+                    .Data;
+                return true;
+            }
 
-        public static bool operator !=(BasicMetadata first, BasicMetadata second) => !first.Equals(second);
+            metadata = default;
+            return false;
+        }
 
-        public static implicit operator BasicMetadata(string value)
+        private static bool TryParse(string value, out IResult<BasicMetadata> result)
         {
             if (value == null)
-                throw new ArgumentNullException(nameof(value));
+            {
+                result = IResult<BasicMetadata>.Of(new ArgumentNullException(nameof(value)));
+                return false;
+            }
 
             var parts = value
                 .Trim()
@@ -356,9 +396,29 @@ namespace Axis.Luna.Common.Types.Basic
                 .Split(':');
 
             if (parts.Length < 1 || parts.Length > 2)
-                throw new FormatException($"Invalid metadata format: {value}");
+            {
+                result = IResult<BasicMetadata>.Of(new FormatException($"Invalid metadata format: {value}"));
+                return false;
+            }
 
-            return new BasicMetadata(parts[0], parts.Length > 1 ? parts[1] : null);
+            result = IResult<BasicMetadata>.Of(new BasicMetadata(parts[0], parts.Length > 1 ? parts[1] : null));
+            return true;
+        }
+
+        public static bool operator ==(BasicMetadata first, BasicMetadata second) => first.Equals(second);
+
+        public static bool operator !=(BasicMetadata first, BasicMetadata second) => !first.Equals(second);
+
+        public static implicit operator BasicMetadata(string value)
+        {
+            if (!TryParse(value, out IResult<BasicMetadata> result))
+                throw result
+                    .As<IResult<BasicMetadata>.ErrorResult>()
+                    .Cause();
+
+            else return result
+                    .As<IResult<BasicMetadata>.DataResult>()
+                    .Data;
         }
     }
 }

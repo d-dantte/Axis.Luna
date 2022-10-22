@@ -5,7 +5,8 @@ using System.Threading.Tasks;
 namespace Axis.Luna.Operation.Value
 {
     /// <summary>
-    /// An operation that is always faulted
+    /// An operation that is always faulted.
+    /// NOTE: This should be a readonly struct
     /// </summary>
     public class FaultedOperation : IOperation, IResolvable
     {
@@ -134,7 +135,7 @@ namespace Axis.Luna.Operation.Value
 
 
     /// <summary>
-    /// 
+    /// NOTE: This should be a readonly struct
     /// </summary>
     /// <typeparam name="TResult"></typeparam>
     public class ValueOperation<TResult> : IOperation<TResult>, IResolvable<TResult>

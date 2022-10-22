@@ -295,11 +295,6 @@ namespace Axis.Luna.Extensions
             this IEnumerable<T> initialValues,
             params T[] otherValue)
             => System.Linq.Enumerable.Concat(initialValues, otherValue);
-
-        public static IEnumerable<T> Concat<T>(
-            this IEnumerable<T> initialValues,
-            IEnumerable<T> otherValue)
-            => System.Linq.Enumerable.Concat(initialValues, otherValue);
         #endregion
 
         public static int PositionOf<T>(this IEnumerable<T> enumerable, T item, IEqualityComparer<T> equalityComparer = null)

@@ -194,15 +194,15 @@ namespace Axis.Luna.Common.NewtonsoftJson
             return result switch
             {
                 IResult<T>.ErrorResult error => new JObject()
-                    .Use(
+                    .With(
                         jobj => jobj.Add(nameof(error.Message),
                         error.Message))
-                    .UseIf(
+                    .WithIf(
                         jobj => error.ErrorData!=null,
                         jobj => jobj.Add(
                             nameof(error.ErrorData),
                             GetBasicStructConverter(serializer).ToJObject(error.ErrorData.Value)))
-                    .UseIf(
+                    .WithIf(
                         jobj => exportException,
                         jobj => jobj.Add(
                             ExceptionJsonFieldName,

@@ -183,7 +183,7 @@ namespace Axis.Luna.Extensions
         /// <param name="in">input argument</param>
         /// <param name="consumer">consumer function</param>
         /// <returns>The Input argument</returns>
-        public static TIn Use<TIn>(this TIn @in, Action<TIn> consumer)
+        public static TIn With<TIn>(this TIn @in, Action<TIn> consumer)
         {
             if (consumer == null)
                 throw new ArgumentNullException(nameof(Consume));
@@ -193,7 +193,7 @@ namespace Axis.Luna.Extensions
             return @in;
         }
 
-        public static TIn UseIf<TIn>(this
+        public static TIn WithIf<TIn>(this
             TIn @in,
             Func<TIn, bool> predicate,
             Action<TIn> consumer)

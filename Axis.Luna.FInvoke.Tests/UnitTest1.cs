@@ -22,30 +22,30 @@ namespace Axis.Luna.FInvoke.Tests
             iinvoker.Func(instance, null); //warmup
             var timer = Stopwatch.StartNew();
             for (int cnt = 0; cnt < callCount; cnt++) iinvoker.Func(instance, null);
-            var iinvokerTime = timer.Use(t => t.Stop()).Elapsed;
+            var iinvokerTime = timer.With(t => t.Stop()).Elapsed;
 
             var del = method.CreateDelegate(typeof(Action), instance);
             var ddel = (Action)del;
             timer = Stopwatch.StartNew();
             for (int cnt = 0; cnt < callCount; cnt++) ddel.Invoke();
-            var directDelegateTime = timer.Use(t => t.Stop()).Elapsed;
+            var directDelegateTime = timer.With(t => t.Stop()).Elapsed;
 
             timer = Stopwatch.StartNew();
             for (int cnt = 0; cnt < callCount; cnt++) del.DynamicInvoke();
-            var dynamicDelegateTime = timer.Use(t => t.Stop()).Elapsed;
+            var dynamicDelegateTime = timer.With(t => t.Stop()).Elapsed;
 
             timer = Stopwatch.StartNew();
             for (int cnt = 0; cnt < callCount; cnt++) instance.Action1();
-            var directTime = timer.Use(t => t.Stop()).Elapsed;
+            var directTime = timer.With(t => t.Stop()).Elapsed;
 
             timer = Stopwatch.StartNew();
             for (int cnt = 0; cnt < callCount; cnt++) method.Invoke(instance, new object[0]);
-            var reflectionTime = timer.Use(t => t.Stop()).Elapsed;
+            var reflectionTime = timer.With(t => t.Stop()).Elapsed;
 
             dynamic dinstance = instance;
             timer = Stopwatch.StartNew();
             for (int cnt = 0; cnt < callCount; cnt++) dinstance.Action1();
-            var dynamicTime = timer.Use(t => t.Stop()).Elapsed;
+            var dynamicTime = timer.With(t => t.Stop()).Elapsed;
 
             var output = "Action1 stats:\n";
             output += string.Join(
@@ -71,17 +71,17 @@ namespace Axis.Luna.FInvoke.Tests
             iinvoker.Func(instance, @params); //warm up
             timer = Stopwatch.StartNew();
             for (int cnt = 0; cnt < callCount; cnt++) iinvoker.Func(instance, @params);
-            iinvokerTime = timer.Use(t => t.Stop()).Elapsed;
+            iinvokerTime = timer.With(t => t.Stop()).Elapsed;
 
             timer = Stopwatch.StartNew();
             for (int cnt = 0; cnt < callCount; cnt++) instance.Action2(654);
-            directTime = timer.Use(t => t.Stop()).Elapsed;
+            directTime = timer.With(t => t.Stop()).Elapsed;
 
             dinstance = instance;
             dinstance.Action2(654); //warm up
             timer = Stopwatch.StartNew();
             for (int cnt = 0; cnt < callCount; cnt++) dinstance.Action2(654);
-            dynamicTime = timer.Use(t => t.Stop()).Elapsed;
+            dynamicTime = timer.With(t => t.Stop()).Elapsed;
 
             output = "Action2 stats:\n";
             output += string.Join(
@@ -105,16 +105,16 @@ namespace Axis.Luna.FInvoke.Tests
             iinvoker.Func(instance, @params); //warm up
             timer = Stopwatch.StartNew();
             for (int cnt = 0; cnt < callCount; cnt++) iinvoker.Func(instance, @params);
-            iinvokerTime = timer.Use(t => t.Stop()).Elapsed;
+            iinvokerTime = timer.With(t => t.Stop()).Elapsed;
 
             timer = Stopwatch.StartNew();
             for (int cnt = 0; cnt < callCount; cnt++) instance.Action3((int)i, (long)l, (string)s);
-            directTime = timer.Use(t => t.Stop()).Elapsed;
+            directTime = timer.With(t => t.Stop()).Elapsed;
 
             dinstance = instance;
             timer = Stopwatch.StartNew();
             for (int cnt = 0; cnt < callCount; cnt++) dinstance.Action3((int)i, (long)l, (string)s);
-            dynamicTime = timer.Use(t => t.Stop()).Elapsed;
+            dynamicTime = timer.With(t => t.Stop()).Elapsed;
 
             output = "Action3 stats:\n";
             output += string.Join(
@@ -135,16 +135,16 @@ namespace Axis.Luna.FInvoke.Tests
             iinvoker = InstanceInvoker.InvokerFor(method);
             timer = Stopwatch.StartNew();
             for (int cnt = 0; cnt < callCount; cnt++) iinvoker.Func(instance, @params);
-            iinvokerTime = timer.Use(t => t.Stop()).Elapsed;
+            iinvokerTime = timer.With(t => t.Stop()).Elapsed;
 
             timer = Stopwatch.StartNew();
             for (int cnt = 0; cnt < callCount; cnt++) instance.Action4<string>(654);
-            directTime = timer.Use(t => t.Stop()).Elapsed;
+            directTime = timer.With(t => t.Stop()).Elapsed;
 
             dinstance = instance;
             timer = Stopwatch.StartNew();
             for (int cnt = 0; cnt < callCount; cnt++) dinstance.Action4<string>(654);
-            dynamicTime = timer.Use(t => t.Stop()).Elapsed;
+            dynamicTime = timer.With(t => t.Stop()).Elapsed;
 
             output = "Action4 stats:\n";
             output += string.Join(
@@ -164,11 +164,11 @@ namespace Axis.Luna.FInvoke.Tests
             iinvoker = InstanceInvoker.InvokerFor(method);
             timer = Stopwatch.StartNew();
             for (int cnt = 0; cnt < callCount; cnt++) iinvoker.Func(instance, null);
-            iinvokerTime = timer.Use(t => t.Stop()).Elapsed;
+            iinvokerTime = timer.With(t => t.Stop()).Elapsed;
 
             timer = Stopwatch.StartNew();
             for (int cnt = 0; cnt < callCount; cnt++) instance.Func1();
-            directTime = timer.Use(t => t.Stop()).Elapsed;
+            directTime = timer.With(t => t.Stop()).Elapsed;
 
             output = "Func1 stats:\n";
             output += string.Join(
@@ -189,11 +189,11 @@ namespace Axis.Luna.FInvoke.Tests
             @params = new object[] { 654 };
             timer = Stopwatch.StartNew();
             for (int cnt = 0; cnt < callCount; cnt++) iinvoker.Func(instance, @params);
-            iinvokerTime = timer.Use(t => t.Stop()).Elapsed;
+            iinvokerTime = timer.With(t => t.Stop()).Elapsed;
 
             timer = Stopwatch.StartNew();
             for (int cnt = 0; cnt < callCount; cnt++) instance.Func2(654);
-            directTime = timer.Use(t => t.Stop()).Elapsed;
+            directTime = timer.With(t => t.Stop()).Elapsed;
 
             output = "Func2 stats:\n";
             output += string.Join(
@@ -214,11 +214,11 @@ namespace Axis.Luna.FInvoke.Tests
             @params = new object[] { 654, 654L, "me" };
             timer = Stopwatch.StartNew();
             for (int cnt = 0; cnt < callCount; cnt++) iinvoker.Func(instance, @params);
-            iinvokerTime = timer.Use(t => t.Stop()).Elapsed;
+            iinvokerTime = timer.With(t => t.Stop()).Elapsed;
 
             timer = Stopwatch.StartNew();
             for (int cnt = 0; cnt < callCount; cnt++) instance.Func3(654, 654L, "me");
-            directTime = timer.Use(t => t.Stop()).Elapsed;
+            directTime = timer.With(t => t.Stop()).Elapsed;
 
             output = "Func3 stats:\n";
             output += string.Join(
@@ -239,11 +239,11 @@ namespace Axis.Luna.FInvoke.Tests
             @params = new object[] { 654 };
             timer = Stopwatch.StartNew();
             for (int cnt = 0; cnt < callCount; cnt++) iinvoker.Func(instance, @params);
-            iinvokerTime = timer.Use(t => t.Stop()).Elapsed;
+            iinvokerTime = timer.With(t => t.Stop()).Elapsed;
 
             timer = Stopwatch.StartNew();
             for (int cnt = 0; cnt < callCount; cnt++) instance.Func4<string>(654);
-            directTime = timer.Use(t => t.Stop()).Elapsed;
+            directTime = timer.With(t => t.Stop()).Elapsed;
 
             output = "Func4 stats:\n";
             output += string.Join(
