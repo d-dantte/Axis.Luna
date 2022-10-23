@@ -148,14 +148,17 @@ namespace Axis.Luna.Extensions
         public static int PropertyHash(this object @this)
         => ValueHash(@this.GetType().GetProperties().OrderBy(p => p.Name).Select(p => p.GetValue(@this)));
 
-        public static int ValueHash(IEnumerable<object> propertyValues, int prime1 = 19, int prime2 = 181)
-        => ValueHash(prime1, prime2, propertyValues.ToArray());
+        public static int ValueHash(IEnumerable<object> values, int prime1 = 19, int prime2 = 181)
+        => ValueHashInternal(prime1, prime2, values.ToArray());
 
         public static int ValueHash(int prime1, int prime2, params object[] values)
-        => values.Aggregate(prime1, (hash, next) => hash * prime2 + (next?.GetHashCode() ?? 0));
+        => ValueHashInternal(prime1, prime2, values);
 
         public static int ValueHash(params object[] values) 
-        => ValueHash(19, 181, values);
+        => ValueHashInternal(19, 181, values);
+
+        private static int ValueHashInternal(int prime1, int prime2, object[] values)
+        => values.Aggregate(prime1, (hash, next) => hash * prime2 + (next?.GetHashCode() ?? 0));
 
 
         #region Apply/Consume/Use

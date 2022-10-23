@@ -8,6 +8,7 @@ using System.Linq;
 
 namespace Axis.Luna.Operation.NewtonsoftJson
 {
+    [Obsolete]
     public class OperationErrorJsonConverter : JsonConverter
     {
         public override bool CanConvert(Type objectType) => typeof(OperationError).Equals(objectType);

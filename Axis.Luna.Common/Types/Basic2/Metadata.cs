@@ -61,26 +61,40 @@ namespace Axis.Luna.Common.Types.Basic2
             return false;
         }
 
-        private static bool TryParse(string value, out IResult<Metadata> result)
+        public static Metadata Parse(string @string)
         {
-            if (value == null)
+            if (TryParse(@string, out IResult<Metadata> result))
+                return result.As<IResult<Metadata>.DataResult>().Data;
+
+            else throw result.As<IResult<Metadata>.ErrorResult>().Cause();
+        }
+
+        private static bool TryParse(string @string, out IResult<Metadata> result)
+        {
+            if (@string == null)
             {
-                result = IResult<Metadata>.Of(new ArgumentNullException(nameof(value)));
+                result = IResult<Metadata>.Of(new ArgumentNullException(nameof(@string)));
                 return false;
             }
 
-            var parts = value
+            var parts = @string
                 .Trim()
                 .TrimEnd(';')
                 .Split(':');
 
             if (parts.Length < 1 || parts.Length > 2)
             {
-                result = IResult<Metadata>.Of(new FormatException($"Invalid metadata format: {value}"));
+                result = IResult<Metadata>.Of(new FormatException($"Invalid metadata format: {@string}"));
                 return false;
             }
 
-            result = IResult<Metadata>.Of(new Metadata(parts[0], parts.Length > 1 ? parts[1] : null));
+            if (string.IsNullOrWhiteSpace(parts[0]))
+            {
+                result = IResult<Metadata>.Of(new FormatException($"metadata key cannot be null or whitespace"));
+                return false;
+            }
+
+            result = IResult<Metadata>.Of(new Metadata(parts[0].Trim(), parts.Length > 1 ? parts[1] : null));
             return true;
         }
 
@@ -99,5 +113,7 @@ namespace Axis.Luna.Common.Types.Basic2
                     .As<IResult<Metadata>.DataResult>()
                     .Data;
         }
+
+        public static Metadata[] Empty => Array.Empty<Metadata>();
     }
 }

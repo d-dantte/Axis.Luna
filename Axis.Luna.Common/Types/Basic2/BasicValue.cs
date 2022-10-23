@@ -145,48 +145,5 @@ namespace Axis.Luna.Common.Types.Basic2
         /// </summary>
         Metadata[] Metadata { get; }
         #endregion
-
-        #region Union types
-
-        /// <summary>
-        /// 
-        /// </summary>
-        public partial struct BasicUInt : IBasicValue
-        {
-            private readonly Metadata[] _metadata;
-
-            public BasicTypes Type => BasicTypes.UInt;
-
-            public Metadata[] Metadata => _metadata?.ToArray() ?? Array.Empty<Metadata>();
-
-            public ulong? Value { get; }
-
-            internal BasicUInt(ulong? value, params Metadata[] metadata)
-            {
-                Value = value;
-                _metadata = metadata?.ToArray();
-            }
-        }
-
-        /// <summary>
-        /// 
-        /// </summary>
-        public partial struct BasicTimeSpan : IBasicValue
-        {
-            private readonly Metadata[] _metadata;
-
-            public BasicTypes Type => BasicTypes.TimeSpan;
-
-            public Metadata[] Metadata => _metadata?.ToArray() ?? Array.Empty<Metadata>();
-
-            public TimeSpan? Value { get; }
-
-            internal BasicTimeSpan(TimeSpan? value, params Metadata[] metadata)
-            {
-                Value = value;
-                _metadata = metadata?.ToArray();
-            }
-        }
-        #endregion
     }
 }

@@ -22,6 +22,41 @@ namespace Axis.Luna.Extensions
         }
 
         /// <summary>
+        /// Uses hard-casting on the individual values of the enumerable. This means it may throw <see cref="InvalidCastException"/>.
+        /// </summary>
+        /// <typeparam name="TOut">The type to be casted to</typeparam>
+        /// <param name="enumerable"></param>
+        /// <param name="enumerable">The enumerable</param>
+        /// <returns>The casted enumerable</returns>
+        /// <exception cref="ArgumentNullException">If the enumerable is null</exception>
+        public static IEnumerable<TOut> HardCast<TOut>(this System.Collections.IEnumerable enumerable)
+        {
+            if (enumerable == null)
+                throw new ArgumentNullException(nameof(enumerable));
+
+            foreach (var item in enumerable)
+            {
+                yield return (TOut)item;
+            }
+        }
+
+        /// <summary>
+        /// Uses hard-casting on the individual values of the enumerable. This means it may throw <see cref="InvalidCastException"/>.
+        /// </summary>
+        /// <typeparam name="TIn">The type of the enumerable</typeparam>
+        /// <typeparam name="TOut">The type to be casted to</typeparam>
+        /// <param name="enumerable">The enumerable</param>
+        /// <returns>The casted enumerable</returns>
+        /// <exception cref="ArgumentNullException">If the enumerable is null</exception>
+        public static IEnumerable<TOut> HardCast<TIn, TOut>(this IEnumerable<TIn> enumerable)
+        {
+            if (enumerable == null)
+                throw new ArgumentNullException(nameof(enumerable));
+
+            return enumerable.Select(value => (TOut)(object)value);
+        }
+
+        /// <summary>
         /// Get a slice/chunk of an array
         /// </summary>
         /// <typeparam name="T">The type of the array</typeparam>

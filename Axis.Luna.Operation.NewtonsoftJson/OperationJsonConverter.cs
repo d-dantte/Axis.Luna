@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 
 namespace Axis.Luna.Operation.NewtonsoftJson
 {
+    [Obsolete]
     public class OperationJsonConverter : global::Newtonsoft.Json.JsonConverter
     {
         public static readonly string ResultJsonPropertyName = "Result";

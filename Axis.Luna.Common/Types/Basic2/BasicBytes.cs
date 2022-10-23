@@ -6,7 +6,7 @@ namespace Axis.Luna.Common.Types.Basic2
 {
     public partial interface IBasicValue
     {
-        public struct BasicBytes : IBasicValue
+        public readonly struct BasicBytes : IBasicValue
         {
             private readonly Metadata[] _metadata;
             private readonly byte[] _bytes;
@@ -23,7 +23,7 @@ namespace Axis.Luna.Common.Types.Basic2
                 _bytes = value?.ToArray();
                 _metadata = metadata?.ToArray();
                 _hashCode = _bytes != null
-                    ? HashCode.Combine(Luna.Extensions.Common.ValueHash(_bytes ?? Array.Empty<byte>()))
+                    ? Luna.Extensions.Common.ValueHash(_bytes.HardCast<byte, object>() ?? Enumerable.Empty<object>())
                     : 0;
             }
 

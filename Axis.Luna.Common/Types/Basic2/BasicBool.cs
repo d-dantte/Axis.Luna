@@ -5,7 +5,7 @@ namespace Axis.Luna.Common.Types.Basic2
 {
     public partial interface IBasicValue
     {
-        public struct BasicBool : IBasicValue
+        public readonly struct BasicBool : IBasicValue
         {
             private readonly Metadata[] _metadata;
 

@@ -28,7 +28,12 @@ namespace Axis.Luna.Common.Types.Basic
             => obj is BasicBool other
              && other.Value == Value;
 
-        public override int GetHashCode() => Value?.GetHashCode() ?? 0;
+        public override int GetHashCode() => Value switch
+        {
+            true => 1,
+            false => 2,
+            _ => 0
+        };
 
         public override string ToString() => Value?.ToString();
 

@@ -73,7 +73,7 @@ namespace Axis.Luna.Common.Test.Types.Basic
                     break;
 
                 case BasicTypes.List:
-                    TestConstruction(new BasicList(new BasicValue[]{DateTimeOffset.Now, 5, "stuff"}, new BasicMetadata[] { "stuff;" }), type, new BasicMetadata[] { "stuff;" });
+                    TestConstruction(new BasicList(new BasicValue[]{DateTimeOffset.Now, 5L, "stuff"}, new BasicMetadata[] { "stuff;" }), type, new BasicMetadata[] { "stuff;" });
                     TestConstruction(new BasicList(new BasicValue[]{DateTimeOffset.Now, false}), type, new BasicMetadata[0]);
                     TestConstruction(new BasicList(new BasicValue[]{DateTimeOffset.Now, 65m}, new BasicMetadata[] { "stuffx;", "vlad:putin;" }), type, new BasicMetadata[] { "vlad:putin;", "stuffx;" });
                     break;

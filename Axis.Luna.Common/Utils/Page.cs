@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Axis.Luna.Extensions;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -46,7 +47,7 @@ namespace Axis.Luna.Common.Utils
 
             Index = Math.Abs(index);
             MaxCount = Math.Abs(maxCount);
-            _dataHash = Luna.Extensions.Common.ValueHash(_data);
+            _dataHash = Luna.Extensions.Common.ValueHash(_data.HardCast<TData, object>());
         }
 
 
@@ -76,7 +77,7 @@ namespace Axis.Luna.Common.Utils
     /// <summary>
     /// This struct is used to generate pagination references - i.e, given some parameters, it creates an array of consecutive page indexes.
     /// </summary>
-    public struct PageAdjacencySet
+    public readonly struct PageAdjacencySet
     {
         private readonly int[] _adjacencySet;
         private readonly int _adjacencyHash;

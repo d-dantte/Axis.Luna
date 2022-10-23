@@ -32,7 +32,7 @@ namespace Axis.Luna.Common.Test
             var result = new IResult<int>.ErrorResult(new System.Exception());
             Assert.IsNotNull(result);
 
-            result = new IResult<int>.ErrorResult(new System.Exception(), new BasicStruct { ["stuff"] = 54 });
+            result = new IResult<int>.ErrorResult(new System.Exception(), new BasicStruct { ["stuff"] = 54L });
             Assert.IsNotNull(result);
         }
 

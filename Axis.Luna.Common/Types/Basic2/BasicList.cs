@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Axis.Luna.Extensions;
+using System;
 using System.Linq;
 
 namespace Axis.Luna.Common.Types.Basic2
@@ -8,7 +9,7 @@ namespace Axis.Luna.Common.Types.Basic2
         /// <summary>
         /// Represents an immutable list.
         /// </summary>
-        public struct BasicList : IBasicValue
+        public readonly struct BasicList : IBasicValue
         {
             private readonly Metadata[] _metadata;
             private readonly IBasicValue[] _values;
@@ -37,7 +38,7 @@ namespace Axis.Luna.Common.Types.Basic2
 
             public override int GetHashCode() 
                 => _values != null
-                    ? HashCode.Combine(Luna.Extensions.Common.ValueHash(_values?.ToArray()))
+                    ? Luna.Extensions.Common.ValueHash(_values?.HardCast<IBasicValue, object>())
                     : 0;
 
             public override string ToString() => Value.ToString();
