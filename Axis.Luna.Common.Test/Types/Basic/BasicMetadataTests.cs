@@ -6,7 +6,7 @@ using System.Collections.Generic;
 namespace Axis.Luna.Common.Test.Types.Basic
 {
     [TestClass]
-    public class BasicMetadataTests
+    public class MetadataTests
     {
         #region Construction tests
         [TestMethod]
@@ -14,24 +14,24 @@ namespace Axis.Luna.Common.Test.Types.Basic
         {
             var key = "some_key";
             var value = "some_value";
-            var metadata = new BasicMetadata(key, value);
+            var metadata = new Metadata(key, value);
 
             Assert.AreEqual(key, metadata.Key);
             Assert.AreEqual(value, metadata.Value);
 
-            metadata = new BasicMetadata(new KeyValuePair<string, string>(key, value));
+            metadata = new Metadata(new KeyValuePair<string, string>(key, value));
 
             Assert.AreEqual(key, metadata.Key);
             Assert.AreEqual(value, metadata.Value);
 
             key = "some_key";
             value = null;
-            metadata = new BasicMetadata(key, value);
+            metadata = new Metadata(key, value);
 
             Assert.AreEqual(key, metadata.Key);
             Assert.AreEqual(value, metadata.Value);
 
-            metadata = new BasicMetadata(new KeyValuePair<string, string>(key, value));
+            metadata = new Metadata(new KeyValuePair<string, string>(key, value));
 
             Assert.AreEqual(key, metadata.Key);
             Assert.AreEqual(value, metadata.Value);
@@ -40,7 +40,7 @@ namespace Axis.Luna.Common.Test.Types.Basic
         [TestMethod]
         public void Constructor_WithInvalidData_ShouldThrowException()
         {
-            Assert.ThrowsException<ArgumentNullException>(() => new BasicMetadata(null));
+            Assert.ThrowsException<ArgumentNullException>(() => new Metadata(null));
         }
         #endregion
 
@@ -50,11 +50,12 @@ namespace Axis.Luna.Common.Test.Types.Basic
         {
             var key = "some_key";
             var value = "some_value";
-            var metadata = new BasicMetadata(key, value);
-            var metadata2 = new BasicMetadata(key, value);
-            var metadata3 = new BasicMetadata(key);
-            var metadata4 = new BasicMetadata("somethingelse", "bleh");
+            var metadata = new Metadata(key, value);
+            var metadata2 = new Metadata(key, value);
+            var metadata3 = new Metadata(key);
+            var metadata4 = new Metadata("somethingelse", "bleh");
 
+#pragma warning disable CS1718 // Comparison made to same variable
             Assert.AreEqual(metadata, metadata);
             Assert.IsTrue(metadata.Equals(metadata));
             Assert.IsTrue(metadata == metadata);
@@ -94,6 +95,7 @@ namespace Axis.Luna.Common.Test.Types.Basic
             Assert.IsFalse(metadata4.Equals(metadata));
             Assert.IsFalse(metadata4 == metadata);
             Assert.IsTrue(metadata4 != metadata);
+#pragma warning restore CS1718 // Comparison made to same variable
         }
         #endregion
 
@@ -103,10 +105,10 @@ namespace Axis.Luna.Common.Test.Types.Basic
         {
             var key = "some_key";
             var value = "some_value";
-            var metadata = new BasicMetadata(key, value);
+            var metadata = new Metadata(key, value);
             Assert.AreEqual($"{key}:{value};", metadata.ToString());
 
-            metadata = new BasicMetadata(key);
+            metadata = new Metadata(key);
             Assert.AreEqual($"{key};", metadata.ToString());
 
             metadata = default;

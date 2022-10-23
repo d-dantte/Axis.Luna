@@ -3,32 +3,27 @@ using System.Linq;
 
 namespace Axis.Luna.Common.Types.Basic
 {
-    public struct BasicTimeSpan : IBasicValue<TimeSpan?>
+    public readonly struct BasicTimeSpan : IBasicValue
     {
-        private readonly BasicMetadata[] _metadata;
+        private readonly Metadata[] _metadata;
 
         public BasicTypes Type => BasicTypes.TimeSpan;
 
+        public Metadata[] Metadata => _metadata?.ToArray() ?? Array.Empty<Metadata>();
+
         public TimeSpan? Value { get; }
 
-        public BasicMetadata[] Metadata => _metadata?.ToArray() ?? Array.Empty<BasicMetadata>();
-
-        public BasicTimeSpan(TimeSpan? value) : this(value, Array.Empty<BasicMetadata>())
-        { }
-
-        public BasicTimeSpan(TimeSpan? value, params BasicMetadata[] metadata)
+        internal BasicTimeSpan(TimeSpan? value, params Metadata[] metadata)
         {
             Value = value;
-            _metadata = metadata?.Length > 0 == true
-                ? metadata.ToArray()
-                : null;
+            _metadata = metadata?.ToArray();
         }
 
         public override bool Equals(object obj)
             => obj is BasicTimeSpan other
              && other.Value == Value;
 
-        public override int GetHashCode() => Value.GetHashCode();
+        public override int GetHashCode() => Value?.GetHashCode() ?? 0;
 
         public override string ToString() => Value.ToString();
 

@@ -3,25 +3,20 @@ using System.Linq;
 
 namespace Axis.Luna.Common.Types.Basic
 {
-    public struct BasicDecimal: IBasicValue<decimal?>
+    public readonly struct BasicDecimal : IBasicValue
     {
-        private readonly BasicMetadata[] _metadata;
+        private readonly Metadata[] _metadata;
 
         public BasicTypes Type => BasicTypes.Decimal;
 
+        public Metadata[] Metadata => _metadata?.ToArray() ?? Array.Empty<Metadata>();
+
         public decimal? Value { get; }
 
-        public BasicMetadata[] Metadata => _metadata?.ToArray() ?? Array.Empty<BasicMetadata>();
-
-        public BasicDecimal(decimal? value) : this(value, Array.Empty<BasicMetadata>())
-        { }
-
-        public BasicDecimal(decimal? value, params BasicMetadata[] metadata)
+        internal BasicDecimal(decimal? value, params Metadata[] metadata)
         {
             Value = value;
-            _metadata = metadata?.Length > 0 == true
-                ? metadata.ToArray()
-                : null;
+            _metadata = metadata?.ToArray();
         }
 
         public override bool Equals(object obj)

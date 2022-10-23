@@ -32,7 +32,7 @@ namespace Axis.Luna.Common.Test
             var result = new IResult<int>.ErrorResult(new System.Exception());
             Assert.IsNotNull(result);
 
-            result = new IResult<int>.ErrorResult(new System.Exception(), new BasicStruct { ["stuff"] = 54L });
+            result = new IResult<int>.ErrorResult(new Exception(), new BasicStruct.Initializer { ["stuff"] = 54L });
             Assert.IsNotNull(result);
         }
 
@@ -64,7 +64,7 @@ namespace Axis.Luna.Common.Test
         public void ErrorData_ReturnsErrorDataInstance()
         {
             var exception = new Exception("some exception");
-            var errorData = new BasicStruct
+            BasicStruct errorData = new BasicStruct.Initializer
             {
                 ["prop1"] = "something",
                 ["prop2"] = Guid.NewGuid(),
@@ -82,7 +82,7 @@ namespace Axis.Luna.Common.Test
         public void Equality_Test()
         {
             var exception = new Exception("some exception");
-            var errorData = new BasicStruct
+            BasicStruct errorData = new BasicStruct.Initializer
             {
                 ["prop1"] = "something",
                 ["prop2"] = Guid.NewGuid(),

@@ -7,7 +7,7 @@ using static Axis.Luna.Extensions.Common;
 
 namespace Axis.Luna.Common.Utils
 {
-    public class SecureRandom : IDisposable
+    public class SecureRandom
     {
         private static readonly char[] CharacterMap = new[]
         {
@@ -15,15 +15,12 @@ namespace Axis.Luna.Common.Utils
             '0','1','2','3','4','5','6','7','8','9'
         };
 
-        private readonly RNGCryptoServiceProvider _cryptoProvider = new RNGCryptoServiceProvider();
 
-        public void Dispose() => _cryptoProvider.Dispose();
+        public static byte[] NextBytes(int length) => NextBytes(new byte[length]);
 
-        public byte[] NextBytes(int length) => NextBytes(new byte[length]);
-
-        public byte[] NextBytes(byte[] bytes)
+        public static byte[] NextBytes(byte[] bytes)
         {
-            _cryptoProvider.GetBytes(bytes);
+            RandomNumberGenerator.Fill(bytes);
             return bytes;
         }
 
@@ -32,12 +29,13 @@ namespace Axis.Luna.Common.Utils
         /// </summary>
         /// <param name="maxExclusive">The value which will always be greater than generated integers</param>
         /// <returns>The generated integer</returns>
-        public int NextInt(int maxExclusive = -1)
+        public static int NextInt(int? maxExclusive = null)
         {
-            var intBytes = new byte[4];
-            _cryptoProvider.GetBytes(intBytes);
-            var @int = Math.Abs(BitConverter.ToInt32(intBytes, 0));
-            if (maxExclusive > 0) return @int % maxExclusive;
+            if (maxExclusive <= 0)
+                throw new ArgumentException($"Invalid {nameof(maxExclusive)}");
+
+            var @int = Math.Abs(RandomNumberGenerator.GetInt32(maxExclusive ?? int.MaxValue));
+            if (@int >= maxExclusive) return @int % maxExclusive.Value;
             else return @int;
         }
 
@@ -46,60 +44,64 @@ namespace Axis.Luna.Common.Utils
         /// </summary>
         /// <param name="maxExclusive">The value which will always be greater than generated long value</param>
         /// <returns>The generated long</returns>
-        public long NextLong(long maxExclusive = -1)
+        public static long NextLong(long? maxExclusive = null)
         {
+            if (maxExclusive <= 0)
+                throw new ArgumentException($"Invalid {nameof(maxExclusive)}");
+
             var longBytes = new byte[8];
-            _cryptoProvider.GetBytes(longBytes);
+            RandomNumberGenerator.Fill(longBytes);
             var @long = Math.Abs(BitConverter.ToInt64(longBytes, 0));
-            if (maxExclusive > 0) return @long % maxExclusive;
+            if (@long > maxExclusive) return @long % maxExclusive.Value;
             else return @long;
         }
 
-        public double NextSignedDouble()
+        public static double NextSignedDouble()
         {
             var doubleBytes = new byte[8];
-            _cryptoProvider.GetBytes(doubleBytes);
+            RandomNumberGenerator.Fill(doubleBytes);
             return BitConverter.ToDouble(doubleBytes, 0);
         }
 
-        public int NextSignedInt()
+        public static int NextSignedInt()
         {
-            var intByte = new byte[4];
-            _cryptoProvider.GetBytes(intByte);
-            return BitConverter.ToInt32(intByte, 0);
+            var intBytes = new byte[4];
+            RandomNumberGenerator.Fill(intBytes);
+            return BitConverter.ToInt32(intBytes, 0);
         }
 
-        public long NextSignedLong()
+        public static long NextSignedLong()
         {
             var longBytes = new byte[8];
-            _cryptoProvider.GetBytes(longBytes);
+            RandomNumberGenerator.Fill(longBytes);
             return BitConverter.ToInt64(longBytes, 0);
         }
 
-        public int[] NextSequence(int sequenceLength, int maxExclusive = -1)
+        public static int[] NextSequence(int sequenceLength, int maxExclusive = -1)
         {
             var list = new List<int>();
-            for (int cnt = 0; cnt < sequenceLength; cnt++) list.Add(NextInt(maxExclusive));
+            for (int cnt = 0; cnt < sequenceLength; cnt++) 
+                list.Add(NextInt(maxExclusive));
 
             return list.ToArray();
         }
 
-        public string NextAlphaString(int length)
-        => NextSequence(length, 26)
-            .Select(_r => CharacterMap[_r])
-            .JoinUsing("");
+        public static string NextAlphaString(int length)
+            => NextSequence(length, 26)
+                .Select(_r => CharacterMap[_r])
+                .JoinUsing("");
 
-        public string NextAlphaNumericString(int length)
+        public static string NextAlphaNumericString(int length)
         => NextSequence(length, 36)
             .Select(_r => CharacterMap[_r])
             .JoinUsing("");
 
-        public char NextChar() => CharacterMap[NextInt() % 26];
+        public static char NextChar() => CharacterMap[NextInt() % 26];
 
-        public V NextValue<V>(V[] values) => values[NextInt() % values.Length];
+        public static V NextValue<V>(V[] values) => values[NextInt() % values.Length];
 
-        public char NextChar(string values) => NextValue(values.ToCharArray());
+        public static char NextChar(string values) => NextValue(values.ToCharArray());
 
-        public bool NextBool() => NextInt() % 2 == 0;
+        public static bool NextBool() => NextInt() % 2 == 0;
     }
 }

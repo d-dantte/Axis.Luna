@@ -19,11 +19,9 @@ namespace Axis.Luna.Common.Test
             Console.WriteLine(typeof(StringBuilder).MinimalAQName());
 
             var sb = new StringBuilder();
-            using (var sr = new SecureRandom())
-            {
-                for (int cnt = 0; cnt < 15; cnt++)
-                    sb.Append(sr.NextChar("abcdefghijklmnopqrstuvwqyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890!%^&*()_+=-#@?"));
-            }
+
+            for (int cnt = 0; cnt < 15; cnt++)
+                sb.Append(SecureRandom.NextChar("abcdefghijklmnopqrstuvwqyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890!%^&*()_+=-#@?"));
             Console.WriteLine(sb);
         }
 

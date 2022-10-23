@@ -3,29 +3,24 @@ using System.Linq;
 
 namespace Axis.Luna.Common.Types.Basic
 {
-    public struct BasicDateTime : IBasicValue<DateTimeOffset?>
+    public readonly struct BasicDate : IBasicValue
     {
-        private readonly BasicMetadata[] _metadata;
+        private readonly Metadata[] _metadata;
 
         public BasicTypes Type => BasicTypes.Date;
 
+        public Metadata[] Metadata => _metadata?.ToArray() ?? Array.Empty<Metadata>();
+
         public DateTimeOffset? Value { get; }
 
-        public BasicMetadata[] Metadata => _metadata?.ToArray() ?? Array.Empty<BasicMetadata>();
-
-        public BasicDateTime(DateTimeOffset? value) : this(value, Array.Empty<BasicMetadata>())
-        { }
-
-        public BasicDateTime(DateTimeOffset? value, params BasicMetadata[] metadata)
+        internal BasicDate(DateTimeOffset? value, params Metadata[] metadata)
         {
             Value = value;
-            _metadata = metadata?.Length > 0 == true
-                ? metadata.ToArray()
-                : null;
+            _metadata = metadata?.ToArray();
         }
 
         public override bool Equals(object obj)
-            => obj is BasicDateTime other
+            => obj is BasicDate other
              && other.Value == Value;
 
         public override int GetHashCode() => Value?.GetHashCode() ?? 0;
@@ -33,8 +28,8 @@ namespace Axis.Luna.Common.Types.Basic
         public override string ToString() => Value?.ToString();
 
 
-        public static bool operator ==(BasicDateTime first, BasicDateTime second) => first.Value == second.Value;
+        public static bool operator ==(BasicDate first, BasicDate second) => first.Value == second.Value;
 
-        public static bool operator !=(BasicDateTime first, BasicDateTime second) => !(first == second);
+        public static bool operator !=(BasicDate first, BasicDate second) => !(first == second);
     }
 }

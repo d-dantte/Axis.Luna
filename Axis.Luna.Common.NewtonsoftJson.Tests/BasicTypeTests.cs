@@ -3,7 +3,6 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
-using static Axis.Luna.Common.Types.Basic.BaseExtensions;
 
 namespace Axis.Luna.Common.NewtonsoftJson.Tests
 {
@@ -21,25 +20,25 @@ namespace Axis.Luna.Common.NewtonsoftJson.Tests
                 }
             };
 
-            var struct1 = new BasicStruct
+            BasicStruct struct1 = new BasicStruct.Initializer
             {
-                [new BasicStruct.PropertyName("Identity", "origin;", "genesis;")] = Guid.NewGuid(),
+                ["[origin;genesis;]identity"] = Guid.NewGuid(),
                 ["Amount"] = 56.43m,
-                ["Discount"] = 6.01m.AsBasicType(),
-                ["Weight"] = 65.432.AsBasicType(),
+                ["Discount"] = 6.01m,
+                ["Weight"] = 65.432,
                 ["Age"] = 56,
                 ["Duration"] = TimeSpan.FromHours(5.3),
-                ["EventDate"] = DateTimeOffset.Now,
-                ["FavColors"] = new List<BasicValue>
+                ["[hen]EventDate"] = DateTimeOffset.Now,
+                ["FavColors"] = new BasicValueWrapper[]
                 {
-                    new BasicString("Purple", "royal;", "expensive;"),
+                    IBasicValue.Of("Purple", "royal;", "expensive;").Wrap(),
                     "Blue",
-                    "Red".AsBasicType(),
+                    "Red",
                     "Black",
                     true,
-                    new BasicStruct
+                    new BasicStruct.Initializer
                     {
-                        ["something"] = 45.AsBasicType()
+                        ["something"] = 45
                     }
                 }
             };
@@ -51,6 +50,16 @@ namespace Axis.Luna.Common.NewtonsoftJson.Tests
             Assert.IsTrue(struct1.Equals(struct2));
             Assert.IsTrue(struct1 == struct2);
             Assert.AreEqual(struct1, struct2);
+        }
+
+        [TestMethod]
+        public void EqualityTest()
+        {
+            BasicStruct st1 = new BasicStruct.Initializer { };
+            BasicStruct defaultStruct = default;
+
+            var areEquals = st1.Equals(defaultStruct);
+            Assert.IsFalse(areEquals);
         }
     }
 }

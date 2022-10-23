@@ -37,72 +37,74 @@ namespace Axis.Luna.Common.Test.Types.Basic
             switch(type)
             {
                 case BasicTypes.Bool:
-                    TestConstruction(new BasicBool(true, "stuff;"), type, new BasicMetadata[] { "stuff;" });
-                    TestConstruction(new BasicBool(true), type, new BasicMetadata[0]);
-                    TestConstruction(new BasicBool(true, "stuffx;", "vlad:putin;"), type, new BasicMetadata[] { "vlad:putin;", "stuffx;" });
+                    TestConstruction(new BasicBool(true, "stuff;"), type, new Metadata[] { "stuff;" });
+                    TestConstruction(new BasicBool(true), type, new Metadata[0]);
+                    TestConstruction(new BasicBool(true, "stuffx;", "vlad:putin;"), type, new Metadata[] { "vlad:putin;", "stuffx;" });
                     break;
 
                 case BasicTypes.Bytes:
-                    TestConstruction(new BasicBytes(new byte[] { 1, 5 }, "stuff;"), type, new BasicMetadata[] { "stuff;" });
-                    TestConstruction(new BasicBytes(new byte[] { 2, 77, 51 }), type, new BasicMetadata[0]);
-                    TestConstruction(new BasicBytes(new byte[0], "stuffx;", "vlad:putin;"), type, new BasicMetadata[] { "vlad:putin;", "stuffx;" });
+                    TestConstruction(new BasicBytes(new byte[] { 1, 5 }, "stuff;"), type, new Metadata[] { "stuff;" });
+                    TestConstruction(new BasicBytes(new byte[] { 2, 77, 51 }), type, new Metadata[0]);
+                    TestConstruction(new BasicBytes(new byte[0], "stuffx;", "vlad:putin;"), type, new Metadata[] { "vlad:putin;", "stuffx;" });
                     break;
 
                 case BasicTypes.Date:
-                    TestConstruction(new BasicDateTime(DateTimeOffset.Now, "stuff;"), type, new BasicMetadata[] { "stuff;" });
-                    TestConstruction(new BasicDateTime(DateTimeOffset.Now), type, new BasicMetadata[0]);
-                    TestConstruction(new BasicDateTime(DateTimeOffset.Now, "stuffx;", "vlad:putin;"), type, new BasicMetadata[] { "vlad:putin;", "stuffx;" });
+                    TestConstruction(new BasicDate(DateTimeOffset.Now, "stuff;"), type, new Metadata[] { "stuff;" });
+                    TestConstruction(new BasicDate(DateTimeOffset.Now), type, new Metadata[0]);
+                    TestConstruction(new BasicDate(DateTimeOffset.Now, "stuffx;", "vlad:putin;"), type, new Metadata[] { "vlad:putin;", "stuffx;" });
                     break;
 
                 case BasicTypes.Decimal:
-                    TestConstruction(new BasicDecimal(5m, "stuff;"), type, new BasicMetadata[] { "stuff;" });
-                    TestConstruction(new BasicDecimal(9.33m), type, new BasicMetadata[0]);
-                    TestConstruction(new BasicDecimal(3m, "stuffx;", "vlad:putin;"), type, new BasicMetadata[] { "vlad:putin;", "stuffx;" });
+                    TestConstruction(new BasicDecimal(5m, "stuff;"), type, new Metadata[] { "stuff;" });
+                    TestConstruction(new BasicDecimal(9.33m), type, new Metadata[0]);
+                    TestConstruction(new BasicDecimal(3m, "stuffx;", "vlad:putin;"), type, new Metadata[] { "vlad:putin;", "stuffx;" });
                     break;
 
                 case BasicTypes.Guid:
-                    TestConstruction(new BasicGuid(Guid.NewGuid(), "stuff;"), type, new BasicMetadata[] { "stuff;" });
-                    TestConstruction(new BasicGuid(Guid.NewGuid()), type, new BasicMetadata[0]);
-                    TestConstruction(new BasicGuid(Guid.NewGuid(), "stuffx;", "vlad:putin;"), type, new BasicMetadata[] { "vlad:putin;", "stuffx;" });
+                    TestConstruction(new BasicGuid(Guid.NewGuid(), "stuff;"), type, new Metadata[] { "stuff;" });
+                    TestConstruction(new BasicGuid(Guid.NewGuid()), type, new Metadata[0]);
+                    TestConstruction(new BasicGuid(Guid.NewGuid(), "stuffx;", "vlad:putin;"), type, new Metadata[] { "vlad:putin;", "stuffx;" });
+                    break;
+
+                case BasicTypes.UInt:
+                    TestConstruction(new BasicUInt(56, "stuff;"), type, new Metadata[] { "stuff;" });
+                    TestConstruction(new BasicUInt(56), type, new Metadata[0]);
+                    TestConstruction(new BasicUInt(56, "stuffx;", "vlad:putin;"), type, new Metadata[] { "vlad:putin;", "stuffx;" });
                     break;
 
                 case BasicTypes.Int:
-                    TestConstruction(new BasicInt(56, "stuff;"), type, new BasicMetadata[] { "stuff;" });
-                    TestConstruction(new BasicInt(56), type, new BasicMetadata[0]);
-                    TestConstruction(new BasicInt(56, "stuffx;", "vlad:putin;"), type, new BasicMetadata[] { "vlad:putin;", "stuffx;" });
+                    TestConstruction(new BasicInt(56, "stuff;"), type, new Metadata[] { "stuff;" });
+                    TestConstruction(new BasicInt(56), type, new Metadata[0]);
+                    TestConstruction(new BasicInt(56, "stuffx;", "vlad:putin;"), type, new Metadata[] { "vlad:putin;", "stuffx;" });
                     break;
 
                 case BasicTypes.List:
-                    TestConstruction(new BasicList(new BasicValue[]{DateTimeOffset.Now, 5L, "stuff"}, new BasicMetadata[] { "stuff;" }), type, new BasicMetadata[] { "stuff;" });
-                    TestConstruction(new BasicList(new BasicValue[]{DateTimeOffset.Now, false}), type, new BasicMetadata[0]);
-                    TestConstruction(new BasicList(new BasicValue[]{DateTimeOffset.Now, 65m}, new BasicMetadata[] { "stuffx;", "vlad:putin;" }), type, new BasicMetadata[] { "vlad:putin;", "stuffx;" });
+                    TestConstruction(new BasicList(new BasicValueWrapper[]{DateTimeOffset.Now, 5L, "stuff"}, new Metadata[] { "stuff;" }), type, new Metadata[] { "stuff;" });
+                    TestConstruction(new BasicList(new BasicValueWrapper[]{DateTimeOffset.Now, false}), type, new Metadata[0]);
+                    TestConstruction(new BasicList(new BasicValueWrapper[]{DateTimeOffset.Now, 65m}, new Metadata[] { "stuffx;", "vlad:putin;" }), type, new Metadata[] { "vlad:putin;", "stuffx;" });
                     break;
 
                 case BasicTypes.Real:
-                    TestConstruction(new BasicReal(87.09, "stuff;"), type, new BasicMetadata[] { "stuff;" });
-                    TestConstruction(new BasicReal(87.09), type, new BasicMetadata[0]);
-                    TestConstruction(new BasicReal(87.09, "stuffx;", "vlad:putin;"), type, new BasicMetadata[] { "vlad:putin;", "stuffx;" });
+                    TestConstruction(new BasicReal(87.09, "stuff;"), type, new Metadata[] { "stuff;" });
+                    TestConstruction(new BasicReal(87.09), type, new Metadata[0]);
+                    TestConstruction(new BasicReal(87.09, "stuffx;", "vlad:putin;"), type, new Metadata[] { "vlad:putin;", "stuffx;" });
                     break;
 
                 case BasicTypes.String:
-                    TestConstruction(new BasicString("something stringy", "stuff;"), type, new BasicMetadata[] { "stuff;" });
-                    TestConstruction(new BasicString("something stringy"), type, new BasicMetadata[0]);
-                    TestConstruction(new BasicString("something stringy", "stuffx;", "vlad:putin;"), type, new BasicMetadata[] { "vlad:putin;", "stuffx;" });
+                    TestConstruction(new BasicString("something stringy", "stuff;"), type, new Metadata[] { "stuff;" });
+                    TestConstruction(new BasicString("something stringy"), type, new Metadata[0]);
+                    TestConstruction(new BasicString("something stringy", "stuffx;", "vlad:putin;"), type, new Metadata[] { "vlad:putin;", "stuffx;" });
                     break;
 
                 case BasicTypes.Struct:
-                    TestConstruction(new BasicStruct("stuff;") { ["bleh"] = true }, type, new BasicMetadata[] { "stuff;" });
-                    TestConstruction(new BasicStruct() { ["bleh"] = true }, type, new BasicMetadata[0]);
-                    TestConstruction(new BasicStruct("stuffx;", "vlad:putin;") { ["bleh"] = true }, type, new BasicMetadata[] { "vlad:putin;", "stuffx;" });
+                    TestConstruction(new BasicStruct(new BasicStruct.Initializer("stuff;") { ["bleh"] = true }), type, new Metadata[] { "stuff;" });
+                    TestConstruction(new BasicStruct(new BasicStruct.Initializer("stuffx;", "vlad:putin;") { ["bleh"] = true }), type, new Metadata[] { "vlad:putin;", "stuffx;" });
                     break;
 
                 case BasicTypes.TimeSpan:
-                    TestConstruction(new BasicTimeSpan(TimeSpan.FromHours(54.1), "stuff;"), type, new BasicMetadata[] { "stuff;" });
-                    TestConstruction(new BasicTimeSpan(TimeSpan.FromHours(54.1)), type, new BasicMetadata[0]);
-                    TestConstruction(new BasicTimeSpan(TimeSpan.FromHours(54.1), "stuffx;", "vlad:putin;"), type, new BasicMetadata[] { "vlad:putin;", "stuffx;" });
-                    break;
-
-                case BasicTypes.NullValue:
+                    TestConstruction(new BasicTimeSpan(TimeSpan.FromHours(54.1), "stuff;"), type, new Metadata[] { "stuff;" });
+                    TestConstruction(new BasicTimeSpan(TimeSpan.FromHours(54.1)), type, new Metadata[0]);
+                    TestConstruction(new BasicTimeSpan(TimeSpan.FromHours(54.1), "stuffx;", "vlad:putin;"), type, new Metadata[] { "vlad:putin;", "stuffx;" });
                     break;
 
                 default:
@@ -127,9 +129,9 @@ namespace Axis.Luna.Common.Test.Types.Basic
                     break;
 
                 case BasicTypes.Date:
-                    TestDefault(default(BasicDateTime));
-                    TestDefault(new BasicDateTime(null));
-                    TestDefault(new BasicDateTime(null, "some;", "meta-label;"));
+                    TestDefault(default(BasicDate));
+                    TestDefault(new BasicDate(null));
+                    TestDefault(new BasicDate(null, "some;", "meta-label;"));
                     break;
 
                 case BasicTypes.Decimal:
@@ -150,10 +152,16 @@ namespace Axis.Luna.Common.Test.Types.Basic
                     TestDefault(new BasicInt(null, "some;", "meta-label;"));
                     break;
 
+                case BasicTypes.UInt:
+                    TestDefault(default(BasicUInt));
+                    TestDefault(new BasicUInt(null));
+                    TestDefault(new BasicUInt(null, "some;", "meta-label;"));
+                    break;
+
                 case BasicTypes.List:
                     TestDefault(default(BasicList));
                     TestDefault(new BasicList());
-                    TestDefault(new BasicList((BasicValue[])null, new BasicMetadata[] { "some;", "meta-label;" }));
+                    TestDefault(new BasicList((BasicValueWrapper[])null, new Metadata[] { "some;", "meta-label;" }));
                     break;
 
                 case BasicTypes.Real:
@@ -168,7 +176,6 @@ namespace Axis.Luna.Common.Test.Types.Basic
                     TestDefault(new BasicString(null, "some;", "meta-label;"));
                     break;
 
-                case BasicTypes.NullValue:
                 case BasicTypes.Struct:
                     break;
 
@@ -186,7 +193,7 @@ namespace Axis.Luna.Common.Test.Types.Basic
 
         private void RunEqualityTest(BasicTypes type)
         {
-            switch(type)
+            switch (type)
             {
                 case BasicTypes.Bool:
                     TestEquality(new BasicBool(true), new BasicBool(true), new BasicBool(false));
@@ -194,16 +201,16 @@ namespace Axis.Luna.Common.Test.Types.Basic
 
                 case BasicTypes.Bytes:
                     TestEquality(
-                        new BasicBytes(new byte[] {3, 5}),
+                        new BasicBytes(new byte[] { 3, 5 }),
                         new BasicBytes(new byte[] { 3, 5 }),
                         new BasicBytes(new byte[0]));
                     break;
 
                 case BasicTypes.Date:
                     TestEquality(
-                        new BasicDateTime(DateTimeOffset.Parse("2021/10/14")),
-                        new BasicDateTime(DateTimeOffset.Parse("2021/10/14")),
-                        new BasicDateTime(DateTimeOffset.Now));
+                        new BasicDate(DateTimeOffset.Parse("2021/10/14")),
+                        new BasicDate(DateTimeOffset.Parse("2021/10/14")),
+                        new BasicDate(DateTimeOffset.Now));
                     break;
 
                 case BasicTypes.Decimal:
@@ -221,11 +228,15 @@ namespace Axis.Luna.Common.Test.Types.Basic
                     TestEquality(new BasicInt(6754), new BasicInt(6754), new BasicInt(11));
                     break;
 
+                case BasicTypes.UInt:
+                    TestEquality(new BasicUInt(6754), new BasicUInt(6754), new BasicUInt(11));
+                    break;
+
                 case BasicTypes.List:
                     TestEquality(
-                        new BasicList(7m, true, "false"),
-                        new BasicList(7m, true, "false"),
-                        new BasicList("true", false, 0m));
+                        new BasicList(new BasicValueWrapper[] { 7m, true, "false" }),
+                        new BasicList(new BasicValueWrapper[] { 7m, true, "false" }),
+                        new BasicList(new BasicValueWrapper[] { "true", false, 0m }));
                     break;
 
                 case BasicTypes.Real:
@@ -241,19 +252,16 @@ namespace Axis.Luna.Common.Test.Types.Basic
 
                 case BasicTypes.Struct:
                     TestEquality(
-                        new BasicStruct() { ["name"] = "jin"},
-                        new BasicStruct() { ["name"] = "jin" },
-                        new BasicStruct() { ["age"] = 32.9});
+                        new BasicStruct(new BasicStruct.Initializer { ["name"] = "jin" }),
+                        new BasicStruct(new BasicStruct.Initializer { ["name"] = "jin" }),
+                        new BasicStruct(new BasicStruct.Initializer { ["age"] = 32.9 }));
                     break;
 
                 case BasicTypes.TimeSpan:
                     TestEquality(
                         new BasicTimeSpan(TimeSpan.FromHours(45)),
-                        new BasicTimeSpan(TimeSpan.FromMinutes(45*60)),
+                        new BasicTimeSpan(TimeSpan.FromMinutes(45 * 60)),
                         new BasicTimeSpan(TimeSpan.FromSeconds(90)));
-                    break;
-
-                case BasicTypes.NullValue:
                     break;
 
                 default:
@@ -261,10 +269,9 @@ namespace Axis.Luna.Common.Test.Types.Basic
             }
         }
 
-        public void TestConstruction<T>(IBasicValue<T> value, BasicTypes type, BasicMetadata[] metadata)
+        public void TestConstruction(IBasicValue value, BasicTypes type, Metadata[] metadata)
         {
             Assert.IsNotNull(value);
-            Assert.AreNotEqual(default, value.Value);
             Assert.AreEqual(type, value.Type);
 
             var s1 = metadata.OrderBy(m => m.Key).ToArray();
@@ -272,12 +279,57 @@ namespace Axis.Luna.Common.Test.Types.Basic
             Assert.IsTrue(s1.SequenceEqual(s2));
         }
 
-        public void TestDefault<T>(IBasicValue<T> @default)
+        public void TestDefault(IBasicValue @default)
         {
-            Assert.AreEqual(default, @default.Value);
+            switch (@default)
+            {
+                case BasicBool basic:
+                    Assert.AreEqual(default, basic.Value);
+                    break;
+
+                case BasicBytes basic:
+                    Assert.AreEqual(default, basic.Value);
+                    break;
+
+                case BasicDate basic:
+                    Assert.AreEqual(default, basic.Value);
+                    break;
+
+                case BasicDecimal basic:
+                    Assert.AreEqual(default, basic.Value);
+                    break;
+
+                case BasicGuid basic:
+                    Assert.AreEqual(default, basic.Value);
+                    break;
+
+                case BasicInt basic:
+                    Assert.AreEqual(default, basic.Value);
+                    break;
+
+                case BasicList basic:
+                    Assert.AreEqual(default, basic.Value);
+                    break;
+
+                case BasicReal basic:
+                    Assert.AreEqual(default, basic.Value);
+                    break;
+
+                case BasicString basic:
+                    Assert.AreEqual(default, basic.Value);
+                    break;
+
+                case BasicTimeSpan basic:
+                    Assert.AreEqual(default, basic.Value);
+                    break;
+
+                case BasicUInt basic:
+                    Assert.AreEqual(default, basic.Value);
+                    break;
+            }
         }
 
-        public void TestEquality<T>(IBasicValue<T> eq1, IBasicValue<T> eq2, IBasicValue<T> neq1)
+        public void TestEquality(IBasicValue eq1, IBasicValue eq2, IBasicValue neq1)
         {
             Assert.IsTrue(eq1.Equals(eq2));
             Assert.IsTrue(eq2.Equals(eq1));

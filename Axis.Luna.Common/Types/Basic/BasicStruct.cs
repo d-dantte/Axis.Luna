@@ -6,226 +6,230 @@ using System.Linq;
 
 namespace Axis.Luna.Common.Types.Basic
 {
-    using Property = KeyValuePair<BasicStruct.PropertyName, BasicValue>;
-
-    /// <summary>
-    /// Represents a mutable mapping of names to basic values.
-    /// This struct differs from all other BasicValues so far in that it's default state represents an EMPTY struct, rather than
-    /// a null value.
-    /// <para>
-    ///   Significant implications of the above are:
-    ///   <list type="number">
-    ///     <item>
-    ///       This struct is superficially immutable - meaning it's direct properties
-    ///       are never changed, but the value those properties contain may be changed.
-    ///     </item>
-    ///     <item>
-    ///       This struct's <c>default</c> value is an empty struct, not a null struct. As such, even the default value may mutate
-    ///       into a non default value, and vice versa.
-    ///     </item>
-    ///     <item>
-    ///       Internally, <c>default</c> of <see cref="BasicStruct"/>, at creation site, and before any mutation, holds null values for it's properties.
-    ///       Making copies before mutation means that each copy will eventually be isolated from the original and the other copies when they are interacted with. 
-    ///     </item>
-    ///   </list>
-    /// </para>
-    /// </summary>
-    public struct BasicStruct : IBasicValue<IEnumerable<Property>>
+    public struct BasicStruct : IBasicValue
     {
-        private BasicMetadata[] _metadata;
-        private Dictionary<PropertyName, BasicValue> _properties;
-        private Dictionary<string, PropertyName> _propertyBasicMetadata;
-        private MapAccessor<string, BasicMetadata[]> _propertyBasicMetadataAccessor;
+        private readonly Metadata[] _metadata;
+        private readonly Dictionary<PropertyName, IBasicValue> _properties;
+        private readonly Dictionary<string, PropertyName> _propertyNames;
 
-        #region Constructors
-        public BasicStruct(IEnumerable<BasicMetadata> metadata)
-            : this(metadata?.ToArray())
+        #region Properties
+        public BasicTypes Type => BasicTypes.Struct;
+
+        public Metadata[] Metadata => _metadata?.ToArray() ?? Array.Empty<Metadata>();
+
+        public bool IsDefault => _properties is null;
+
+        public int PropertyCount => _properties?.Count ?? 0;
+
+        public bool HasProperty(string name) => _propertyNames?.ContainsKey(name) == true;
+
+        public PropertyName[] PropertyNames => _properties
+            ?.Keys
+            .ToArray()
+            ?? Array.Empty<PropertyName>();
+
+        public Property[] Properties => _properties
+            ?.Select(p => new Property(p.Key, p.Value))
+            .ToArray()
+            ?? Array.Empty<Property>();
+
+        public ValueSetter Value => new ValueSetter(this);
+        #endregion
+
+        #region Indexer
+        public IBasicValue this[PropertyName propertyName]
         {
+            get => TryGetValue(propertyName.Name, out var value)
+                ? value
+                : throw new ArgumentException($"Invalid property name");
+
+            set => _ = AddValue(propertyName, value);
         }
 
-        public BasicStruct(params BasicMetadata[] metadata)
+        public IBasicValue this[string propertyName]
         {
-            _metadata = null;
-            _properties = null;
-            _propertyBasicMetadata = null;
-            _propertyBasicMetadataAccessor = default;
+            get => TryGetValue(propertyName, out var value)
+                ? value
+                : throw new ArgumentException($"Invalid property name");
 
-            __construct(metadata);
-        }
-
-        private void __construct(BasicMetadata[] metadata = null)
-        {
-            _properties = new Dictionary<PropertyName, BasicValue>();
-
-            var propertyBasicMetadataClosure = _propertyBasicMetadata = new Dictionary<string, PropertyName>();
-
-            _metadata = metadata?.Length > 0 == true
-                ? metadata.ToArray()
-                : null;
-            _propertyBasicMetadataAccessor = new MapAccessor<string, BasicMetadata[]>(
-                key => propertyBasicMetadataClosure.TryGetValue(key, out var name) ? name.Metadata : null);
+            set => _ = AddValue(propertyName, value);
         }
         #endregion
 
-        #region Accessors
-        public bool IsDefault => _properties == null;
-
-        public bool HasProperty(string propertyName) => _properties?.ContainsKey(propertyName) == true;
-
-        public BasicTypes Type => BasicTypes.Struct;
-
-        public BasicMetadata[] Metadata => _metadata ?? Array.Empty<BasicMetadata>();
-
-        public IEnumerable<Property> Value => _properties ?? (IEnumerable<Property>)Array.Empty<Property>();
-
-        public PropertyName[] PropertyNames => _properties?.Keys.ToArray() ?? Array.Empty<PropertyName>();
-
-        public IReadonlyIndexer<string, BasicMetadata[]> PropertyMetadata => _propertyBasicMetadataAccessor;
-
-        public int Count => _properties?.Count ?? 0;
-
-        public bool TryGetValue(PropertyName key, out BasicValue value)
+        #region Ctor
+        internal BasicStruct(Property[] initialProperties, params Metadata[] metadata)
         {
-            if(_properties == null)
-            {
-                value = default;
+            _metadata = metadata?.ToArray() ?? Array.Empty<Metadata>();
+            (_propertyNames, _properties) = initialProperties
+                .ThrowIfNull(new ArgumentNullException(nameof(initialProperties)))
+                .Aggregate(
+                    (propNames: new Dictionary<string, PropertyName>(), props: new Dictionary<PropertyName, IBasicValue>()),
+                    (maps, next) =>
+                    {
+                        maps.propNames[next.Name.Name] = next.Name;
+                        maps.props[next.Name] = next.Value;
+
+                        return maps;
+                    });
+        }
+
+        public BasicStruct(Initializer initializer)
+            : this(initializer.Properties, initializer.Metadata)
+        { }
+        #endregion
+
+        #region Accessors
+        public bool TryGetValue(string propertyName, out IBasicValue value)
+        {
+            ValidateDefault();
+
+            value = null;
+
+            if (!_propertyNames.TryGetValue(propertyName, out var name))
                 return false;
+
+            value = _properties[name];
+            return true;
+        }
+
+        public IBasicValue GetOrAddValue(string propertyName, Func<string, IBasicValue> valueProducer)
+        {
+            ValidateDefault();
+
+            if (valueProducer == null)
+                throw new ArgumentNullException(nameof(valueProducer));
+
+            if (TryGetValue(propertyName, out var value))
+                return value;
+
+            else
+            {
+                _ = AddValue(propertyName, valueProducer.Invoke(propertyName));
+                return _properties[_propertyNames[propertyName]];
             }
-            
-            return _properties.TryGetValue(key, out value);
+        }
+
+        public IBasicValue GetOrAddValue(PropertyName propertyName, Func<PropertyName, IBasicValue> valueProducer)
+        {
+            ValidateDefault();
+
+            if (propertyName == default)
+                throw new ArgumentException($"Invalid {nameof(propertyName)}");
+
+            if (valueProducer == null)
+                throw new ArgumentNullException(nameof(valueProducer));
+
+            if (TryGetValue(propertyName.Name, out var value))
+                return value;
+
+            else
+            {
+                _ = AddValue(propertyName, valueProducer.Invoke(propertyName));
+                return _properties[propertyName];
+            }
+        }
+
+        public Metadata[] PropertyMetadataFor(string name)
+        {
+            ValidateDefault();
+
+            return _propertyNames[name].Metadata;
         }
         #endregion
 
         #region Mutators
-        public bool Remove(PropertyName key) => PreMutate(@this => @this._properties.Remove(key));
-
-        public BasicStruct Append(string key, BasicValue value) => PreMutate(@this =>
+        public BasicStruct AddValue(string propertyName, IBasicValue value)
         {
-            @this[key] = value;
-            return @this;
-        });
+            ValidateDefault();
 
-        public BasicStruct Append(PropertyName key, BasicValue value) => PreMutate(@this =>
-        {
-            @this[key] = value;
-            return @this;
-        });
+            if (value == null)
+                throw new ArgumentNullException(nameof(value));
 
-        public BasicStruct Append(KeyValuePair<string, BasicValue> value) => Append(value.Key, value.Value);
+            var propName = _propertyNames.GetOrAdd(propertyName, n => new PropertyName(n));
+            _properties[propName] = value;
 
-        public BasicStruct Append(Property value) => Append(value.Key, value.Value);
-
-        private R PreMutate<R>(Func<BasicStruct, R> mutator)
-        {
-            if (mutator == null)
-                throw new ArgumentNullException(nameof(mutator));
-
-            if (IsDefault)
-                __construct();
-
-            return mutator.Invoke(this); // <-- copy will work because the internal fields have been set
+            return this;
         }
 
-        private void PreMutate(Action<BasicStruct> mutator)
+        public BasicStruct AddValue(PropertyName propertyName, IBasicValue value)
         {
-            if (mutator == null)
-                throw new ArgumentNullException(nameof(mutator));
+            ValidateDefault();
 
-            if (IsDefault)
-                __construct();
+            if (value == null)
+                throw new ArgumentNullException(nameof(value));
 
-            mutator.Invoke(this); // <-- copy will work because the internal fields have been set
-        }
-        #endregion
+            if (propertyName == default)
+                throw new ArgumentException($"Invalid {nameof(propertyName)}");
 
-        #region Indexers (Read/Write)
-        /// <summary>
-        /// Indexer for the property value identified by the supplied key.
-        /// <para>
-        /// Note that this indexer does not replace any metadata previously set for the target property.
-        /// </para>
-        /// </summary>
-        /// <param name="key">the target property name</param>
-        /// <returns>The property value, or an exception if the property is not present</returns>
-        public BasicValue? this[string key]
-        {
-            get
-            {
-                if (TryGetValue(key, out var result))
-                    return result;
+            _propertyNames[propertyName.Name] = propertyName;
+            _properties[propertyName] = value;
 
-                return null;
-            }
-            set
-            {
-                if (string.IsNullOrEmpty(key))
-                    throw new ArgumentException("Invalid Key");
-
-                PreMutate(@this =>
-                {
-                    if (value == null)
-                    {
-                        @this._properties.Remove(key);
-                        @this._propertyBasicMetadata.Remove(key);
-                    }
-                    else
-                    {
-                        @this._properties[key] = value.Value;
-                    }
-                });
-            }
+            return this;
         }
 
-        /// <summary>
-        /// Indexer for the property value identified by the supplied key.
-        /// <para>
-        /// Note that this indexer replaces the metadata (deleting or replacing) with the value supplied by the <see cref="PropertyName"/>
-        /// </para>
-        /// </summary>
-        /// <param name="key"></param>
-        /// <returns></returns>
-        public BasicValue? this[PropertyName key]
+        public bool TryRemove(string propertyName, out IBasicValue value)
         {
-            get
-            {
-                if (TryGetValue(key, out var result))
-                    return result;
+            ValidateDefault();
 
-                return null;
-            }
-            set
-            {
-                if (key.IsDefault || string.IsNullOrEmpty(key.Name))
-                    throw new ArgumentException("Invalid Key");
+            if (string.IsNullOrWhiteSpace(propertyName))
+                throw new ArgumentException($"Invalid {nameof(propertyName)}");
 
-                PreMutate(@this =>
-                {
-                    @this._properties.Remove(key);
-                    @this._propertyBasicMetadata.Remove(key.Name);
+            value = null;
+            if (!_propertyNames.Remove(propertyName, out var propName))
+                return false;
 
-                    if (value != null)
-                    {
-                        @this._properties[key] = value.Value;
-                        @this._propertyBasicMetadata[key.Name] = key;
-                    }
-                });
-            }
+            _properties.Remove(propName, out value);
+            return true;
+        }
+
+        public BasicStruct Remove(string propertyName)
+        {
+            ValidateDefault();
+
+            if (string.IsNullOrWhiteSpace(propertyName))
+                throw new ArgumentException($"Invalid {nameof(propertyName)}");
+
+            _ = TryRemove(propertyName, out _);
+
+            return this;
         }
         #endregion
 
-        #region Equality and Hashcodes
+        #region Utils
+        private void ValidateDefault()
+            => this.ThrowIfDefault(
+                new InvalidOperationException($"The operation is invalid on a default {nameof(BasicStruct)}"));
+        #endregion
+
+        #region Record implementation
+
+        public override int GetHashCode()
+        {
+            if (IsDefault)
+                return 0;
+
+            var keyHash = Luna.Extensions.Common.ValueHash(
+                _properties?.Keys.HardCast<PropertyName, object>());
+
+            var valueHash = Luna.Extensions.Common.ValueHash(
+                _properties?.Values.HardCast<IBasicValue, object>());
+
+            return HashCode.Combine(keyHash, valueHash);
+        }
+
         private bool ContainsAllPropertiesOf(BasicStruct other)
         {
             var @this = this;
-            return _properties?.All(kvp =>
-            {
-                if (!other.TryGetValue(kvp.Key, out var value))
-                    return false;
+            return _properties
+                ?.All(prop =>
+                {
+                    if (!other.TryGetValue(prop.Key.Name, out var value))
+                        return false;
 
-                else
-                    return kvp.Value.Equals(value);
-            })
-            ?? false;
+                    else
+                        return prop.Value.Equals(value);
+                })
+                ?? false;
         }
 
         public bool EquivalentTo(BasicStruct other)
@@ -233,7 +237,10 @@ namespace Axis.Luna.Common.Types.Basic
             if (this.IsDefault && other.IsDefault)
                 return true;
 
-            if (Count != other.Count)
+            if(this.IsDefault ^ other.IsDefault)
+                return false;
+
+            if (PropertyCount != other.PropertyCount)
                 return false;
 
             if (!ContainsAllPropertiesOf(other))
@@ -244,10 +251,9 @@ namespace Axis.Luna.Common.Types.Basic
 
         public bool ExactyCopyOf(BasicStruct other)
         {
-            return other != null
-                && this._metadata == other._metadata
-                && this._properties == other._properties
-                && this._propertyBasicMetadata == other._propertyBasicMetadata;
+            return _metadata == other._metadata
+                && _properties == other._properties
+                && _propertyNames == other._propertyNames;
         }
 
         public override bool Equals(object obj)
@@ -256,195 +262,202 @@ namespace Axis.Luna.Common.Types.Basic
                 && (ExactyCopyOf(other) || EquivalentTo(other));
         }
 
-        public override int GetHashCode()
-        {
-            var keyHash = Luna.Extensions.Common.ValueHash(
-                _properties?.Keys.ToArray());
 
-            var valueHash = Luna.Extensions.Common.ValueHash(
-                _properties?.Values.ToArray());
+        public static bool operator ==(BasicStruct first, BasicStruct second) => first.Equals(second);
 
-            return Luna.Extensions.Common.ValueHash(keyHash, valueHash);
-        }
+        public static bool operator !=(BasicStruct first, BasicStruct second) => !first.Equals(second);
 
-        public static bool operator ==(BasicStruct first, BasicStruct second)
-        {
-            return first.Equals(second) == true;
-        }
 
-        public static bool operator !=(BasicStruct first, BasicStruct second) => !(first == second);
+        public static implicit operator BasicStruct(Initializer value) => new BasicStruct(value);
+
         #endregion
 
+        #region Types
 
         /// <summary>
-        /// Defines a property identifier for struct properties
+        /// Value setter helper for assigning native values into a struct
         /// </summary>
-        public struct PropertyName
+        public class ValueSetter: IWriteonlyIndexer<PropertyName, BasicValueWrapper>
         {
-            private readonly Dictionary<string, string> _metadata;
+            private BasicStruct _struct;
 
-            /// <summary>
-            /// The name of the property
-            /// </summary>
+            internal ValueSetter(BasicStruct @struct)
+            {
+                _struct = @struct;
+            }
+
+            public BasicValueWrapper this[PropertyName key] 
+            {
+                set => _struct[key] = value.Value;
+            }
+        }
+
+        /// <summary>
+        /// Represents a property name for a <see cref="BasicStruct"/>.
+        /// <para>
+        /// There are no restrictions on naming conventions for struct property names, except that the <see cref="Basic.Metadata"/> may also be encoded
+        /// in the string at the start of the string, and enclosed in '[...]'. See <see cref="Metadata.Parse(string)"/> for the format
+        /// of each individual metadata.
+        /// </para>
+        /// </summary>
+        public readonly struct PropertyName
+        {
+            private readonly Metadata[] _metadata;
+
             public string Name { get; }
 
-            /// <summary>
-            /// BasicMetadata possibly attached to the property (not to the property's value)
-            /// </summary>
-            public BasicMetadata[] Metadata => _metadata?.Select(kvp => new BasicMetadata(kvp)).ToArray() ?? Array.Empty<BasicMetadata>();
+            public Metadata[] Metadata => _metadata?.ToArray();
 
-            public bool HasBasicMetadata => _metadata != null;
 
-            /// <summary>
-            /// Indicates if this value is the default value of this type.
-            /// </summary>
-            public bool IsDefault => Name == null;
-
-            #region Constructors
-            /// <summary>
-            /// Constructs a new PropertyName. Note that the <c>Name</c> argument is not processed/parsed - it is assigned as-is.
-            /// </summary>
-            /// <param name="name">The name of the property</param>
-            /// <param name="metadata">BasicMetadata information</param>
-            public PropertyName(string name, params BasicMetadata[] metadata)
+            public PropertyName(string name, params Metadata[] metadata)
             {
-                Name = name ?? throw new ArgumentNullException(nameof(name));
-
-                _metadata = metadata?.Length > 0 == true
-                    ? metadata?.Select(m => m.Key.ValuePair(m.Value)).ToDictionary()
-                    : null;
+                Name = name ?? throw new ArgumentException(nameof(name));
+                _metadata = metadata?.ToArray() ?? Array.Empty<Metadata>();
             }
 
-            /// <summary>
-            /// Constructs a new PropertyName. Note that the <c>Name</c> argument is not processed/parsed - it is assigned as-is.
-            /// </summary>
-            /// <param name="name">The name of the property</param>
-            /// <param name="metadata">BasicMetadata information</param>
-            public PropertyName(string name, IEnumerable<BasicMetadata> metadata)
-                :this(name, metadata?.ToArray())
-            {
-            }
-            #endregion
+            public override int GetHashCode()
+                => HashCode.Combine(
+                    Name,
+                    Luna.Extensions.Common.ValueHash(_metadata.HardCast<Metadata, object>()));
 
-            public bool BasicMetadataEquals(PropertyName other)
-            {
-                if (_metadata == null && other._metadata == null)
-                    return true;
-
-                else if (_metadata.Count == 0 && other._metadata.Count == 0)
-                    return true;
-
-                return _metadata?.ExactlyAll(kvp => other._metadata.TryGetValue(kvp.Key, out var v) && kvp.Value.NullOrEquals(v)) ?? false;
-            }
-
-            /// <summary>
-            /// Only checks for name equality
-            /// </summary>
-            /// <param name="obj">The other object to test</param>
-            /// <returns>indicates equality</returns>
             public override bool Equals(object obj)
             {
                 return obj is PropertyName other
-                    && other.Name.Equals(Name);
+                    && other.Name.NullOrEquals(Name)
+                    && other.Metadata.NullOrTrue(
+                        Metadata,
+                        Enumerable.SequenceEqual);
             }
 
-            /// <summary>
-            /// 
-            /// </summary>
-            /// <returns></returns>
-            public override int GetHashCode() => Name.GetHashCode();
-
-            /// <summary>
-            /// Returns this property name in its string format: <c>name[:: meta-key:meta-value; meta-key:meta-value; meta-value;]</c>
-            /// <para>
-            /// The implicit conversion from string honors this same exact format. Note that meta-key/value CANNOT accept ':' and ';' symbols in their names.
-            /// </para>
-            /// </summary>
-            /// <returns></returns>
             public override string ToString()
             {
-                var metadata = _metadata?
-                    .Select(kvp => kvp.Value != null ? $" {kvp.Key}:{kvp.Value};" : $"{kvp.Key};")
-                    .JoinUsing("");
+                return Metadata
+                    .Select(metadata => metadata.ToString())
+                    .JoinUsing("")
+                    .WrapIn("[", "]")
+                    + Name;
+            }
 
-                metadata = metadata != null ? $"::{metadata}" : null;
+            public static PropertyName Parse(string @string)
+            {
+                if (TryParse(@string, out IResult<PropertyName> result))
+                    return result.As<IResult<PropertyName>.DataResult>().Data;
 
-                return $"{Name}{metadata}";
+                else throw result.As<IResult<PropertyName>.ErrorResult>().Cause();
+            }
+
+            public static bool TryParse(string @string, out PropertyName value)
+            {
+                if (TryParse(@string, out IResult<PropertyName> result))
+                {
+                    value = result.As<IResult<PropertyName>.DataResult>().Data;
+                    return true;
+                }
+
+                value = default;
+                return false;
+            }
+
+            private static bool TryParse(string @string, out IResult<PropertyName> result)
+            {
+                if (string.IsNullOrWhiteSpace(@string))
+                {
+                    result = IResult<PropertyName>.Of(new ArgumentException($"Invalid {nameof(@string)}"));
+                    return false;
+                }
+
+                Metadata[] metadatalist = null;
+                string propertyName = null;
+                if (@string.StartsWith("["))
+                {
+                    var closingBracketIndex = @string.IndexOf(']');
+                    if (closingBracketIndex < 0)
+                    {
+                        result = IResult<PropertyName>.Of(new FormatException($"Invalid {nameof(@string)}. Expected ']'"));
+                        return false;
+                    }
+
+                    metadatalist = @string[..(closingBracketIndex + 1)]
+                        .UnwrapFrom("[", "]")
+                        .Split(';', StringSplitOptions.RemoveEmptyEntries)
+                        .Select(Basic.Metadata.Parse)
+                        .ToArray();
+
+                    propertyName = @string.Length > closingBracketIndex + 1
+                        ? @string[(closingBracketIndex + 1)..].Trim()
+                        : "";
+                }
+                else metadatalist = Array.Empty<Metadata>();
+
+                propertyName ??= @string.Trim();
+                if (string.IsNullOrWhiteSpace(propertyName))
+                {
+                    result = IResult<PropertyName>.Of(new FormatException($"Invalid {nameof(@string)}. Expected a property name."));
+                    return false;
+                }
+
+                result = IResult<PropertyName>.Of(new PropertyName(propertyName, metadatalist));
+                return true;
             }
 
             public static bool operator ==(PropertyName first, PropertyName second) => first.Equals(second);
 
             public static bool operator !=(PropertyName first, PropertyName second) => !first.Equals(second);
 
-            /// <summary>
-            /// See <see cref="BasicStruct.PropertyName.ToString"/> for an explanation of the string format accepted here.
-            /// </summary>
-            /// <param name="name"></param>
-            public static implicit operator PropertyName(string name)
-            {
-                var parts = name?.Split("::", StringSplitOptions.None) ?? throw new ArgumentNullException(nameof(name));
-
-                if (parts.Length == 1)
-                    return new PropertyName(parts[0]);
-
-                else if (parts.Length == 2)
-                    return new PropertyName(parts[0].Trim(), Parse(parts[1].Trim()));
-
-                else
-                    throw new ArgumentException("Invalid name: " + name);
-            }
-
-            private static BasicMetadata[] Parse(string metadataString)
-            {
-                return metadataString
-                    .Split(';')
-                    .Select(ToKvp)
-                    .ToArray();
-            }
-
-            private static BasicMetadata ToKvp(string kvpString)
-            {
-                var parts = kvpString.Split(':');
-
-                if (parts.Length == 0 || parts.Length > 2)
-                    throw new ArgumentException("Invalid string: " + kvpString);
-
-                return new BasicMetadata(
-                    key: parts[0].Trim(), 
-                    value: parts.Length > 1 ? parts[1].Trim() : null);
-            }
+            public static implicit operator PropertyName(string value) => Parse(value);
         }
 
         /// <summary>
-        /// Readonly Indexer implementation for accessing the metadata array given a key
+        /// Represents a simple name-value combination of a <see cref="PropertyName"/> and a <see cref="IBasicValue"/>.
         /// </summary>
-        /// <typeparam name="TKey"></typeparam>
-        /// <typeparam name="TValue"></typeparam>
-        private struct MapAccessor<TKey, TValue>: IReadonlyIndexer<TKey, TValue>
+        public class Property
         {
-            private readonly Func<TKey, TValue> _accessor;
+            public PropertyName Name { get; }
 
-            public bool IsDefault => _accessor == null;
+            public IBasicValue Value { get; set; }
 
-            public TValue this[TKey key] => !IsDefault 
-                ? _accessor.Invoke(key)
-                : throw new InvalidOperationException($"indexing on default {nameof(MapAccessor<TKey, TValue>)} is forbidden.");
 
-            public MapAccessor(Func<TKey, TValue> accessor)
+            public Property(PropertyName name, IBasicValue value = null)
             {
-                _accessor = accessor ?? throw new ArgumentNullException(nameof(accessor));
+                Name = name.ThrowIfDefault(new ArgumentException($"Invalid {nameof(name)} supplied"));
+                Value = value;
             }
-
-            public override bool Equals(object obj)
-            {
-                return obj is MapAccessor<TKey, TValue> other
-                    && other._accessor == _accessor;
-            }
-
-            public override int GetHashCode() => HashCode.Combine(_accessor);
-
-            public static bool operator ==(MapAccessor<TKey, TValue> first, MapAccessor<TKey, TValue> second) => first.Equals(second);
-            public static bool operator !=(MapAccessor<TKey, TValue> first, MapAccessor<TKey, TValue> second) => !first.Equals(second);
         }
+
+
+        /// <summary>
+        /// Initializer for <see cref="BasicStruct"/>
+        /// </summary>
+        public class Initializer : IWriteonlyIndexer<PropertyName, BasicValueWrapper>
+        {
+            private readonly Dictionary<PropertyName, BasicValueWrapper> _map = new Dictionary<PropertyName, BasicValueWrapper>();
+            private readonly Metadata[] _metadata;
+
+            public Initializer(params Metadata[] metadata)
+            {
+                _metadata = metadata ?? Array.Empty<Metadata>();
+            }
+
+            public Initializer()
+                : this(Array.Empty<Metadata>())
+            {
+            }
+
+            internal Dictionary<PropertyName, BasicValueWrapper> Map => _map;
+
+            internal Property[] Properties => _map
+                .Select(kvp => new Property(kvp.Key, kvp.Value.Value))
+                .ToArray();
+
+            internal Metadata[] Metadata => _metadata ?? Array.Empty<Metadata>();
+
+            public BasicValueWrapper this[PropertyName key]
+            {
+                set => _map[key] = value;
+            }
+
+            public BasicStruct ToStruct() => new BasicStruct(this);
+        }
+        #endregion
     }
 }

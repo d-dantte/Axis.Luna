@@ -42,7 +42,7 @@ namespace Axis.Luna.Common.NewtonsoftJson.Tests
             var exception = new Exception();
             var result1 = IResult<DateTimeOffset>.Of(data);
             var result2 = IResult<DateTimeOffset>.Of(exception);
-            var result3 = IResult<DateTimeOffset>.Of(exception, new Types.Basic.BasicStruct
+            var result3 = IResult<DateTimeOffset>.Of(exception, new Types.Basic.BasicStruct.Initializer
             {
                 ["Prop1"] = "bleh"
             });
@@ -82,7 +82,7 @@ namespace Axis.Luna.Common.NewtonsoftJson.Tests
             var exception = new Exception();
             var result1 = IResult<DateTimeOffset>.Of(data);
             var result2 = IResult<DateTimeOffset>.Of(exception);
-            var result3 = IResult<DateTimeOffset>.Of(exception, new Types.Basic.BasicStruct
+            var result3 = IResult<DateTimeOffset>.Of(exception, new Types.Basic.BasicStruct.Initializer
             {
                 ["Prop1"] = "bleh"
             });

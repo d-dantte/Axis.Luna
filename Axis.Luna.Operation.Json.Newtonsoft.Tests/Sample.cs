@@ -15,12 +15,12 @@ namespace Axis.Luna.Operation.Json.Newtonsoft.Tests
             var op = Operation.Fail<int>(new OperationError(
                 "some message",
                 "AOC544",
-                new Common.Types.Basic.BasicStruct
+                new Common.Types.Basic.BasicStruct.Initializer
                 {
                     ["me"] = "you",
                     ["them"] = 5,
                     ["something_id"] = Guid.NewGuid(),
-                    ["d_day"] = new Common.Types.Basic.BasicStruct
+                    ["d_day"] = new Common.Types.Basic.BasicStruct.Initializer
                     {
                         ["moment_of_truth"] = DateTimeOffset.Now
                     }

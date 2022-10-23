@@ -100,7 +100,7 @@ namespace Axis.Luna.FInvoke.Tests
             object i = 654, l = 654L, s = "me";
             method = type.GetMethod("Action3");
             iinvoker = InstanceInvoker.InvokerFor(method);
-            @params = new object[] { 654, 654l, "me" };
+            @params = new object[] { 654, 654L, "me" };
             iinvoker.Func(instance, @params); //warm up
             iinvoker.Func(instance, @params); //warm up
             timer = Stopwatch.StartNew();

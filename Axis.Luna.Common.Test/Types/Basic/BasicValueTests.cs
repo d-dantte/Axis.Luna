@@ -15,24 +15,23 @@ namespace Axis.Luna.Common.Test.Types.Basic
         {
             Enum.GetValues(typeof(BasicTypes))
                 .Cast<BasicTypes>()
-                .Where(type => type != BasicTypes.NullValue)
                 .Select(type =>
                 {
                     var metadata = RandomMetadata();
                     var ibasicValue = NewNonDefaultValue(type, metadata);
-                    var basicValue = new BasicValue(ibasicValue);
-                    return (type, metadata ?? Array.Empty<BasicMetadata>(), ibasicValue, basicValue);
+                    var basicValue = new BasicValueWrapper(ibasicValue);
+                    return (type, metadata ?? Array.Empty<Metadata>(), ibasicValue, basicValue);
                 })
                 .ToList()
                 .ForEach(tuple =>
                 {
-                    var (type, metadata, ibasicValue, basicValue) = tuple;
+                    var (type, metadata, ibasicValue, basicValueWrapper) = tuple;
 
-                    Assert.IsNotNull(basicValue);
-                    Assert.AreEqual(type, basicValue.Type);
+                    Assert.IsNotNull(basicValueWrapper);
+                    Assert.AreEqual(type, basicValueWrapper.Value.Type);
                     Assert.IsTrue(metadata
                         .OrderBy(m => m.Key)
-                        .SequenceEqual(basicValue.Metadata
+                        .SequenceEqual(basicValueWrapper.Value.Metadata
                         .OrderBy(m => m.Key)));
                 });
         }
@@ -40,11 +39,11 @@ namespace Axis.Luna.Common.Test.Types.Basic
         [TestMethod]
         public void DefaultConstructor_ShouldConstructValidDefaultObject()
         {
-            var basicValue = new BasicValue();
-            var basicValue2 = default(BasicValue);
+            var basicValue = new BasicValueWrapper();
+            var basicValue2 = default(BasicValueWrapper);
 
-            Assert.AreEqual(basicValue.Type, basicValue2.Type);
-            Assert.AreEqual(BasicTypes.NullValue, basicValue.Type);
+            Assert.IsNull(basicValue.Value);
+            Assert.IsNull(basicValue2.Value);
             Assert.AreEqual(basicValue, basicValue2);
         }
         #endregion
@@ -55,14 +54,13 @@ namespace Axis.Luna.Common.Test.Types.Basic
         {
             Enum.GetValues(typeof(BasicTypes))
                 .Cast<BasicTypes>()
-                .Where(type => type != BasicTypes.NullValue)
                 .Select(type =>
                 {
                     var ibasicValue = NewNonDefaultValue(type);
                     IBasicValue @default = NewDefaultValue(type);
-                    var basicValue1 = new BasicValue(ibasicValue);
-                    var basicValue2 = new BasicValue(ibasicValue);
-                    var basicValue3 = new BasicValue(@default);
+                    var basicValue1 = new BasicValueWrapper(ibasicValue);
+                    var basicValue2 = new BasicValueWrapper(ibasicValue);
+                    var basicValue3 = new BasicValueWrapper(@default);
                     return (basicValue1, basicValue2, basicValue3);
                 })
                 .ToList()
@@ -70,96 +68,60 @@ namespace Axis.Luna.Common.Test.Types.Basic
                 {
                     var (basicValue1, basicValue2, basicValue3) = tuple;
 
-                    Assert.AreEqual(basicValue1, basicValue1);
-                    Assert.AreEqual(basicValue1, basicValue2);
-                    Assert.AreEqual(basicValue2, basicValue1);
+                    Assert.AreEqual(basicValue1.Value, basicValue1.Value);
+                    Assert.AreEqual(basicValue1.Value, basicValue2.Value);
 
-                    Assert.AreNotEqual(basicValue1, basicValue3);
-                    Assert.AreNotEqual(basicValue3, basicValue1);
+                    Assert.AreNotEqual(basicValue1.Value, basicValue3.Value);
+                    Assert.AreNotEqual(basicValue3.Value, basicValue1.Value);
                 });
         }
         #endregion
 
-        #region ToString tests
-        [TestMethod]
-        public void ToStringTest()
+
+        private IBasicValue NewNonDefaultValue(BasicTypes type, params Metadata[] metadata)
         {
-            Enum.GetValues(typeof(BasicTypes))
-                .Cast<BasicTypes>()
-                .Where(type => type != BasicTypes.NullValue)
-                .Select(type =>
-                {
-                    var ibasicValue = NewNonDefaultValue(type);
-                    var basicValue1 = new BasicValue(ibasicValue);
-                    return (ibasicValue, basicValue1);
-                })
-                .ToList()
-                .ForEach(tuple =>
-                {
-                    var (ibasicValue, basicValue1) = tuple;
-
-                    Assert.AreEqual(ibasicValue.ToString(), basicValue1.ToString());
-                });
-        }
-        #endregion
-
-        #region Typecheck tests
-        #endregion
-
-        #region AsXxx tests
-        #endregion
-
-        #region implicit conversion tests
-        #endregion
-
-        #region explicit conversion tests
-        #endregion
-
-
-        private IBasicValue NewNonDefaultValue(BasicTypes type, params BasicMetadata[] metadata)
-        {
-            using var random = new SecureRandom();
             return type switch
             {
-                BasicTypes.Bool => new BasicBool(random.NextBool(), metadata),
+                BasicTypes.Bool => new BasicBool(SecureRandom.NextBool(), metadata),
 
-                BasicTypes.Bytes => new BasicBytes(random.NextBytes(random.NextInt(20)), metadata),
+                BasicTypes.Bytes => new BasicBytes(SecureRandom.NextBytes(SecureRandom.NextInt(20)), metadata),
 
-                BasicTypes.Date => new BasicDateTime(DateTimeOffset.Now, metadata),
+                BasicTypes.Date => new BasicDate(DateTimeOffset.Now, metadata),
 
-                BasicTypes.Decimal => new BasicDecimal((decimal)random.NextInt(100), metadata),
+                BasicTypes.Decimal => new BasicDecimal((decimal)SecureRandom.NextInt(100), metadata),
 
                 BasicTypes.Guid => new BasicGuid(Guid.NewGuid(), metadata),
 
-                BasicTypes.Int => new BasicInt(random.NextSignedLong(), metadata),
+                BasicTypes.Int => new BasicInt(SecureRandom.NextSignedLong(), metadata),
 
-                BasicTypes.List => new BasicList(new BasicValue[] { "1", "2", "3", "4" }, metadata),
+                BasicTypes.UInt => new BasicUInt((ulong)SecureRandom.NextSignedLong(), metadata),
 
-                BasicTypes.Real => new BasicReal(random.NextSignedDouble(), metadata),
+                BasicTypes.List => new BasicList(new BasicValueWrapper[] { "1", "2", "3", "4" }, metadata),
+
+                BasicTypes.Real => new BasicReal(SecureRandom.NextSignedDouble(), metadata),
 
                 BasicTypes.String => new BasicString("string value", metadata),
 
-                BasicTypes.Struct => new BasicStruct(metadata)
+                BasicTypes.Struct => new BasicStruct(new BasicStruct.Initializer(metadata)
                 { 
                     ["name"] = "bleh",
                     ["dob"] = DateTimeOffset.Now
-                },
+                }),
 
-                BasicTypes.TimeSpan => new BasicTimeSpan(TimeSpan.FromMinutes(random.NextInt(100000)), metadata),
+                BasicTypes.TimeSpan => new BasicTimeSpan(TimeSpan.FromMinutes(SecureRandom.NextInt(100000)), metadata),
 
                 _ => throw new ArgumentException($"Invalid basic type: {type}")
             };
         }
 
-        private BasicMetadata[] RandomMetadata()
+        private Metadata[] RandomMetadata()
         {
-            using var random = new SecureRandom();
-            return random.NextInt(4) switch
+            return SecureRandom.NextInt(4) switch
             {
                 0 => null,
-                1 => Array.Empty<BasicMetadata>(),
-                2 => new BasicMetadata[] { "me;", "you:them;", "never;" },
-                3 => new BasicMetadata[] { "stuff;" },
+                1 => Array.Empty<Metadata>(),
+                2 => new Metadata[] { "me;", "you:them;", "never;" },
+                3 => new Metadata[] { "stuff;" },
                 _ => throw new Exception("invalid switch")
             };
         }
@@ -172,13 +134,15 @@ namespace Axis.Luna.Common.Test.Types.Basic
 
                 BasicTypes.Bytes => default(BasicBytes),
 
-                BasicTypes.Date => default(BasicDateTime),
+                BasicTypes.Date => default(BasicDate),
 
                 BasicTypes.Decimal => default(BasicDecimal),
 
                 BasicTypes.Guid => default(BasicGuid),
 
                 BasicTypes.Int => default(BasicInt),
+
+                BasicTypes.UInt => default(BasicUInt),
 
                 BasicTypes.List => default(BasicList),
 
@@ -190,7 +154,7 @@ namespace Axis.Luna.Common.Test.Types.Basic
 
                 BasicTypes.TimeSpan => default(BasicTimeSpan),
 
-                _ => (IBasicValue) default(BasicValue)
+                _ => throw new ArgumentException()
             };
         }
     }

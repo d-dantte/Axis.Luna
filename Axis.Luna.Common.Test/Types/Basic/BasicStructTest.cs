@@ -1,8 +1,7 @@
-﻿using Axis.Luna.Common.Types.Basic2;
+﻿using Axis.Luna.Common.Types.Basic;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
-using System.Linq;
-using static Axis.Luna.Common.Types.Basic2.IBasicValue.BasicStruct;
+using static Axis.Luna.Common.Types.Basic.BasicStruct;
 
 namespace Axis.Luna.Common.Test.Types.Basic
 {
@@ -92,159 +91,159 @@ namespace Axis.Luna.Common.Test.Types.Basic
             // sbyte
             wrapper = (sbyte)3;
             Assert.IsNotNull(wrapper.Value);
-            Assert.IsTrue(wrapper.Value is IBasicValue.BasicInt);
+            Assert.IsTrue(wrapper.Value is BasicInt);
             wrapper = (sbyte?)3;
             Assert.IsNotNull(wrapper.Value);
-            Assert.IsTrue(wrapper.Value is IBasicValue.BasicInt);
+            Assert.IsTrue(wrapper.Value is BasicInt);
 
             // short
             wrapper = (short)3;
             Assert.IsNotNull(wrapper.Value);
-            Assert.IsTrue(wrapper.Value is IBasicValue.BasicInt);
+            Assert.IsTrue(wrapper.Value is BasicInt);
             wrapper = (short?)3;
             Assert.IsNotNull(wrapper.Value);
-            Assert.IsTrue(wrapper.Value is IBasicValue.BasicInt);
+            Assert.IsTrue(wrapper.Value is BasicInt);
 
             // int
             wrapper = 3;
             Assert.IsNotNull(wrapper.Value);
-            Assert.IsTrue(wrapper.Value is IBasicValue.BasicInt);
+            Assert.IsTrue(wrapper.Value is BasicInt);
             wrapper = (int?)3;
             Assert.IsNotNull(wrapper.Value);
-            Assert.IsTrue(wrapper.Value is IBasicValue.BasicInt);
+            Assert.IsTrue(wrapper.Value is BasicInt);
 
             // long
             wrapper = 3L;
             Assert.IsNotNull(wrapper.Value);
-            Assert.IsTrue(wrapper.Value is IBasicValue.BasicInt);
+            Assert.IsTrue(wrapper.Value is BasicInt);
             wrapper = (long?)3L;
             Assert.IsNotNull(wrapper.Value);
-            Assert.IsTrue(wrapper.Value is IBasicValue.BasicInt);
+            Assert.IsTrue(wrapper.Value is BasicInt);
             #endregion
 
             #region uint
             // sbyte
             wrapper = (sbyte)3;
             Assert.IsNotNull(wrapper.Value);
-            Assert.IsTrue(wrapper.Value is IBasicValue.BasicInt);
+            Assert.IsTrue(wrapper.Value is BasicInt);
             wrapper = (sbyte?)3;
             Assert.IsNotNull(wrapper.Value);
-            Assert.IsTrue(wrapper.Value is IBasicValue.BasicInt);
+            Assert.IsTrue(wrapper.Value is BasicInt);
 
             // short
             wrapper = (short)3;
             Assert.IsNotNull(wrapper.Value);
-            Assert.IsTrue(wrapper.Value is IBasicValue.BasicInt);
+            Assert.IsTrue(wrapper.Value is BasicInt);
             wrapper = (short?)3;
             Assert.IsNotNull(wrapper.Value);
-            Assert.IsTrue(wrapper.Value is IBasicValue.BasicInt);
+            Assert.IsTrue(wrapper.Value is BasicInt);
 
             // int
             wrapper = 3;
             Assert.IsNotNull(wrapper.Value);
-            Assert.IsTrue(wrapper.Value is IBasicValue.BasicInt);
+            Assert.IsTrue(wrapper.Value is BasicInt);
             wrapper = (int?)3;
             Assert.IsNotNull(wrapper.Value);
-            Assert.IsTrue(wrapper.Value is IBasicValue.BasicInt);
+            Assert.IsTrue(wrapper.Value is BasicInt);
 
             // long
             wrapper = 3L;
             Assert.IsNotNull(wrapper.Value);
-            Assert.IsTrue(wrapper.Value is IBasicValue.BasicInt);
+            Assert.IsTrue(wrapper.Value is BasicInt);
             wrapper = (long?)3L;
             Assert.IsNotNull(wrapper.Value);
-            Assert.IsTrue(wrapper.Value is IBasicValue.BasicInt);
+            Assert.IsTrue(wrapper.Value is BasicInt);
             #endregion
 
             // real
             wrapper = 3.4;
             Assert.IsNotNull(wrapper.Value);
-            Assert.IsTrue(wrapper.Value is IBasicValue.BasicReal);
+            Assert.IsTrue(wrapper.Value is BasicReal);
             wrapper = (double?)3.4;
             Assert.IsNotNull(wrapper.Value);
-            Assert.IsTrue(wrapper.Value is IBasicValue.BasicReal);
+            Assert.IsTrue(wrapper.Value is BasicReal);
 
             // decimal
             wrapper = 3.4m;
             Assert.IsNotNull(wrapper.Value);
-            Assert.IsTrue(wrapper.Value is IBasicValue.BasicDecimal);
+            Assert.IsTrue(wrapper.Value is BasicDecimal);
             wrapper = (decimal?)3.4m;
             Assert.IsNotNull(wrapper.Value);
-            Assert.IsTrue(wrapper.Value is IBasicValue.BasicDecimal);
+            Assert.IsTrue(wrapper.Value is BasicDecimal);
 
             // bool
             wrapper = true;
             Assert.IsNotNull(wrapper.Value);
-            Assert.IsTrue(wrapper.Value is IBasicValue.BasicBool);
+            Assert.IsTrue(wrapper.Value is BasicBool);
             wrapper = (bool?)true;
             Assert.IsNotNull(wrapper.Value);
-            Assert.IsTrue(wrapper.Value is IBasicValue.BasicBool);
+            Assert.IsTrue(wrapper.Value is BasicBool);
 
             // string
             wrapper = "some value";
             Assert.IsNotNull(wrapper.Value);
-            Assert.IsTrue(wrapper.Value is IBasicValue.BasicString);
+            Assert.IsTrue(wrapper.Value is BasicString);
             wrapper = (string)null;
             Assert.IsNotNull(wrapper.Value);
-            Assert.IsTrue(wrapper.Value is IBasicValue.BasicString);
+            Assert.IsTrue(wrapper.Value is BasicString);
 
             // date time
             wrapper = DateTimeOffset.Now;
             Assert.IsNotNull(wrapper.Value);
-            Assert.IsTrue(wrapper.Value is IBasicValue.BasicDate);
+            Assert.IsTrue(wrapper.Value is BasicDate);
             wrapper = (DateTimeOffset?)null;
             Assert.IsNotNull(wrapper.Value);
-            Assert.IsTrue(wrapper.Value is IBasicValue.BasicDate);
+            Assert.IsTrue(wrapper.Value is BasicDate);
 
             // time span
             wrapper = TimeSpan.FromSeconds(454);
             Assert.IsNotNull(wrapper.Value);
-            Assert.IsTrue(wrapper.Value is IBasicValue.BasicTimeSpan);
+            Assert.IsTrue(wrapper.Value is BasicTimeSpan);
             wrapper = (TimeSpan?)null;
             Assert.IsNotNull(wrapper.Value);
-            Assert.IsTrue(wrapper.Value is IBasicValue.BasicTimeSpan);
+            Assert.IsTrue(wrapper.Value is BasicTimeSpan);
 
             // guid
             wrapper = Guid.NewGuid();
             Assert.IsNotNull(wrapper.Value);
-            Assert.IsTrue(wrapper.Value is IBasicValue.BasicGuid);
+            Assert.IsTrue(wrapper.Value is BasicGuid);
             wrapper = (Guid?)null;
             Assert.IsNotNull(wrapper.Value);
-            Assert.IsTrue(wrapper.Value is IBasicValue.BasicGuid);
+            Assert.IsTrue(wrapper.Value is BasicGuid);
 
             // bytes
             wrapper = Array.Empty<byte>();
             Assert.IsNotNull(wrapper.Value);
-            Assert.IsTrue(wrapper.Value is IBasicValue.BasicBytes);
+            Assert.IsTrue(wrapper.Value is BasicBytes);
             wrapper = (byte[])null;
             Assert.IsNotNull(wrapper.Value);
-            Assert.IsTrue(wrapper.Value is IBasicValue.BasicBytes);
+            Assert.IsTrue(wrapper.Value is BasicBytes);
 
             // list
             wrapper = Array.Empty<IBasicValue>();
             Assert.IsNotNull(wrapper.Value);
-            Assert.IsTrue(wrapper.Value is IBasicValue.BasicList);
+            Assert.IsTrue(wrapper.Value is BasicList);
             wrapper = (IBasicValue[])null;
             Assert.IsNotNull(wrapper.Value);
-            Assert.IsTrue(wrapper.Value is IBasicValue.BasicList);
+            Assert.IsTrue(wrapper.Value is BasicList);
 
             // list
             wrapper = Array.Empty<BasicValueWrapper>();
             Assert.IsNotNull(wrapper.Value);
-            Assert.IsTrue(wrapper.Value is IBasicValue.BasicList);
+            Assert.IsTrue(wrapper.Value is BasicList);
             wrapper = (BasicValueWrapper[])null;
             Assert.IsNotNull(wrapper.Value);
-            Assert.IsTrue(wrapper.Value is IBasicValue.BasicList);
+            Assert.IsTrue(wrapper.Value is BasicList);
 
             // struct
-            wrapper = default(IBasicValue.BasicStruct);
+            wrapper = default(BasicStruct);
             Assert.IsNotNull(wrapper.Value);
-            Assert.IsTrue(wrapper.Value is IBasicValue.BasicStruct);
+            Assert.IsTrue(wrapper.Value is BasicStruct);
 
             // struct
             wrapper = new Initializer() { ["stuff"] = 3 };
             Assert.IsNotNull(wrapper.Value);
-            Assert.IsTrue(wrapper.Value is IBasicValue.BasicStruct);
+            Assert.IsTrue(wrapper.Value is BasicStruct);
         }
 
         [TestMethod]
@@ -266,7 +265,7 @@ namespace Axis.Luna.Common.Test.Types.Basic
                     }
                 }
             };
-            IBasicValue.BasicStruct @struct = initializer;
+            BasicStruct @struct = initializer;
 
             Assert.IsNotNull(initializer);
             Assert.AreNotEqual(default, @struct);
@@ -279,7 +278,7 @@ namespace Axis.Luna.Common.Test.Types.Basic
             Assert.AreEqual(1, initializer.Metadata.Length);
 
 
-            IBasicValue.BasicStruct struct2 = initializer;
+            BasicStruct struct2 = initializer;
             Assert.AreEqual(@struct.GetHashCode(), struct2.GetHashCode());
         }
     }

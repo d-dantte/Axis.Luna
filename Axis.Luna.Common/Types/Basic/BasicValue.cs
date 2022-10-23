@@ -3,18 +3,13 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Axis.Luna.Common.Types.Basic2
+namespace Axis.Luna.Common.Types.Basic
 {
     /// <summary>
     /// TODO: add support for Uri, GeoLocation
     /// </summary>
     public enum BasicTypes
     {
-        /// <summary>
-        /// Special null-value type
-        /// </summary>
-        NullValue,
-
         Struct,
         List,
         Int,

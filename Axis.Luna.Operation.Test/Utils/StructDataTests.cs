@@ -9,11 +9,11 @@ namespace Axis.Luna.Operation.Test.Utils
         [TestMethod]
         public void SampleTest()
         {
-            var @struct = new BasicStruct
+            var @struct = new BasicStruct.Initializer
             {
                 ["stuff"] = 5,
-                ["multiple-stuff"] = new BasicValue[] { 6, "me", false },
-                ["inner"] = new BasicStruct
+                ["multiple-stuff"] = new BasicValueWrapper[] { 6, "me", false },
+                ["inner"] = new BasicStruct.Initializer
                 {
                     ["inner-inner"] = 5.4m
                 }

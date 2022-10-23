@@ -2,7 +2,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace Axis.Luna.Common.Types.Basic2
+namespace Axis.Luna.Common.Types.Basic
 {
 
     /// <summary>

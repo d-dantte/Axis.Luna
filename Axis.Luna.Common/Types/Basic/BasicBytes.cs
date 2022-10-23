@@ -4,34 +4,30 @@ using System.Linq;
 
 namespace Axis.Luna.Common.Types.Basic
 {
-    public struct BasicBytes : IBasicValue<byte[]>
+    public readonly struct BasicBytes : IBasicValue
     {
-        private readonly BasicMetadata[] _metadata;
+        private readonly Metadata[] _metadata;
         private readonly byte[] _bytes;
         private readonly int _hashCode;
 
         public BasicTypes Type => BasicTypes.Bytes;
 
+        public Metadata[] Metadata => _metadata?.ToArray() ?? Array.Empty<Metadata>();
+
         public byte[] Value => _bytes?.ToArray();
 
-        public BasicMetadata[] Metadata => _metadata?.ToArray() ?? Array.Empty<BasicMetadata>();
-
-        public BasicBytes(byte[] value) : this(value, Array.Empty<BasicMetadata>())
-        { }
-
-        public BasicBytes(byte[] value, params BasicMetadata[] metadata)
+        internal BasicBytes(byte[] value, params Metadata[] metadata)
         {
-
             _bytes = value?.ToArray();
-            _hashCode = Luna.Extensions.Common.ValueHash(_bytes);
-            _metadata = metadata?.Length > 0 == true
-                ? metadata.ToArray()
-                : null;
+            _metadata = metadata?.ToArray();
+            _hashCode = _bytes != null
+                ? Luna.Extensions.Common.ValueHash(_bytes.HardCast<byte, object>() ?? Enumerable.Empty<object>())
+                : 0;
         }
 
         public override bool Equals(object obj)
             => obj is BasicBytes other
-             && other.Value.NullOrTrue(Value, System.Linq.Enumerable.SequenceEqual);
+             && other.Value.NullOrTrue(Value, Enumerable.SequenceEqual);
 
         public override int GetHashCode() => _hashCode;
 

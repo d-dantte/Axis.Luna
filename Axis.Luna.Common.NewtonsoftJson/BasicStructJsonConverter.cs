@@ -8,11 +8,9 @@ using System.Globalization;
 using System.Linq;
 
 using static Axis.Luna.Extensions.ExceptionExtension;
-using static Axis.Luna.Common.NewtonsoftJson.Extensions;
 
 namespace Axis.Luna.Common.NewtonsoftJson
 {
-
     /// <summary>
     /// Serializes the Struct using json format.
     /// Metadata information for the entire object graph is serialized and stored as an extra property of the root <seealso cref="BasicStruct"/>
@@ -39,14 +37,14 @@ namespace Axis.Luna.Common.NewtonsoftJson
             return (BasicStruct)ToBasicValue(jobj, $"{MapAccessor}", metadata);
         }
 
-        private BasicStruct ToBasicStruct(JObject jobject, string path, Dictionary<string, HashSet<IMetadata>> metadata)
+        private BasicStruct ToBasicStruct(JObject jobject, string path, Dictionary<string, HashSet<JsonMetadata>> metadata)
         {
             var (_, valueMetadata, _) = ExtractMetadata(path, metadata);
 
             return jobject
                 .As<IDictionary<string, JToken>>()
                 .Where(kvp => !MetadataPropertyKey.Equals(kvp.Key))
-                .Aggregate(new BasicStruct(valueMetadata), (@struct, jkvp) =>
+                .Aggregate(new BasicStruct(new BasicStruct.Initializer(valueMetadata)), (@struct, jkvp) =>
                 {
                     var newPath = MapAccessor.ToString().Equals(path)
                         ? $"{path}{jkvp.Key}"
@@ -55,20 +53,21 @@ namespace Axis.Luna.Common.NewtonsoftJson
                     var (_, _, propertyMetadata) = ExtractMetadata(newPath, metadata);
                     var propertyName = new BasicStruct.PropertyName(jkvp.Key, propertyMetadata);
 
-                    return @struct.Append(propertyName, ToBasicValue(jkvp.Value, newPath, metadata));
+                    return @struct.AddValue(propertyName, ToBasicValue(jkvp.Value, newPath, metadata));
                 });
         }
 
-        private BasicList ToBasicList(JArray jarray, string path, Dictionary<string, HashSet<IMetadata>> metadata)
+        private BasicList ToBasicList(JArray jarray, string path, Dictionary<string, HashSet<JsonMetadata>> metadata)
         {
             var (_, valueMetadata, _) = ExtractMetadata(path, metadata);
 
             return jarray
                 .Select((jtoken, index) => ToBasicValue(jtoken, $"{path}{ArrayAccessor}{index}", metadata))
-                .ApplyTo(values => new BasicList(values, valueMetadata));
+                .ApplyTo(values => IBasicValue.Of(values, valueMetadata))
+                .As<BasicList>();
         }
 
-        private BasicValue ToBasicValue(JToken token, string path, Dictionary<string, HashSet<IMetadata>> metadata)
+        private IBasicValue ToBasicValue(JToken token, string path, Dictionary<string, HashSet<JsonMetadata>> metadata)
         {
             var (typeMetadata, valueMetadata, _) = ExtractMetadata(path, metadata);
             var parseInfo = ParseInfo ?? new DateTimeParseInfo();
@@ -77,11 +76,11 @@ namespace Axis.Luna.Common.NewtonsoftJson
                 .Map(t => ToBasicTypes(t.Key), () => ToBasicTypes(token.Type))
                 .Map(basicTypes => basicTypes switch
                 {
-                    BasicTypes.Bool => new BasicBool(token.Value<bool>(), valueMetadata),
+                    BasicTypes.Bool => IBasicValue.Of(token.Value<bool>(), valueMetadata),
 
-                    BasicTypes.Bytes => new BasicBytes(Convert.FromBase64String(token.Value<string>()), valueMetadata),
+                    BasicTypes.Bytes => IBasicValue.Of(Convert.FromBase64String(token.Value<string>()), valueMetadata),
 
-                    BasicTypes.Date => new BasicDateTime(
+                    BasicTypes.Date => IBasicValue.Of(
                         DateTimeOffset.ParseExact(
                             token.Value<string>(),
                             parseInfo.Formats,
@@ -89,25 +88,25 @@ namespace Axis.Luna.Common.NewtonsoftJson
                             parseInfo.Styles),
                         valueMetadata),
 
-                    BasicTypes.Decimal => new BasicDecimal(token.Value<decimal>(), valueMetadata),
+                    BasicTypes.Decimal => IBasicValue.Of(token.Value<decimal>(), valueMetadata),
 
-                    BasicTypes.Guid => new BasicGuid(Guid.Parse(token.Value<string>()), valueMetadata),
+                    BasicTypes.Guid => IBasicValue.Of(Guid.Parse(token.Value<string>()), valueMetadata),
 
-                    BasicTypes.Int => new BasicInt(token.Value<int>(), valueMetadata),
+                    BasicTypes.Int => IBasicValue.Of(token.Value<int>(), valueMetadata),
 
-                    BasicTypes.Real => new BasicReal(token.Value<double>(), valueMetadata),
+                    BasicTypes.Real => IBasicValue.Of(token.Value<double>(), valueMetadata),
 
-                    BasicTypes.String => new BasicString(token.Value<string>(), valueMetadata),
+                    BasicTypes.String => IBasicValue.Of(token.Value<string>(), valueMetadata),
 
-                    BasicTypes.TimeSpan => new BasicTimeSpan(TimeSpan.Parse(token.Value<string>()), valueMetadata),
+                    BasicTypes.TimeSpan => IBasicValue.Of(TimeSpan.Parse(token.Value<string>()), valueMetadata),
 
                     BasicTypes.Struct => ToBasicStruct(token as JObject, path, metadata),
 
                     BasicTypes.List => ToBasicList(token as JArray, path, metadata),
 
-                    _ => new BasicValue(new BasicString(null))
+                    _ => throw new InvalidOperationException($"Invalid type: {basicTypes}")
                 })
-                .Value;
+                .ValueOrDefault();
         }
         #endregion
 
@@ -121,7 +120,7 @@ namespace Axis.Luna.Common.NewtonsoftJson
 
         public JObject ToJObject(BasicStruct @struct)
         {
-            var metadata = new Dictionary<string, HashSet<IMetadata>>();
+            var metadata = new Dictionary<string, HashSet<JsonMetadata>>();
             var jobject = (JObject)ToJToken(@struct, $"{MapAccessor}", metadata);
 
             //add the metadata map to the root struct
@@ -138,22 +137,22 @@ namespace Axis.Luna.Common.NewtonsoftJson
             return jobject;
         }
 
-        private JObject ToJObject(BasicStruct @struct, string path, Dictionary<string, HashSet<IMetadata>> metadata)
+        private JObject ToJObject(BasicStruct @struct, string path, Dictionary<string, HashSet<JsonMetadata>> metadata)
         {
-            var jobject = @struct.Value.Aggregate(new JObject(), (jobj, property) =>
+            var jobject = @struct.Properties.Aggregate(new JObject(), (jobj, property) =>
             {
                 var newPath = path.Equals($"{MapAccessor}")
-                    ? $"{path}{property.Key.Name}"
-                    : $"{path}{MapAccessor}{property.Key.Name}";
+                    ? $"{path}{property.Name.Name}"
+                    : $"{path}{MapAccessor}{property.Name.Name}";
 
                 //add property name metadata to the dictionary
-                property.Key.Metadata
-                    .Select(PropertyNameMetadata.FromBasic)
+                property.Name.Metadata
+                    .Select(JsonMetadata.ToPropertyMetadata)
                     .ForAll(nameMetadata => metadata
-                        .GetOrAdd(newPath, key => new HashSet<IMetadata>())
+                        .GetOrAdd(newPath, key => new HashSet<JsonMetadata>())
                         .Add(nameMetadata));
 
-                jobj[property.Key.Name] = ToJToken(property.Value, newPath, metadata);
+                jobj[property.Name.Name] = ToJToken(property.Value, newPath, metadata);
 
                 return jobj;
             });
@@ -161,7 +160,7 @@ namespace Axis.Luna.Common.NewtonsoftJson
             return jobject;
         }
 
-        private JArray ToJArray(BasicList list, string path, Dictionary<string, HashSet<IMetadata>> metadata)
+        private JArray ToJArray(BasicList list, string path, Dictionary<string, HashSet<JsonMetadata>> metadata)
         {
             var index = -1;
             return list.Value.Aggregate(new JArray(), (array, value) =>
@@ -171,9 +170,9 @@ namespace Axis.Luna.Common.NewtonsoftJson
 
                 //add value metadata to the dictionary
                 value.Metadata
-                    .Select(ValueMetadata.FromBasic)
+                    .Select(JsonMetadata.ToValueMetadata)
                     .ForAll(valueMetadata => metadata
-                        .GetOrAdd(newPath, key => new HashSet<IMetadata>())
+                        .GetOrAdd(newPath, key => new HashSet<JsonMetadata>())
                         .Add(valueMetadata));
 
                 array.Add(ToJToken(value, newPath, metadata));
@@ -182,37 +181,37 @@ namespace Axis.Luna.Common.NewtonsoftJson
             });
         }
 
-        private JToken ToJToken(BasicValue basicValue, string path, Dictionary<string, HashSet<IMetadata>> metadata)
+        private JToken ToJToken(IBasicValue basicValue, string path, Dictionary<string, HashSet<JsonMetadata>> metadata)
         {
             if (basicValue == default)
                 return JValue.CreateNull();
 
             //add value's metadata to the dictionary
             basicValue.Metadata
-                .Select(ValueMetadata.FromBasic)
+                .Select(JsonMetadata.ToValueMetadata)
                 .ForAll(valueMetadata => metadata
-                    .GetOrAdd(path, key => new HashSet<IMetadata>())
+                    .GetOrAdd(path, key => new HashSet<JsonMetadata>())
                     .Add(valueMetadata));
 
             //create ValueType metadata for the appropriate types
             var valueTypeMetadata = basicValue.Type switch
             {
-                BasicTypes.Bytes => new ValueTypeMetadata(nameof(BasicTypes.Bytes)),
+                BasicTypes.Bytes => JsonMetadata.ToValueTypeMetadata(nameof(BasicTypes.Bytes)),
 
-                BasicTypes.Decimal => new ValueTypeMetadata(nameof(BasicTypes.Decimal)),
+                BasicTypes.Decimal => JsonMetadata.ToValueTypeMetadata(nameof(BasicTypes.Decimal)),
 
-                BasicTypes.Date => new ValueTypeMetadata(nameof(BasicTypes.Date)),
+                BasicTypes.Date => JsonMetadata.ToValueTypeMetadata(nameof(BasicTypes.Date)),
 
-                BasicTypes.TimeSpan => new ValueTypeMetadata(nameof(BasicTypes.TimeSpan)),
+                BasicTypes.TimeSpan => JsonMetadata.ToValueTypeMetadata(nameof(BasicTypes.TimeSpan)),
 
-                BasicTypes.Guid => new ValueTypeMetadata(nameof(BasicTypes.Guid)),
+                BasicTypes.Guid => JsonMetadata.ToValueTypeMetadata(nameof(BasicTypes.Guid)),
 
-                _ => (ValueTypeMetadata?)null
+                _ => (JsonMetadata?)null
             };
 
             _ = valueTypeMetadata
                 .Map(vtm => metadata
-                    .GetOrAdd(path, key => new HashSet<IMetadata>())
+                    .GetOrAdd(path, key => new HashSet<JsonMetadata>())
                     .Add(vtm));
 
             //return the token
@@ -233,15 +232,13 @@ namespace Axis.Luna.Common.NewtonsoftJson
 
                 BasicTypes.Guid => new JValue(((BasicGuid)basicValue).Value),
 
-                BasicTypes.Date => new JValue(((BasicDateTime)basicValue).Value?.ToString(parseInfo.Formats[0])),
+                BasicTypes.Date => new JValue(((BasicDate)basicValue).Value?.ToString(parseInfo.Formats[0])),
 
                 BasicTypes.TimeSpan => new JValue(((BasicTimeSpan)basicValue).Value),
 
                 BasicTypes.List => ToJArray((BasicList)basicValue, path, metadata),
 
                 BasicTypes.Struct => ToJObject((BasicStruct)basicValue, path, metadata),
-
-                BasicTypes.NullValue => JValue.CreateNull(),
 
                 _ => throw new ArgumentException($"Invalid BasicType: {basicValue.Type}"),
             };
@@ -272,25 +269,24 @@ namespace Axis.Luna.Common.NewtonsoftJson
                 JTokenType.Bytes => BasicTypes.Bytes,
                 JTokenType.Guid => BasicTypes.Guid,
                 JTokenType.TimeSpan => BasicTypes.TimeSpan,
-                JTokenType.Null => BasicTypes.NullValue,
                 _ => BasicTypes.String,
             };
         }
 
-        private static KeyValuePair<string, HashSet<IMetadata>> ToIMetadataPair(KeyValuePair<string, JToken> tokenPair)
+        private static KeyValuePair<string, HashSet<JsonMetadata>> ToJsonMetadataPair(KeyValuePair<string, JToken> tokenPair)
         {
             return tokenPair.Key.ValuePair(
-                new HashSet<IMetadata>(
-                    MetadataParser.ParseMetadata(tokenPair.Value.Value<string>())));
+                new HashSet<JsonMetadata>(
+                    JsonMetadata.ParseCollection(tokenPair.Value.Value<string>())));
         }
 
-        private static Dictionary<string, HashSet<IMetadata>> ExtractMetadata(JObject jobj)
+        private static Dictionary<string, HashSet<JsonMetadata>> ExtractMetadata(JObject jobj)
         {
             return jobj?
                 .As<IEnumerable<KeyValuePair<string, JToken>>>()
-                .Select(ToIMetadataPair)
+                .Select(ToJsonMetadataPair)
                 .ToDictionary()
-                ?? new Dictionary<string, HashSet<IMetadata>>();
+                ?? new Dictionary<string, HashSet<JsonMetadata>>();
         }
 
         /// <summary>
@@ -299,31 +295,32 @@ namespace Axis.Luna.Common.NewtonsoftJson
         /// <param name="path">The path-key</param>
         /// <param name="metadataMap">The metadtaa map</param>
         /// <returns>The <c>ValueType</c>, <c>Value</c>, and <c>PropertyName</c> metadata, respectively.</returns>
-        private static (BasicMetadata?, BasicMetadata[], BasicMetadata[]) ExtractMetadata(
+        private static (Metadata?, Metadata[], Metadata[]) ExtractMetadata(
             string path,
-            Dictionary<string, HashSet<IMetadata>> metadataMap)
+            Dictionary<string, HashSet<JsonMetadata>> metadataMap)
         {
             if (!metadataMap.TryGetValue(path, out var metadataCollection))
-                return (null, Array.Empty<BasicMetadata>(), Array.Empty<BasicMetadata>());
+                return (null, Array.Empty<Metadata>(), Array.Empty<Metadata>());
 
             //Extract metadata
-            List<BasicMetadata> value = new List<BasicMetadata>(), propertyName = new List<BasicMetadata>();
-            BasicMetadata? type = null;
+            var value = new List<Metadata>();
+            var propertyName = new List<Metadata>();
+            Metadata? type = null;
 
             metadataCollection.ForAll(meta =>
             {
                 switch (meta.Symbol)
                 {
                     case MetadataSymbols.ValueTypeMetadata:
-                        type = meta.ToBasicMetadata();
+                        type = meta.BasicMetadata;
                         break;
 
                     case MetadataSymbols.ValueMetadata:
-                        value.Add(meta.ToBasicMetadata());
+                        value.Add(meta.BasicMetadata);
                         break;
 
                     case MetadataSymbols.PropertyNameMetadata:
-                        propertyName.Add(meta.ToBasicMetadata());
+                        propertyName.Add(meta.BasicMetadata);
                         break;
 
                     default: throw new Exception($"Invalid metadata symbol: {meta.Symbol}");
@@ -389,8 +386,6 @@ namespace Axis.Luna.Common.NewtonsoftJson
             { }
         }
 
-        #region Metadata
-
         internal enum MetadataSymbols
         {
             ValueMetadata = '#',
@@ -398,209 +393,79 @@ namespace Axis.Luna.Common.NewtonsoftJson
             ValueTypeMetadata = '@'
         }
 
-        internal interface IMetadata
+        internal struct JsonMetadata
         {
-            string Key { get; }
-            string Value { get; }
-            MetadataSymbols Symbol { get; }
+            private readonly Metadata _metadata;
 
-            string ToString();
-        }
+            public string Key => _metadata.Key;
 
-        internal struct PropertyNameMetadata : IMetadata
-        {
-            public MetadataSymbols Symbol => MetadataSymbols.PropertyNameMetadata;
+            public string Value => _metadata.Value;
 
-            public string Key { get; }
+            public MetadataSymbols Symbol { get; }
 
-            public string Value { get; }
+            public Metadata BasicMetadata => _metadata;
 
-            public PropertyNameMetadata(string key, string value = null)
+
+            public JsonMetadata(MetadataSymbols symbol, Metadata metadata)
             {
-                Key = key ?? throw new ArgumentNullException(nameof(key));
-                Value = value;
+                _metadata = metadata;
+                Symbol = symbol;
             }
+
+            public override string ToString() => $"{Symbol.Char()}{_metadata}";
+
+            public override int GetHashCode() => HashCode.Combine(Symbol, _metadata.GetHashCode());
 
             public override bool Equals(object obj)
             {
-                return obj is PropertyNameMetadata other
-                    && other.Key.Equals(Key)
-                    && other.Value.NullOrEquals(Value);
-            }
-
-            public override int GetHashCode() => HashCode.Combine(Key, Value);
-
-            public override string ToString()
-            {
-                var v = Value != null ? $":{Value}" : null;
-                return $"{Symbol.Char()}{Key}{v};";
-            }
-
-            /// <summary>
-            /// Parse raw string into a <see cref="PropertyNameMetadata"/>. Note that the input string MUST begin with <see cref="PropertyNameMetadata.Symbol"/>
-            /// </summary>
-            /// <param name="data">the raw string</param>
-            /// <returns>the parsed metadata</returns>
-            public static PropertyNameMetadata Parse(string data)
-            {
-                if (string.IsNullOrWhiteSpace(data) || data[0] != MetadataSymbols.PropertyNameMetadata.Char())
-                    throw new ArgumentException($"Invalid '{nameof(data)}' argument");
-
-                var parts = data
-                    .TrimStart(MetadataSymbols.PropertyNameMetadata.Char())
-                    .TrimEnd(';', ' ')
-                    .Split(':');
-
-                if(parts.Length < 1 || parts.Length > 2 || parts.Any(p => p == string.Empty))
-                    throw new ArgumentException($"Invalid '{nameof(data)}' argument");
-
-                return new PropertyNameMetadata(
-                    parts[0].Trim(),
-                    parts.Length == 2 ? parts[1] : null);
-            }
-
-            public static PropertyNameMetadata FromBasic(BasicMetadata metadata) => new PropertyNameMetadata(metadata.Key, metadata.Value);
-        }
-
-        internal struct ValueMetadata : IMetadata
-        {
-            public MetadataSymbols Symbol => MetadataSymbols.ValueMetadata;
-
-            public string Key { get; }
-
-            public string Value { get; }
-
-            public ValueMetadata(string key, string value = null)
-            {
-                Key = key ?? throw new ArgumentNullException(nameof(key));
-                Value = value;
-            }
-
-            public override bool Equals(object obj)
-            {
-                return obj is ValueMetadata other
-                    && other.Key.Equals(Key)
-                    && other.Value.NullOrEquals(Value);
-            }
-
-            public override int GetHashCode() => HashCode.Combine(Key, Value);
-
-            public override string ToString()
-            {
-                var v = Value != null ? $":{Value}" : null;
-                return $"{Symbol.Char()}{Key}{v};";
+                return obj is JsonMetadata other
+                    && other._metadata.Equals(_metadata)
+                    && other.Symbol.Equals(Symbol);
             }
 
 
-            /// <summary>
-            /// Parse raw string into a <see cref="ValueMetadata"/>. Note that the input string MUST begin with <see cref="ValueMetadata.Symbol"/>
-            /// </summary>
-            /// <param name="data">the raw string</param>
-            /// <returns>the parsed metadata</returns>
-            public static ValueMetadata Parse(string data)
-            {
-                if (string.IsNullOrWhiteSpace(data) || data[0] != MetadataSymbols.ValueMetadata.Char())
-                    throw new ArgumentException($"Invalid '{nameof(data)}' argument");
-
-                var parts = data
-                    .TrimStart(MetadataSymbols.ValueMetadata.Char())
-                    .TrimEnd(';', ' ')
-                    .Split(':');
-
-                if (parts.Length < 1 || parts.Length > 2 || parts.Any(p => p == string.Empty))
-                    throw new ArgumentException($"Invalid '{nameof(data)}' argument");
-
-                return new ValueMetadata(
-                    parts[0].Trim(),
-                    parts.Length == 2 ? parts[1] : null);
-            }
-
-            public static ValueMetadata FromBasic(BasicMetadata metadata) => new ValueMetadata(metadata.Key, metadata.Value);
-        }
-
-        internal struct ValueTypeMetadata: IMetadata
-        {
-            public MetadataSymbols Symbol => MetadataSymbols.ValueTypeMetadata;
-
-            public string Key { get; }
-
-            public string Value { get; }
-
-            public ValueTypeMetadata(string typeName)
-            {
-                Value = null;
-                Key = typeName.ThrowIf(
-                    string.IsNullOrWhiteSpace,
-                    new ArgumentNullException(nameof(typeName)));
-            }
-
-            public override bool Equals(object obj)
-            {
-                return obj is ValueTypeMetadata other
-                    && other.Key.NullOrEquals(Key);
-            }
-
-            public override int GetHashCode() => HashCode.Combine(Key);
-
-            public override string ToString()
-            {
-                return $"{Symbol.Char()}{Key};";
-            }
-
-
-            /// <summary>
-            /// Parse raw string into a <see cref="ValueTypeMetadata"/>. Note that the input string MUST begin with <see cref="ValueTypeMetadata.Symbol"/>
-            /// </summary>
-            /// <param name="data">the raw string</param>
-            /// <returns>the parsed metadata</returns>
-            public static ValueTypeMetadata Parse(string data)
-            {
-                if (string.IsNullOrWhiteSpace(data) || data[0] != MetadataSymbols.ValueTypeMetadata.Char())
-                    throw new ArgumentException($"Invalid '{nameof(data)}' argument");
-
-                var type = data
-                    .TrimStart(MetadataSymbols.ValueTypeMetadata.Char())
-                    .TrimEnd(' ', ';');
-
-                if (string.IsNullOrWhiteSpace(type))
-                    throw new ArgumentException($"Invalid type metadata: {data}");
-
-                return new ValueTypeMetadata(type);
-            }
-        }
-
-        internal static class MetadataParser
-        {
-            public static IMetadata Parse(string metadataString)
+            public static JsonMetadata Parse(string metadataString)
             {
                 if (string.IsNullOrEmpty(metadataString))
-                    return null;
+                    return default;
 
-                return (MetadataSymbols)metadataString[0] switch
-                {
-                    MetadataSymbols.PropertyNameMetadata => PropertyNameMetadata.Parse(metadataString),
-                    MetadataSymbols.ValueMetadata => ValueMetadata.Parse(metadataString),
-                    MetadataSymbols.ValueTypeMetadata => ValueTypeMetadata.Parse(metadataString),
-
-                    _ => throw new ArgumentException($"Invalid metadata symbol: {metadataString[0]}")
-                };
+                var @string = metadataString.Trim();
+                var symbol = (MetadataSymbols)@string[0];
+                return Parse(symbol, @string[1..]);
             }
+
+            private static JsonMetadata Parse(
+                MetadataSymbols symbol,
+                string metadataString)
+                => new JsonMetadata(symbol, Metadata.Parse(metadataString));
 
             /// <summary>
             /// Splits the string using ';'. This means the individual metadata 'Parse' methods will receive their string sans the ';' at the end.
             /// </summary>
             /// <param name="metadataCollectionString">The metadata string</param>
             /// <returns>the array of metadata parsed from the string</returns>
-            public static IMetadata[] ParseMetadata(string metadataCollectionString)
+            public static JsonMetadata[] ParseCollection(string metadataCollectionString)
             {
                 return metadataCollectionString?
                     .Split(';', StringSplitOptions.RemoveEmptyEntries)
-                    .Select(v => Parse(v.Trim()))
+                    .Select(Parse)
                     .ToArray()
-                    ?? Array.Empty<IMetadata>();
+                    ?? Array.Empty<JsonMetadata>();
             }
+
+            public static JsonMetadata ToPropertyMetadata(Metadata metadata)
+                => new JsonMetadata(
+                    MetadataSymbols.PropertyNameMetadata,
+                    metadata);
+            public static JsonMetadata ToValueMetadata(Metadata metadata)
+                => new JsonMetadata(
+                    MetadataSymbols.ValueMetadata,
+                    metadata);
+            public static JsonMetadata ToValueTypeMetadata(Metadata metadata)
+                => new JsonMetadata(
+                    MetadataSymbols.ValueTypeMetadata,
+                    metadata);
         }
-        #endregion
 
         #endregion
     }

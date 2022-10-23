@@ -1,5 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using Axis.Luna.Extensions;
+using System;
 using System.Linq;
 
 namespace Axis.Luna.Common.Types.Basic
@@ -7,58 +7,49 @@ namespace Axis.Luna.Common.Types.Basic
     /// <summary>
     /// Represents an immutable list.
     /// </summary>
-    public struct BasicList : IBasicValue<IEnumerable<BasicValue>>
+    public readonly struct BasicList : IBasicValue
     {
-        private readonly List<BasicValue> _list;
-        private readonly BasicMetadata[] _metadata;
+        private readonly Metadata[] _metadata;
+        private readonly IBasicValue[] _values;
 
         public BasicTypes Type => BasicTypes.List;
 
-        public IEnumerable<BasicValue> Value => _list.AsEnumerable();
+        public int Count => _values?.Length ?? 0;
 
-        public int? Count => _list?.Count;
+        public Metadata[] Metadata => _metadata?.ToArray() ?? Array.Empty<Metadata>();
 
-        public BasicMetadata[] Metadata => _metadata?.ToArray() ?? Array.Empty<BasicMetadata>();
+        public IBasicValue[] Value => _values?.ToArray();
 
-        public BasicList(params BasicValue[] data)
-            : this((IEnumerable<BasicValue>)data)
+        internal BasicList(IBasicValue[] value, params Metadata[] metadata)
         {
+            _values = value;
+            _metadata = metadata?.ToArray();
         }
 
-        public BasicList(IEnumerable<BasicValue> value)
-            : this(value, Array.Empty<BasicMetadata>())
+        internal BasicList(BasicValueWrapper[] value, params Metadata[] metadata)
+            : this(value?.Select(v => v.Value).ToArray(), metadata)
         {
-        }
-
-        public BasicList(IEnumerable<BasicValue> value, params BasicMetadata[] metadata)
-        {
-            _list = value?.ToList();
-            _metadata = metadata?.Length > 0 == true
-                ? metadata.ToArray()
-                : null;
         }
 
         public override bool Equals(object obj)
         {
-            if (!(obj is BasicList list))
-                return false;
+            if (obj is BasicList other)
+            {
+                // both default
+                if (other._values == null && _values == null)
+                    return true;
 
-            if (list._list == null && _list == null)
-                return true;
+                return other.Count == Count
+                    && other._values.SequenceEqual(_values);
+            }
 
-            if (list._list?.Count != _list?.Count)
-                return false;
-
-            return _list.SequenceEqual(list._list);
+            return false;
         }
 
         public override int GetHashCode()
-        {
-            if (_list == null)
-                return 0;
-
-            else return Luna.Extensions.Common.ValueHash(_list.ToArray());
-        }
+            => _values != null
+                ? Luna.Extensions.Common.ValueHash(_values?.HardCast<IBasicValue, object>())
+                : 0;
 
         public override string ToString() => Value.ToString();
 

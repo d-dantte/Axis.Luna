@@ -3,25 +3,20 @@ using System.Linq;
 
 namespace Axis.Luna.Common.Types.Basic
 {
-    public struct BasicUInt : IBasicValue<ulong?>
+    public readonly struct BasicUInt : IBasicValue
     {
-        private readonly BasicMetadata[] _metadata;
+        private readonly Metadata[] _metadata;
 
-        public BasicTypes Type => BasicTypes.Int;
+        public BasicTypes Type => BasicTypes.UInt;
+
+        public Metadata[] Metadata => _metadata?.ToArray() ?? Array.Empty<Metadata>();
 
         public ulong? Value { get; }
 
-        public BasicMetadata[] Metadata => _metadata?.ToArray() ?? Array.Empty<BasicMetadata>();
-
-        public BasicUInt(ulong? value) : this(value, Array.Empty<BasicMetadata>())
-        { }
-
-        public BasicUInt(ulong? value, params BasicMetadata[] metadata)
+        internal BasicUInt(ulong? value, params Metadata[] metadata)
         {
             Value = value;
-            _metadata = metadata?.Length > 0 == true
-                ? metadata.ToArray()
-                : null;
+            _metadata = metadata?.ToArray();
         }
 
         public override bool Equals(object obj)

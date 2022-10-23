@@ -481,13 +481,12 @@ namespace Axis.Luna.Extensions
         /// <returns></returns>
         public static IEnumerable<V> Shuffle<V>(this IEnumerable<V> source, uint cycle = 1)
         {
-            using var rng = new RNGCryptoServiceProvider();
             var buffer = source.ToArray();
             while ((cycle--) > 0)
             {
                 for (int i = 0; i < buffer.Length; i++)
                 {
-                    int j = rng.RandomInt(i, buffer.Length);
+                    int j = RandomNumberGenerator.GetInt32(i, buffer.Length);
                     yield return buffer[j];
 
                     buffer[j] = buffer[i];

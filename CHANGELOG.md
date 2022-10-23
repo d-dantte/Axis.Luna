@@ -1,3 +1,13 @@
+## Release 6.0.3 - 2022/10/23
+* Axis.Luna.Common
+    * Refactored `*.Types.Basic` types
+
+* Axis.Luna.Common.NewtonsoftJson
+    * Refactored the `BasicStructJsonConverter` type
+
+* Axis.Luna.Extensions
+    * Refactored `SecureCommon`, made it into a static class, since the RNG crypto type is now deprecated.
+
 
 ## Release 6.0.2 - 2022/10/08
 * Axis.*
@@ -6,7 +16,6 @@
 	* Added support for resolving `IOperation` instances into `IResult` instances.
 	* Added support for resolving `Lazy<T>¬ into `IResult<T>`
 	* Fixed bug in `FInvoke` that causes `ArgumentException` to be thrown if the wrong owner-type is passed into the DynamicMethod constructor.
-	*
 
 
 ## Release 6.0.0 - 2022/08/27
@@ -16,6 +25,7 @@
 	* Added more methods for `AsyncLock`
 	* Added `Fold` extension methods for Operations.
 	* Covariance support for Operations via `IOperation` is not fully implemented.
+
 
 ## Released 5.1.0 - 2020/05/04
 
