@@ -184,5 +184,21 @@ namespace Axis.Luna.Common
                 return IResult<TResult>.Of(e);
             }
         }
+
+        public static IResult<TResult>.DataResult AsData<TResult>(this IResult<TResult> result)
+        {
+            if (result is IResult<TResult>.DataResult data)
+                return data;
+
+            throw new InvalidCastException($"The result is not a {nameof(IResult<TResult>.DataResult)} instance");
+        }
+
+        public static IResult<TResult>.ErrorResult AsError<TResult>(this IResult<TResult> result)
+        {
+            if (result is IResult<TResult>.ErrorResult error)
+                return error;
+
+            throw new InvalidCastException($"The result is not a {nameof(IResult<TResult>.ErrorResult)} instance");
+        }
     }
 }

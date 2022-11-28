@@ -98,7 +98,7 @@ namespace Axis.Luna.Common.Utils
 
         public static char NextChar() => CharacterMap[NextInt() % 26];
 
-        public static V NextValue<V>(V[] values) => values[NextInt() % values.Length];
+        public static V NextValue<V>(V[] values) => values[NextInt(values.Length)];
 
         public static char NextChar(string values) => NextValue(values.ToCharArray());
 

@@ -5,7 +5,7 @@
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <AssemblyVersion>6.0.0.0</AssemblyVersion>
     <FileVersion>6.0.0.0</FileVersion>
-    <Version>6.0.3</Version>
+    <Version>6.0.4</Version>
     <Description>Common Data types and functions that operate on them</Description>
     <PackageReleaseNotes></PackageReleaseNotes>
     <RepositoryUrl>https://github.com/d-dantte/Axis.Luna</RepositoryUrl>
@@ -13,7 +13,15 @@
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <Company>Axiis</Company>
     <Authors>Dantte</Authors>
+    <PackageReadmeFile>axis.luna.common.readme.md</PackageReadmeFile>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\axis.luna.common.readme.md">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Axis.Luna.Extensions\Axis.Luna.Extensions.csproj" />

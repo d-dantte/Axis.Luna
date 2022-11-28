@@ -94,7 +94,15 @@
 
 -	Overhaul AsyncOperation creation, as well as the Extension methods that create operations so Tasks are used in accordance to what is
 	found in the investigation above.
+	
 
 -	Investigate using Structs for operation instances
+	[Cannot be done]
 
 -	Move support to netcoreapp3.1 and netstandard2.1? [note: this stops support of netframework :( ]
+	[Done]
+
+
+
+2022/11/07 ==================================================================================
+-	Migrate language version of all projects to:  <LangVersion>latest</LangVersion>

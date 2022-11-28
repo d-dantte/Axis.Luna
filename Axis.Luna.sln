@@ -9,6 +9,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Core", "Core", "{4CD022A9-2
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".Solution Items", ".Solution Items", "{63ECDC93-300E-4686-8FFC-74C47B3A2694}"
 	ProjectSection(SolutionItems) = preProject
+		axis.luna.common.readme.md = axis.luna.common.readme.md
 		BackLog.txt = BackLog.txt
 		CHANGELOG.md = CHANGELOG.md
 		LICENSE.txt.txt = LICENSE.txt.txt
@@ -42,7 +43,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Axis.Luna.FInvoke.Tests", "
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests.Benchmarks", "Tests.Benchmarks", "{16383A5B-67CD-45B3-97AB-B1EAB96F68B5}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Axis.Luna.Extensions.Benchmark", "Axis.Luna.Extensions.Benchmark\Axis.Luna.Extensions.Benchmark.csproj", "{42830144-7A76-4062-B1C2-D2B1EE39EC12}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Axis.Luna.Extensions.Benchmark", "Axis.Luna.Extensions.Benchmark\Axis.Luna.Extensions.Benchmark.csproj", "{42830144-7A76-4062-B1C2-D2B1EE39EC12}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
