@@ -23,6 +23,7 @@ namespace Axis.Luna.Extensions
 
         /// <summary>
         /// Uses hard-casting on the individual values of the enumerable. This means it may throw <see cref="InvalidCastException"/>.
+        /// Note that with boxed values, this cast may fail.
         /// </summary>
         /// <typeparam name="TOut">The type to be casted to</typeparam>
         /// <param name="enumerable"></param>
@@ -42,6 +43,7 @@ namespace Axis.Luna.Extensions
 
         /// <summary>
         /// Uses hard-casting on the individual values of the enumerable. This means it may throw <see cref="InvalidCastException"/>.
+        /// Note that with boxed values, this cast may fail.
         /// </summary>
         /// <typeparam name="TIn">The type of the enumerable</typeparam>
         /// <typeparam name="TOut">The type to be casted to</typeparam>
@@ -399,6 +401,24 @@ namespace Axis.Luna.Extensions
             return value;
         }
 
+        public static bool TryGetValue(this
+            System.Collections.IDictionary dictionary,
+            object key,
+            out object value)
+        {
+            if (dictionary is null)
+                throw new ArgumentNullException(nameof(dictionary));
+
+            if (dictionary.Contains(key))
+            {
+                value = dictionary[key];
+                return true;
+            }
+
+            value = null;
+            return false;
+        }
+
         public static void RemoveAll<V>(this ICollection<V> collection, params V[] values)
         => values.ForAll(v => collection.Remove(v));
 
@@ -568,56 +588,54 @@ namespace Axis.Luna.Extensions
         public static IEnumerable<IEnumerable<T>> Batch<T>(this IEnumerable<T> source, int batchSize, int skipBatches = 0)
         => BatchGroup(source, batchSize, skipBatches).Select(g => g.Value);
 
-        public static IEnumerable<KeyValuePair<int, IEnumerable<T>>> BatchGroup<T>(this IEnumerable<T> source, int batchSize, int skipBatches = 0)
+        public static IEnumerable<KeyValuePair<long, IEnumerable<T>>> BatchGroup<T>(this IEnumerable<T> source, int batchSize, int skipBatches = 0)
         {
-            batchSize = Math.Abs(batchSize);
-            int indx = Math.Abs(skipBatches);
-            IEnumerable<T> result = source ?? new T[0];
+            long count = 0;
+            long index = 0;
+            var batch = new List<T>();
 
-            using (var enumerator = result.Skip(indx * batchSize).GetEnumerator())
+            foreach (var value in source.Skip(skipBatches * batchSize))
             {
-                while (enumerator.MoveNext())
+                batch.Add(value);
+
+                if (++count % batchSize == 0)
                 {
-                    //cache the items before loading the kvp
-                    var l = enumerator.EnumerateSome(batchSize).ToList();
-                    yield return (indx++).ValuePair(l.As<IEnumerable<T>>());
+                    yield return index++.ValuePair(batch.AsEnumerable());
+
+                    batch = new List<T>();
                 }
             }
+
+            if (batch.Count > 0)
+                yield return index++.ValuePair(batch.AsEnumerable());
         }
 
-        private static IEnumerable<T> EnumerateSome<T>(this IEnumerator<T> enumerator, int count)
-        {
-            yield return enumerator.Current;
-
-            for (int i = 1; i < count; i++)
-            {
-                if (!enumerator.MoveNext()) yield break;
-                else yield return enumerator.Current;
-            }
-        }
-
-        public static int BatchCount<T>(this IEnumerable<T> source, int batchSize)
-        => (int)Math.Round(((double)source.Count()) / batchSize, MidpointRounding.AwayFromZero);
-
+        // This should be deprecated
         public static IEnumerable<IQueryable<T>> Batch<T>(this IOrderedQueryable<T> source, int batchSize, int skipBatches = 0)
         => BatchGroup(source, batchSize, skipBatches).Select(g => g.Value);
 
-        public static IEnumerable<KeyValuePair<int, IQueryable<T>>> BatchGroup<T>(this IOrderedQueryable<T> source, int batchSize, int skipBatches = 0)
+        // This should be deprecated
+        public static IEnumerable<KeyValuePair<long, IQueryable<T>>> BatchGroup<T>(this IOrderedQueryable<T> source, int batchSize, int skipBatches = 0)
         {
-            batchSize = Math.Abs(batchSize);
-            int indx = Math.Abs(skipBatches);
-            IQueryable<T> result = source ?? new T[0].AsQueryable();
-            do
-            {
-                result = source.Skip(indx * batchSize).Take(batchSize);
-                if (result.Count() > 0) yield return new KeyValuePair<int, IQueryable<T>>(indx++, result);
-                else break;
-            }
-            while (true);
-        }
+            long count = 0;
+            long index = 0;
+            var batch = new List<T>();
 
-        public static int BatchCount<T>(this IQueryable<T> source, int batchSize)
-        => (int)Math.Round(((double)source.Count()) / batchSize, MidpointRounding.AwayFromZero);
+            foreach (var value in source.Skip(skipBatches * batchSize))
+            {
+                batch.Add(value);
+
+                if (++count % batchSize == 0)
+                {
+                    yield return index++.ValuePair(batch.AsQueryable());
+
+                    batch = new List<T>();
+                }
+            }
+
+            if (batch.Count > 0)
+                yield return index++.ValuePair(batch.AsQueryable());
+        }
         #endregion
 
         public static bool TryGetNext<T>(this IEnumerator<T> enumerator, out T value)

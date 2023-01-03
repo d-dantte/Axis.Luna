@@ -103,38 +103,41 @@ namespace Axis.Luna.Extensions
 
         public static KeyValuePair<K, object> ObjectPair<K>(this K key, object obj) => new KeyValuePair<K, object>(key, obj);
 
-        public static T As<T>(this object value)
-        {
-            try
-            {
-                if (value is IConvertible 
-                    && typeof(IConvertible).IsAssignableFrom(typeof(T)))
-                    return (T)Convert.ChangeType(value, typeof(T));
+        //[Obsolete]
+        //public static T As<T>(this object value)
+        //where T: class
+        //{
+        //    try
+        //    {
+        //        if (value is IConvertible 
+        //            && typeof(IConvertible).IsAssignableFrom(typeof(T)))
+        //            return (T)Convert.ChangeType(value, typeof(T));
 
-                else return (T)value;
-            }
-            catch
-            {
-                return default;
-            }
-        }
+        //        else return (T)value;
+        //    }
+        //    catch
+        //    {
+        //        return default;
+        //    }
+        //}
 
-        public static T As<S, T>(this S value)
-        {
-            try
-            {
-                if (value is IConvertible 
-                    && typeof(IConvertible).IsAssignableFrom(typeof(T)))
-                    return (T)Convert.ChangeType(value, typeof(T));
+        //[Obsolete]
+        //public static T As<S, T>(this S value)
+        //{
+        //    try
+        //    {
+        //        if (value is IConvertible 
+        //            && typeof(IConvertible).IsAssignableFrom(typeof(T)))
+        //            return (T)Convert.ChangeType(value, typeof(T));
 
-                else 
-                    return (T)(object)value;
-            }
-            catch
-            {
-                return default;
-            }
-        }
+        //        else 
+        //            return (T)(object)value;
+        //    }
+        //    catch
+        //    {
+        //        return default;
+        //    }
+        //}
 
         public static dynamic AsDynamic(this object value) => value;
 

@@ -74,7 +74,6 @@ namespace Axis.Luna.Extensions
         public static T? ThrowIf<T>(this T? value, T? compare, string message = null)
         where T : struct => value.ThrowIf(compare, new Exception(message));
 
-
         public static T ThrowIfNot<T>(this T value, T compare, Exception ex)
         {
             if (!EqualityComparer<T>.Default.Equals(value, compare))
@@ -87,8 +86,27 @@ namespace Axis.Luna.Extensions
 
         public static T ThrowIfNot<T>(this T value, T compare, string message = null) => value.ThrowIfNot(compare, new Exception(message));
 
+        internal static T ThrowIfNot<T>(this
+            T value,
+            Func<T, bool> predicate,
+            Exception exception)
+        {
+            if (predicate is null)
+                throw new ArgumentNullException(nameof(predicate));
 
-        public static T? ThrowIfNot<T>(this T? value, T? compare, System.Exception ex)
+            if (exception is null)
+                throw new ArgumentNullException(nameof(exception));
+
+            if (!predicate.Invoke(value))
+            {
+                if (exception.StackTrace == null) throw exception;
+                else ExceptionDispatchInfo.Capture(exception).Throw();
+            }
+
+            return value;
+        }
+
+        public static T? ThrowIfNot<T>(this T? value, T? compare, Exception ex)
         where T : struct
         {
             if ((value == null && compare == null)
@@ -105,6 +123,27 @@ namespace Axis.Luna.Extensions
 
         public static T? ThrowIfNot<T>(this T? value, T? compare, string message = null)
         where T : struct => value.ThrowIfNot(compare, new Exception(message));
+
+        internal static T? ThrowIfNot<T>(this
+            T? value,
+            Func<T?, bool> predicate,
+            Exception exception)
+            where T : struct
+        {
+            if (predicate is null)
+                throw new ArgumentNullException(nameof(predicate));
+
+            if (exception is null)
+                throw new ArgumentNullException(nameof(exception));
+
+            if (!predicate.Invoke(value))
+            {
+                if (exception.StackTrace == null) throw exception;
+                else ExceptionDispatchInfo.Capture(exception).Throw();
+            }
+
+            return value;
+        }
 
         public static T ThrowIfNull<T>(this T value, System.Exception ex)
         where T : class
