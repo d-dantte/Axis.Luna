@@ -6,10 +6,108 @@ using System.Threading.Tasks;
 
 namespace Axis.Luna.Extensions
 {
-
-    //[DebuggerStepThrough]
     public static class EnumerableExtensions
     {
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="enumerable"></param>
+        /// <param name="exception"></param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentNullException"></exception>
+        public static T FirstOrThrow<T>(this IEnumerable<T> enumerable, Exception exception)
+        {
+            if (enumerable is null)
+                throw new ArgumentNullException(nameof(enumerable));
+
+            exception ??= new Exception();
+
+            using var enumerator = enumerable.GetEnumerator();
+
+            if (enumerator.MoveNext())
+                return enumerator.Current;
+
+            else return exception.Throw<T>();
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <typeparam name="TItem"></typeparam>
+        /// <param name="enumerable"></param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentNullException"></exception>
+        public static TItem? FirstOrNull<TItem>(this IEnumerable<TItem> enumerable)
+        where TItem : struct
+        {
+            if (enumerable is null)
+                throw new ArgumentNullException(nameof(enumerable));
+
+            var item = enumerable.FirstOrDefault();
+            if (item.IsDefault())
+                return null;
+
+            return item;
+        }
+
+        /// <summary>
+        /// Finds the first value that satisfies the provided predicate.
+        /// if no values are found, return null.
+        /// </summary>
+        /// <typeparam name="TValue"></typeparam>
+        /// <param name="enumerable"></param>
+        /// <param name="predicate"></param>
+        /// <returns></returns>
+        public static TValue? FirstOrNull<TValue>(this IEnumerable<TValue> enumerable, Func<TValue, bool> predicate)
+        where TValue : struct
+        {
+            if (enumerable is null)
+                throw new ArgumentNullException(nameof(enumerable));
+
+            if (predicate == null)
+                throw new ArgumentNullException(nameof(predicate));
+
+            return enumerable
+                .Where(predicate)
+                .FirstOrNull();
+        }
+
+        public static TItem? LastOrNull<TItem>(this IEnumerable<TItem> enumerable)
+        where TItem : struct
+        {
+            if (enumerable is null)
+                throw new ArgumentNullException(nameof(enumerable));
+
+            var item = enumerable.LastOrDefault();
+            if (item.IsDefault())
+                return null;
+
+            return item;
+        }
+
+        /// <summary>
+        /// Finds the last value that satisfies the provided predicate.
+        /// if no values are found, return null.
+        /// </summary>
+        /// <typeparam name="TValue"></typeparam>
+        /// <param name="enumerable"></param>
+        /// <param name="predicate"></param>
+        /// <returns></returns>
+        public static TValue? LastOrNull<TValue>(this IEnumerable<TValue> enumerable, Func<TValue, bool> predicate)
+        where TValue : struct
+        {
+            if (enumerable is null)
+                throw new ArgumentNullException(nameof(enumerable));
+
+            if (predicate == null)
+                throw new ArgumentNullException(nameof(predicate));
+
+            return enumerable
+                .Where(predicate)
+                .LastOrNull();
+        }
+
         public static bool IsEmpty<T>(this T[] array)
             => array
                 .ThrowIfNull(new ArgumentNullException(nameof(array)))
@@ -112,29 +210,6 @@ namespace Axis.Luna.Extensions
         public static IEnumerable<TOut> SelectMany<TOut>(this IEnumerable<IEnumerable<TOut>> enumerable) 
         => enumerable.SelectMany(enm => enm);
 
-        /// <summary>
-        /// Finds the first value that satisfies the provided predicate, or the first value in the enumerable if no predicate is supplied;
-        /// if no values are found, return null.
-        /// </summary>
-        /// <typeparam name="TValue"></typeparam>
-        /// <param name="enumerable"></param>
-        /// <param name="predicate"></param>
-        /// <returns></returns>
-        public static TValue? FirstOrNull<TValue>(this IEnumerable<TValue> enumerable, Func<TValue, bool> predicate = null)
-        where TValue: struct
-        {
-            if (predicate == null)
-                predicate = v => true;
-
-            foreach(var value in enumerable)
-            {
-                if (predicate.Invoke(value))
-                    return value;
-            }
-
-            return null;
-        }
-
 
         /// <summary>
         /// Snips the enumerable at the specified POSITIVE index, making it the head of the enumerable, splicing the old head at the tail
@@ -162,9 +237,9 @@ namespace Axis.Luna.Extensions
         /// <param name="position"></param>
         /// <param name="value"></param>
         /// <returns></returns>
-        public static IEnumerable<V> AppendAt<V>(this IEnumerable<V> enumerable, int position, V value)
+        public static IEnumerable<V> InsertAt<V>(this IEnumerable<V> enumerable, int position, V value)
         {
-            position.ThrowIf(p => p < 0, "invalid position");
+            position.ThrowIf(p => p < 0, new ArgumentException($"Invalid position: {position}"));
 
             int pos = 0;
             foreach (var v in enumerable)
@@ -294,14 +369,16 @@ namespace Axis.Luna.Extensions
             return newValue;
         }
 
-        #region Conca 
+        #region Concatenations
+        public static IEnumerable<TItem> Enumerate<TItem>(this TItem item) => new[] { item };
+
         public static IEnumerable<T> EnumerateWith<T>(this T value, T otherValue)
         {
             yield return value;
             yield return otherValue;
         }
 
-        public static IEnumerable<T> EnumerateWith<T>(this T value, IEnumerable<T> values)
+        public static IEnumerable<T> PrependTo<T>(this T value, IEnumerable<T> values)
         {
             yield return value;
             foreach (var t in values)
@@ -319,19 +396,10 @@ namespace Axis.Luna.Extensions
             }
         }
 
-        public static IEnumerable<T> Concat<T>(this IEnumerable<T> initialValues, T otherValue)
-        {
-            foreach (var t in initialValues)
-            {
-                yield return t;
-            }
-            yield return otherValue;
-        }
-
         public static IEnumerable<T> Concat<T>(
             this IEnumerable<T> initialValues,
             params T[] otherValue)
-            => System.Linq.Enumerable.Concat(initialValues, otherValue);
+            => Enumerable.Concat(initialValues, otherValue);
         #endregion
 
         public static int PositionOf<T>(this IEnumerable<T> enumerable, T item, IEqualityComparer<T> equalityComparer = null)
@@ -586,7 +654,7 @@ namespace Axis.Luna.Extensions
 
         #region Batch
         public static IEnumerable<IEnumerable<T>> Batch<T>(this IEnumerable<T> source, int batchSize, int skipBatches = 0)
-        => BatchGroup(source, batchSize, skipBatches).Select(g => g.Value);
+            => BatchGroup(source, batchSize, skipBatches).Select(g => g.Value);
 
         public static IEnumerable<KeyValuePair<long, IEnumerable<T>>> BatchGroup<T>(this IEnumerable<T> source, int batchSize, int skipBatches = 0)
         {

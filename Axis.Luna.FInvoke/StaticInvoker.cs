@@ -18,7 +18,20 @@ namespace Axis.Luna.FInvoke
 		/// Delegate for invoking the underlying method dynamically
 		/// </summary>
 		public Func<object[], object> Func { get; }
-		
+
+		/// <summary>
+		/// Invokes the function encapsulated by this invoker
+		/// </summary>
+		/// <param name="arguments">the method arguments</param>
+		/// <returns>the return value if any</returns>
+		public object Invoke(params object[] arguments) => Func.Invoke(arguments);
+
+		/// <summary>
+		/// Invokes the function with no argument
+		/// </summary>
+		/// <returns>the return value if any</returns>
+		public object Invoke() => Invoke(Array.Empty<object>());
+
 		/// <summary>
 		/// Creates or retrieves a new instance of the invoker. Generic-Definition methods are not accepted.
 		/// </summary>

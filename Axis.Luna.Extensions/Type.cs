@@ -15,7 +15,10 @@ namespace Axis.Luna.Extensions
         private static readonly ConcurrentDictionary<Type, Func<object>> TypeDefaultsProducer = new ConcurrentDictionary<Type, Func<object>>();
         private static readonly ConcurrentDictionary<Type, string> MinimalAQNames = new ConcurrentDictionary<Type, string>();
         private static readonly ConcurrentDictionary<string, Delegate> PropertyAccessors = new ConcurrentDictionary<string, Delegate>();
-        
+
+        private const string ExplicitOperatorName = "op_Explicit";
+        private const string ImplicitOperatorName = "op_Implicit";
+
 
         #region Attributes
 
@@ -205,7 +208,9 @@ namespace Axis.Luna.Extensions
             return firstInterface
                 .EnumerateWith(otherInterfaces)
                 .Distinct()
-                .Where(@interface => @interface.IsInterface)
+                .Select(@interface => !@interface.IsInterface
+                    ? throw new InvalidOperationException($"{@interface} is not an interface")
+                    : @interface)
                 .All(interfaces.Contains);
         }
 
@@ -221,7 +226,9 @@ namespace Axis.Luna.Extensions
             return firstInterface
                 .EnumerateWith(otherInterfaces)
                 .Distinct()
-                .Where(@interface => @interface.IsInterface)
+                .Select(@interface => !@interface.IsInterface
+                    ? throw new InvalidOperationException($"{@interface} is not an interface")
+                    : @interface)
                 .Any(interfaces.Contains);
         }
 
@@ -240,7 +247,6 @@ namespace Axis.Luna.Extensions
             => type.Extends(baseType.EnumerateWith(otherBases).ToArray());
 
         /// <summary>
-        /// 
         /// Ensures that a type inherits from all the listed types. If any of the bases is a GenericTypeDefinition, the method checks that any of the
         /// target type's generic bases has a generic definition that matches the given one.
         /// </summary>
@@ -260,6 +266,9 @@ namespace Axis.Luna.Extensions
 
             bases.ForAll(@base =>
             {
+                if (!@base.IsClass)
+                    throw new InvalidOperationException($"{@base} is not a class");
+
                 if (@base.IsGenericTypeDefinition)
                     genericDefinitionBases.Add(@base);
 
@@ -293,9 +302,61 @@ namespace Axis.Luna.Extensions
             }
         }
 
+
+        public static bool IsOrImplementsGenericInterface(this Type targetType, Type genericDefinitionInterface)
+        {
+            if (targetType is null)
+                throw new ArgumentNullException(nameof(targetType));
+
+            if (genericDefinitionInterface is null)
+                throw new ArgumentNullException(nameof(genericDefinitionInterface));
+
+            if (!genericDefinitionInterface.IsInterface)
+                throw new ArgumentException($"Interface '{genericDefinitionInterface}' must be an interface");
+
+            if (!genericDefinitionInterface.IsGenericTypeDefinition)
+                throw new ArgumentException($"Interfce '{genericDefinitionInterface}' must be a generic type definition");
+
+            if (targetType.HasGenericInterfaceDefinition(genericDefinitionInterface))
+                return true;
+
+            else return targetType.ImplementsGenericInterface(genericDefinitionInterface);
+        }
+
+        public static bool IsOrExtendsGenericBase(this Type targetType, Type genericDefinitionBase)
+        {
+            if (targetType is null)
+                throw new ArgumentNullException(nameof(targetType));
+
+            if (genericDefinitionBase is null)
+                throw new ArgumentNullException(nameof(genericDefinitionBase));
+
+            if (genericDefinitionBase.IsInterface)
+                throw new ArgumentException($"base type '{genericDefinitionBase}' must not be an interface");
+
+            return targetType
+                .TypeLineage()
+                .Where(type => type.IsGenericType)
+                .Select(type => type.GetGenericTypeDefinition())
+                .Any(definition => definition.Equals(genericDefinitionBase));
+        }
+
         #endregion
 
-        #region Property access
+        #region Property
+
+        public static bool IsInit(this PropertyInfo property)
+        {
+            if (property is null)
+                throw new ArgumentNullException(nameof(property));
+
+            if (property.SetMethod is null)
+                return false;
+
+            return property.SetMethod.ReturnParameter
+                .GetRequiredCustomModifiers()
+                .Contains(typeof(System.Runtime.CompilerServices.IsExternalInit));
+        }
 
         public static MemberInfo Member(Expression<Func<object>> expr)
         {
@@ -402,7 +463,165 @@ namespace Axis.Luna.Extensions
         => (V)obj.SetPropertyValue(propertyName, (object)value);
 
         #endregion
-                       
+
+        #region Custom Converters
+        public static MethodInfo ExplicitConverterTo<TOut>(this Type sourceType)
+        {
+            return !sourceType.TryGetExplicitConverterTo<TOut>(out var method)
+                ? throw new MissingMethodException("No explicit converter found for the type")
+                : method;
+        }
+
+        public static MethodInfo ExplicitConverterTo(this Type sourceType, Type destinationType)
+        {
+            return !sourceType.TryGetExplicitConverterTo(destinationType, out var method)
+                ? throw new MissingMethodException("No explicit converter found for the type")
+                : method;
+        }
+
+        public static MethodInfo ImplicitConverterTo<TOut>(this Type sourceType)
+        {
+            return !sourceType.TryGetImplicitConverterTo<TOut>(out var method)
+                ? throw new MissingMethodException("No implicit converter found for the type")
+                : method;
+        }
+
+        public static MethodInfo ImplicitConverterTo(this Type sourceType, Type destinationType)
+        {
+            return !sourceType.TryGetImplicitConverterTo(destinationType, out var method)
+                ? throw new MissingMethodException("No implicit converter found for the type")
+                : method;
+        }
+
+        public static MethodInfo ExplicitConverterFrom<TIn>(this Type destinationType)
+        {
+            return !destinationType.TryGetExplicitConverterFrom<TIn>(out var method)
+                ? throw new MissingMethodException("No explicit converter found for the type")
+                : method;
+        }
+
+        public static MethodInfo ExplicitConverterFrom(this Type destinationType, Type sourceType)
+        {
+            return !destinationType.TryGetExplicitConverterFrom(sourceType, out var method)
+                ? throw new MissingMethodException("No explicit converter found for the type")
+                : method;
+        }
+
+        public static MethodInfo ImplicitConverterFrom<TIn>(this Type destinationType)
+        {
+            return !destinationType.TryGetImplicitConverterFrom<TIn>(out var method)
+                ? throw new MissingMethodException("No implicit converter found for the type")
+                : method;
+        }
+
+        public static MethodInfo ImplicitConverterFrom(this Type destinationType, Type sourceType)
+        {
+            return !destinationType.TryGetImplicitConverterFrom(sourceType, out var method)
+                ? throw new MissingMethodException("No implicit converter found for the type")
+                : method;
+        }
+
+        public static bool TryGetExplicitConverterTo<TOut>(this Type sourceType, out MethodInfo converter)
+            => sourceType.TryGetExplicitConverterTo(typeof(TOut), out converter);
+
+        public static bool TryGetExplicitConverterTo(this Type sourceType, Type destinationType, out MethodInfo converter)
+        {
+            if (sourceType is null)
+                throw new ArgumentNullException(nameof(sourceType));
+
+            converter = sourceType
+                .GetMethods()
+                .Where(minfo => ExplicitOperatorName.Equals(minfo.Name))
+                .Where(minfo => minfo.IsStatic)
+                .Where(minfo => minfo.IsSpecialName)
+                .Where(minfo =>
+                {
+                    var @params = minfo.GetParameters();
+                    return @params.Length == 1
+                        && @params[0].ParameterType.Equals(sourceType);
+                })
+                .Where(minfo => minfo.ReturnType.Equals(destinationType))
+                .FirstOrDefault();
+
+            return converter != null;
+        }
+
+        public static bool TryGetImplicitConverterTo<TOut>(this Type sourceType, out MethodInfo converter)
+            => sourceType.TryGetImplicitConverterTo(typeof(TOut), out converter);
+
+        public static bool TryGetImplicitConverterTo(this Type sourceType, Type destinationType, out MethodInfo converter)
+        {
+            if (sourceType is null)
+                throw new ArgumentNullException(nameof(sourceType));
+
+            converter = sourceType
+                .GetMethods()
+                .Where(minfo => ImplicitOperatorName.Equals(minfo.Name))
+                .Where(minfo => minfo.IsStatic)
+                .Where(minfo => minfo.IsSpecialName)
+                .Where(minfo =>
+                {
+                    var @params = minfo.GetParameters();
+                    return @params.Length == 1
+                        && @params[0].ParameterType.Equals(sourceType);
+                })
+                .Where(minfo => minfo.ReturnType.Equals(destinationType))
+                .FirstOrDefault();
+
+            return converter != null;
+        }
+
+        public static bool TryGetExplicitConverterFrom<TIn>(this Type destinationType, out MethodInfo converter)
+            => destinationType.TryGetExplicitConverterFrom(typeof(TIn), out converter);
+
+        public static bool TryGetExplicitConverterFrom(this Type destinationType, Type sourceType, out MethodInfo converter)
+        {
+            if (destinationType is null)
+                throw new ArgumentNullException(nameof(destinationType));
+
+            converter = destinationType
+                .GetMethods()
+                .Where(minfo => ExplicitOperatorName.Equals(minfo.Name))
+                .Where(minfo => minfo.IsStatic)
+                .Where(minfo => minfo.IsSpecialName)
+                .Where(minfo =>
+                {
+                    var @params = minfo.GetParameters();
+                    return @params.Length == 1
+                        && @params[0].ParameterType.Equals(sourceType);
+                })
+                .Where(minfo => minfo.ReturnType.Equals(destinationType))
+                .FirstOrDefault();
+
+            return converter != null;
+        }
+
+        public static bool TryGetImplicitConverterFrom<TIn>(this Type destinationType, out MethodInfo converter)
+            => destinationType.TryGetImplicitConverterFrom(typeof(TIn), out converter);
+
+        public static bool TryGetImplicitConverterFrom(this Type destinationType, Type sourceType, out MethodInfo converter)
+        {
+            if (destinationType is null)
+                throw new ArgumentNullException(nameof(destinationType));
+
+            converter = destinationType
+                .GetMethods()
+                .Where(minfo => ImplicitOperatorName.Equals(minfo.Name))
+                .Where(minfo => minfo.IsStatic)
+                .Where(minfo => minfo.IsSpecialName)
+                .Where(minfo =>
+                {
+                    var @params = minfo.GetParameters();
+                    return @params.Length == 1
+                        && @params[0].ParameterType.Equals(sourceType);
+                })
+                .Where(minfo => minfo.ReturnType.Equals(destinationType))
+                .FirstOrDefault();
+
+            return converter != null;
+        }
+        #endregion
+
         #region Misc
 
         public static object DefaultValue(this Type type)
@@ -417,8 +636,6 @@ namespace Axis.Luna.Extensions
 
             return producer.Invoke();
         }
-
-        public static bool IsDefault<T>(this T value) => EqualityComparer<T>.Default.Equals(value, default);
 
         public static bool IsPropertyAccessor(this MethodInfo method)
         => method.DeclaringType.GetProperties().Any(prop => prop.GetGetMethod() == method);

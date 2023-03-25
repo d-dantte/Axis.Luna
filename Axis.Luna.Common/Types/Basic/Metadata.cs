@@ -8,7 +8,7 @@ namespace Axis.Luna.Common.Types.Basic
     /// <summary>
     /// Key value pair formated like css properties: <c>key-1:value1;</c>
     /// </summary>
-    public struct Metadata
+    public readonly struct Metadata
     {
         public string Key { get; }
         public string Value { get; }
@@ -63,17 +63,15 @@ namespace Axis.Luna.Common.Types.Basic
 
         public static Metadata Parse(string @string)
         {
-            if (TryParse(@string, out IResult<Metadata> result))
-                return result.As<IResult<Metadata>.DataResult>().Data;
-
-            else throw result.As<IResult<Metadata>.ErrorResult>().Cause();
+            _ =  TryParse(@string, out IResult<Metadata> result);
+            return result.Resolve();
         }
 
         private static bool TryParse(string @string, out IResult<Metadata> result)
         {
             if (@string == null)
             {
-                result = IResult<Metadata>.Of(new ArgumentNullException(nameof(@string)));
+                result = Result.Of<Metadata>(new ArgumentNullException(nameof(@string)));
                 return false;
             }
 
@@ -84,17 +82,17 @@ namespace Axis.Luna.Common.Types.Basic
 
             if (parts.Length < 1 || parts.Length > 2)
             {
-                result = IResult<Metadata>.Of(new FormatException($"Invalid metadata format: {@string}"));
+                result = Result.Of<Metadata>(new FormatException($"Invalid metadata format: {@string}"));
                 return false;
             }
 
             if (string.IsNullOrWhiteSpace(parts[0]))
             {
-                result = IResult<Metadata>.Of(new FormatException($"metadata key cannot be null or whitespace"));
+                result = Result.Of<Metadata>(new FormatException($"metadata key cannot be null or whitespace"));
                 return false;
             }
 
-            result = IResult<Metadata>.Of(new Metadata(parts[0].Trim(), parts.Length > 1 ? parts[1] : null));
+            result = Result.Of(new Metadata(parts[0].Trim(), parts.Length > 1 ? parts[1] : null));
             return true;
         }
 

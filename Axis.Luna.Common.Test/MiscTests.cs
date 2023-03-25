@@ -4,6 +4,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.Serialization;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -169,6 +170,22 @@ namespace Axis.Luna.Common.Test
                 _ = f.Value;
             }
             catch { }
+        }
+
+        [TestMethod]
+        public void ObjectIDGenerator_Tests()
+        {
+            var idGen = new ObjectIDGenerator();
+
+            var obj = new object();
+            var obj2 = new object();
+
+            var id1 = idGen.GetId(obj, out var added);
+            var id2 = idGen.GetId(obj, out added);
+            var id3 = idGen.GetId(obj2, out added);
+
+            Assert.ThrowsException<ArgumentNullException>(() => idGen.GetId(null, out _));
+
         }
     }
 

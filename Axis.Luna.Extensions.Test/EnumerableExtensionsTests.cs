@@ -60,5 +60,14 @@ namespace Axis.Luna.Extensions.Test
                 .Consume(count => Console.WriteLine("Total combination count: " + count));
 
         }
+
+        [TestMethod]
+        public void BatchTest()
+        {
+            var numbers = Enumerable
+                .Range(0, 100)
+                .Batch(20)
+                .ToArray();
+        }
     }
 }

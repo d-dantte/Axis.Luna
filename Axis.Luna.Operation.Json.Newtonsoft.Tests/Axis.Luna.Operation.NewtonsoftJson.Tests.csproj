@@ -14,9 +14,4 @@
     <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
   </ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\Axis.Luna.Operation.NewtonsoftJson\Axis.Luna.Operation.NewtonsoftJson.csproj" />
-    <ProjectReference Include="..\Axis.Luna.Operation\Axis.Luna.Operation.csproj" />
-  </ItemGroup>
-
 </Project>

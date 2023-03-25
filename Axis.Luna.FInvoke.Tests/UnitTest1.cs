@@ -261,6 +261,24 @@ namespace Axis.Luna.FInvoke.Tests
             Console.WriteLine("\n\n Total Call Count:" + instance.g);
 
         }
+
+        public ABC Newer()
+        {
+            return new ABC();
+        }
+
+        public ABC Newer2(object[] args)
+        {
+            return new ABC((int)args[0], (string)args[1]);
+        }
+    }
+
+    public class ABC
+    {
+        public ABC() { }
+
+        public ABC(int x, string y)
+        { }
     }
 
     public class SampleClass

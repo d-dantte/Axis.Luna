@@ -143,12 +143,16 @@ namespace Axis.Luna.Common.NewtonsoftJson
                 ? errorDataToken.ToObject<BasicStruct>(serializer)
                 : (BasicStruct?)null;
 
+            var exception = new DeserializedException(errorMessage);
+            if (errorData != null)
+                exception.WithErrorData(errorData.Value);
+
             errorResult = new Func<MethodInfo>(GetErrorResultInitializerMethod<int>).Method
                 .GetGenericMethodDefinition()
                 .MakeGenericMethod(resultType)
                 .InvokeFunc()
                 .As<MethodInfo>()
-                .InvokeFunc(new DeserializedException(errorMessage), errorData);
+                .InvokeFunc(exception);
             return true;
         }
 
@@ -224,9 +228,9 @@ namespace Axis.Luna.Common.NewtonsoftJson
 
 
         private static MethodInfo GetErrorResultInitializerMethod<T>()
-            => new Func<Exception, BasicStruct?, IResult<T>>(IResult<T>.Of).Method;
+            => new Func<Exception, IResult<T>>(Result.Of<T>).Method;
 
-        private static MethodInfo GetDataResultInitializerMethod<T>() => new Func<T, IResult<T>>(IResult<T>.Of).Method;
+        private static MethodInfo GetDataResultInitializerMethod<T>() => new Func<T, IResult<T>>(Result.Of<T>).Method;
 
         private static MethodInfo GetToJObjectMethod()
         {

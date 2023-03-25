@@ -111,7 +111,7 @@ namespace Axis.Luna.Common.Test.Types.Basic
             Assert.AreEqual(metadata1.Length, @struct.PropertyMetadataFor(sName).Length);
 
             //replace property with PropertyName instance; metadata is changed
-            @struct.Value[pName2] = "Big Man";
+            @struct.PropertyMap[pName2] = "Big Man";
             Assert.AreNotEqual(metadata1.Length, @struct.PropertyMetadataFor(sName).Length);
             Assert.AreEqual(metadata2.Length, @struct.PropertyMetadataFor(sName).Length);
             Assert.IsTrue(metadata2.SequenceEqual(@struct.PropertyMetadataFor(sName)));
@@ -124,8 +124,8 @@ namespace Axis.Luna.Common.Test.Types.Basic
             Assert.IsTrue(copy1.EquivalentTo(copy2));
             Assert.IsTrue(copy1.ExactyCopyOf(copy2));
 
-            copy1.Value["name"] = "daniel";
-            copy2.Value["name"] = "daniel";
+            copy1.PropertyMap["name"] = "daniel";
+            copy2.PropertyMap["name"] = "daniel";
 
             Assert.AreEqual(copy1, copy2);
             Assert.IsTrue(copy1.EquivalentTo(copy2));

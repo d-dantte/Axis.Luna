@@ -7,7 +7,7 @@ namespace Axis.Luna.Common.Types.Basic
     /// <summary>
     /// Represents an immutable list.
     /// </summary>
-    public readonly struct BasicList : IBasicValue
+    public readonly struct BasicList : IBasicValue, IValueProvider<IBasicValue[]>
     {
         private readonly Metadata[] _metadata;
         private readonly IBasicValue[] _values;

@@ -141,4 +141,13 @@ namespace Axis.Luna.Common.Types.Basic
         Metadata[] Metadata { get; }
         #endregion
     }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <typeparam name="TValue"></typeparam>
+    public interface IValueProvider<TValue>
+    {
+        TValue Value { get; }
+    }
 }

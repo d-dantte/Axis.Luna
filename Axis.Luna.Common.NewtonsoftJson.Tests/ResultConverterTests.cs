@@ -40,12 +40,12 @@ namespace Axis.Luna.Common.NewtonsoftJson.Tests
 
             var data = DateTimeOffset.Now;
             var exception = new Exception();
-            var result1 = IResult<DateTimeOffset>.Of(data);
-            var result2 = IResult<DateTimeOffset>.Of(exception);
-            var result3 = IResult<DateTimeOffset>.Of(exception, new Types.Basic.BasicStruct.Initializer
+            var result1 = Result.Of<DateTimeOffset>(data);
+            var result2 = Result.Of<DateTimeOffset>(exception);
+            var result3 = Result.Of<DateTimeOffset>(exception.WithErrorData(new Types.Basic.BasicStruct.Initializer
             {
                 ["Prop1"] = "bleh"
-            });
+            }));
 
             var json1 = JsonConvert.SerializeObject(result1, settings);
             var jobject = JObject.Parse(json1);
@@ -79,13 +79,15 @@ namespace Axis.Luna.Common.NewtonsoftJson.Tests
             };
 
             var data = DateTimeOffset.Now;
-            var exception = new Exception();
-            var result1 = IResult<DateTimeOffset>.Of(data);
-            var result2 = IResult<DateTimeOffset>.Of(exception);
-            var result3 = IResult<DateTimeOffset>.Of(exception, new Types.Basic.BasicStruct.Initializer
-            {
-                ["Prop1"] = "bleh"
-            });
+            var exception1 = new Exception();
+            var exception2 = new Exception()
+                .WithErrorData(new Types.Basic.BasicStruct.Initializer
+                {
+                    ["Prop1"] = "bleh"
+                });
+            var result1 = Result.Of<DateTimeOffset>(data);
+            var result2 = Result.Of<DateTimeOffset>(exception1);
+            var result3 = Result.Of<DateTimeOffset>(exception2);
 
             var json1 = JsonConvert.SerializeObject(result1, settings);
             var json2 = JsonConvert.SerializeObject(result2, settings);
@@ -98,34 +100,18 @@ namespace Axis.Luna.Common.NewtonsoftJson.Tests
             Assert.AreEqual(result1, deserialied1);
 
             Assert.AreEqual(
-                result2
-                    .As<IResult<DateTimeOffset>.ErrorResult>()
-                    .Message,
-                deserialied2
-                    .As<IResult<DateTimeOffset>.ErrorResult>()
-                    .Message);
+                result2.AsError().Message,
+                deserialied2.AsError().Message);
             Assert.AreEqual(
-                result2
-                    .As<IResult<DateTimeOffset>.ErrorResult>()
-                    .ErrorData,
-                deserialied2
-                    .As<IResult<DateTimeOffset>.ErrorResult>()
-                    .ErrorData);
+                result2.AsError().ErrorData,
+                deserialied2.AsError().ErrorData);
 
             Assert.AreEqual(
-                result3
-                    .As<IResult<DateTimeOffset>.ErrorResult>()
-                    .Message,
-                deserialied3
-                    .As<IResult<DateTimeOffset>.ErrorResult>()
-                    .Message);
+                result3.AsError().Message,
+                deserialied3.AsError().Message);
             Assert.AreEqual(
-                result3
-                    .As<IResult<DateTimeOffset>.ErrorResult>()
-                    .ErrorData,
-                deserialied3
-                    .As<IResult<DateTimeOffset>.ErrorResult>()
-                    .ErrorData);
+                result3.AsError().ErrorData,
+                deserialied3.AsError().ErrorData);
         }
     }
 }

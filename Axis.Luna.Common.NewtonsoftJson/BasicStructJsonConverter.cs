@@ -139,7 +139,7 @@ namespace Axis.Luna.Common.NewtonsoftJson
 
         private JObject ToJObject(BasicStruct @struct, string path, Dictionary<string, HashSet<JsonMetadata>> metadata)
         {
-            var jobject = @struct.Properties.Aggregate(new JObject(), (jobj, property) =>
+            var jobject = @struct.Value.Aggregate(new JObject(), (jobj, property) =>
             {
                 var newPath = path.Equals($"{MapAccessor}")
                     ? $"{path}{property.Name.Name}"

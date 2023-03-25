@@ -1,7 +1,8 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
-using System.Security.Cryptography;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -11,11 +12,50 @@ namespace Axis.Luna.Extensions
     //[DebuggerStepThrough]
     public static class Common
     {
-        public static bool IsBoxed<T>(this T value)
+        private static readonly ConcurrentDictionary<MethodInfo, Delegate> Converters = new ConcurrentDictionary<MethodInfo, Delegate>();
+        private static readonly ConcurrentDictionary<(Type, Type), Delegate> ConverterProxies = new ConcurrentDictionary<(Type, Type), Delegate>();
+        private static readonly MethodInfo ConverterProxyMethod = typeof(Common)
+            .GetMethods(BindingFlags.NonPublic | BindingFlags.Static)
+            .Where(minfo => nameof(Convert).Equals(minfo.Name))
+            .Where(minfo => minfo.IsGenericMethodDefinition)
+            .Where(minfo => minfo.GetGenericArguments().Length == 2)
+            .First();
+
+
+        public static bool Is<T>(this object value) => value is T;
+
+        public static bool Is<TIn, TOut>(this TIn @in, out TOut @out)
         {
-            return (typeof(T).IsInterface || typeof(T) == typeof(object)) 
-                && value != null
-                && value.GetType().IsValueType;
+            if (@in is TOut _out)
+            {
+                @out = _out;
+                return true;
+            }
+
+            @out = default;
+            return false;
+        }
+
+        public static bool IsNot<T>(this object value) => value is not T;
+
+        public static bool IsNot<TIn, TOut>(this TIn @in, out TOut @out)
+        {
+            if (@in is TOut _out)
+            {
+                @out = _out;
+                return false;
+            }
+
+            @out = default;
+            return true;
+        }
+
+        public static bool IsBoxed(this object value)
+        {
+            if (value == null)
+                return false;
+
+            else return value.GetType().IsValueType;
         }
 
         public static bool IsDefault<T>(this T value) => EqualityComparer<T>.Default.Equals(default, value);
@@ -103,41 +143,103 @@ namespace Axis.Luna.Extensions
 
         public static KeyValuePair<K, object> ObjectPair<K>(this K key, object obj) => new KeyValuePair<K, object>(key, obj);
 
-        //[Obsolete]
-        //public static T As<T>(this object value)
-        //where T: class
-        //{
-        //    try
-        //    {
-        //        if (value is IConvertible 
-        //            && typeof(IConvertible).IsAssignableFrom(typeof(T)))
-        //            return (T)Convert.ChangeType(value, typeof(T));
+        public static T As<T>(this object value)
+        {
+            _ = value.TryCast<T>(out var result);
+            return result;
+        }
 
-        //        else return (T)value;
-        //    }
-        //    catch
-        //    {
-        //        return default;
-        //    }
-        //}
+        public static bool TryCast<T>(this object value, out T result)
+        {
+            var valueType = value?.GetType();
+            var returnType = typeof(T);
 
-        //[Obsolete]
-        //public static T As<S, T>(this S value)
-        //{
-        //    try
-        //    {
-        //        if (value is IConvertible 
-        //            && typeof(IConvertible).IsAssignableFrom(typeof(T)))
-        //            return (T)Convert.ChangeType(value, typeof(T));
+            if (value is null)
+            {
+                result = default;
+                return false;
+            }
 
-        //        else 
-        //            return (T)(object)value;
-        //    }
-        //    catch
-        //    {
-        //        return default;
-        //    }
-        //}
+            // value type is return type
+            if(returnType == valueType)
+            {
+                result = (T)value;
+                return true;
+            }
+
+            // value implements the return interface
+            if (returnType.IsInterface && valueType.Implements(returnType))
+            {
+                result = (T)value;
+                return true;
+            }
+
+            // value is a subclass of the return class
+            if (returnType.IsClass && valueType.Extends(returnType))
+            {
+                result = (T)value;
+                return true;
+            }
+
+            // convertible
+            if (value is IConvertible && returnType.Implements(typeof(IConvertible)))
+            {
+                result = (T)(value as IConvertible).ToType(returnType, null);
+                return true;
+            }
+
+            // explicit conversion to
+            if (valueType.TryGetExplicitConverterTo<T>(out var converterMethod))
+            {
+                result = value.Convert<T>(converterMethod);
+                return true;
+            }
+
+            // explicit conversion from
+            if (returnType.TryGetExplicitConverterFrom(valueType, out converterMethod))
+            {
+                result = value.Convert<T>(converterMethod);
+                return true;
+            }
+
+            // implicit conversion to
+            if (valueType.TryGetImplicitConverterTo<T>(out converterMethod))
+            {
+                result = value.Convert<T>(converterMethod);
+                return true;
+            }
+
+            // implicit conversion from
+            if (returnType.TryGetImplicitConverterFrom(valueType, out converterMethod))
+            {
+                result = value.Convert<T>(converterMethod);
+                return true;
+            }
+
+            result = default;
+            return false;
+        }
+
+        private static TOut Convert<TOut>(this object value, MethodInfo method)
+        {
+            var inType = value.GetType();
+            var funcType = typeof(Func<,>).MakeGenericType(inType, typeof(TOut));
+            var converterDelegate = Converters.GetOrAdd(method, m => Delegate.CreateDelegate(funcType, m));
+
+            var converterProxyFunc = (Func<Delegate, object, TOut>)ConverterProxies.GetOrAdd((inType, typeof(TOut)), _ =>
+            {
+                var proxyFunctype = typeof(Func<Delegate, object, TOut>);
+                var proxyMethod = ConverterProxyMethod.MakeGenericMethod(inType, typeof(TOut));
+                return Delegate.CreateDelegate(proxyFunctype, proxyMethod);
+            });
+
+            return converterProxyFunc.Invoke(converterDelegate, value);
+        }
+
+        private static TOut Convert<TIn, TOut>(this Delegate del, object value)
+        {
+            return ((Func<TIn, TOut>)del).Invoke((TIn)value);
+        }
 
         public static dynamic AsDynamic(this object value) => value;
 
@@ -259,7 +361,8 @@ namespace Axis.Luna.Extensions
         public static string UnwrapFrom(this string @string, string left, string right = null)
         {
             if (@string.IsWrappedIn(left, right))
-                return @string.TrimStart(left).TrimEnd(right ?? left);
+                return @string
+                    [left.Length..^(right ?? left).Length]; //remove the first left.length, and the last (left|right).length, characters
 
             else return @string;
         }

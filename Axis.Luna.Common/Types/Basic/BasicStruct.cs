@@ -6,7 +6,7 @@ using System.Linq;
 
 namespace Axis.Luna.Common.Types.Basic
 {
-    public struct BasicStruct : IBasicValue
+    public struct BasicStruct : IBasicValue, IValueProvider<BasicStruct.Property[]>
     {
         private readonly Metadata[] _metadata;
         private readonly Dictionary<PropertyName, IBasicValue> _properties;
@@ -28,12 +28,12 @@ namespace Axis.Luna.Common.Types.Basic
             .ToArray()
             ?? Array.Empty<PropertyName>();
 
-        public Property[] Properties => _properties
+        public Property[] Value => _properties
             ?.Select(p => new Property(p.Key, p.Value))
             .ToArray()
             ?? Array.Empty<Property>();
 
-        public ValueSetter Value => new ValueSetter(this);
+        public ValueSetter PropertyMap => new ValueSetter(this);
         #endregion
 
         #region Indexer
@@ -318,7 +318,7 @@ namespace Axis.Luna.Common.Types.Basic
             public override int GetHashCode()
                 => HashCode.Combine(
                     Name,
-                    Luna.Extensions.Common.ValueHash(_metadata.HardCast<Metadata, object>()));
+                    Luna.Extensions.Common.ValueHash(_metadata?.HardCast<Metadata, object>() ?? Enumerable.Empty<object>()));
 
             public override bool Equals(object obj)
             {
@@ -340,10 +340,8 @@ namespace Axis.Luna.Common.Types.Basic
 
             public static PropertyName Parse(string @string)
             {
-                if (TryParse(@string, out IResult<PropertyName> result))
-                    return result.As<IResult<PropertyName>.DataResult>().Data;
-
-                else throw result.As<IResult<PropertyName>.ErrorResult>().Cause();
+                _ = TryParse(@string, out IResult<PropertyName> result);
+                return result.Resolve();
             }
 
             public static bool TryParse(string @string, out PropertyName value)
@@ -362,7 +360,7 @@ namespace Axis.Luna.Common.Types.Basic
             {
                 if (string.IsNullOrWhiteSpace(@string))
                 {
-                    result = IResult<PropertyName>.Of(new ArgumentException($"Invalid {nameof(@string)}"));
+                    result = Result.Of<PropertyName>(new ArgumentException($"Invalid {nameof(@string)}"));
                     return false;
                 }
 
@@ -373,7 +371,7 @@ namespace Axis.Luna.Common.Types.Basic
                     var closingBracketIndex = @string.IndexOf(']');
                     if (closingBracketIndex < 0)
                     {
-                        result = IResult<PropertyName>.Of(new FormatException($"Invalid {nameof(@string)}. Expected ']'"));
+                        result = Result.Of<PropertyName>(new FormatException($"Invalid {nameof(@string)}. Expected ']'"));
                         return false;
                     }
 
@@ -392,11 +390,11 @@ namespace Axis.Luna.Common.Types.Basic
                 propertyName ??= @string.Trim();
                 if (string.IsNullOrWhiteSpace(propertyName))
                 {
-                    result = IResult<PropertyName>.Of(new FormatException($"Invalid {nameof(@string)}. Expected a property name."));
+                    result = Result.Of<PropertyName>(new FormatException($"Invalid {nameof(@string)}. Expected a property name."));
                     return false;
                 }
 
-                result = IResult<PropertyName>.Of(new PropertyName(propertyName, metadatalist));
+                result = Result.Of(new PropertyName(propertyName, metadatalist));
                 return true;
             }
 
