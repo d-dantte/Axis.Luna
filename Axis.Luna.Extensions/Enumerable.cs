@@ -9,6 +9,26 @@ namespace Axis.Luna.Extensions
     public static class EnumerableExtensions
     {
         /// <summary>
+        /// Stuffs the given enumerable with the given value
+        /// </summary>
+        /// <typeparam name="TItem"></typeparam>
+        /// <param name="items"></param>
+        /// <param name="joiner"></param>
+        /// <returns></returns>
+        public static IEnumerable<TItem> JoinUsing<TItem>(this IEnumerable<TItem> items, TItem joiner)
+        {
+            var started = false;
+            foreach (var item in items)
+            {
+                if (started)
+                    yield return joiner;
+
+                yield return item;
+                started = true;
+            }
+        }
+
+        /// <summary>
         /// 
         /// </summary>
         /// <typeparam name="T"></typeparam>
