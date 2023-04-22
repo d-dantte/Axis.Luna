@@ -1,12 +1,11 @@
-﻿using System;
-
+﻿
 namespace Axis.Luna.Common
 {
     /// <summary>
     /// 
     /// </summary>
     /// <typeparam name="TSelf"></typeparam>
-    public interface IParsableResult<TSelf> where TSelf : IParsable<TSelf>
+    public interface IParsableResult<TSelf> where TSelf : IParsableResult<TSelf>
     {
         /// <summary>
         /// 

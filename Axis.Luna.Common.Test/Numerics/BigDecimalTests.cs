@@ -5,16 +5,14 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Axis.Luna.Common.Test
+namespace Axis.Luna.Common.Test.Numerics
 {
     [TestClass]
     public class BigDecimalTests
     {
         [TestMethod]
-        public void DecimalTest() 
+        public void DecimalTest()
         {
-            var x = DoubleConverter.Deconstruct(3.001d);
-            Console.WriteLine(x);
         }
     }
 }

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Cryptography;
@@ -8,6 +9,24 @@ namespace Axis.Luna.Extensions
 {
     public static class EnumerableExtensions
     {
+        /// <summary>
+        /// Casts the given <see cref="IEnumerable"/> items into the supplied type
+        /// </summary>
+        /// <typeparam name="TOut">The type to be casted into</typeparam>
+        /// <param name="items">the items</param>
+        /// <returns>An enumerable with items casted to the supplied <typeparamref name="TOut"/></returns>
+        /// <exception cref="ArgumentNullException"></exception>
+        public static IEnumerable<TOut> SelectAs<TOut>(this IEnumerable items)
+        {
+            if (items is null)
+                throw new ArgumentNullException(nameof(items));
+
+            foreach (var item in items)
+            {
+                yield return (TOut)item;
+            }
+        }
+
         /// <summary>
         /// Stuffs the given enumerable with the given value
         /// </summary>
@@ -253,20 +272,24 @@ namespace Axis.Luna.Extensions
         /// <para>Note that if the position is beyond the bounds of the enumerable, the value will never be added</para>
         /// </summary>
         /// <typeparam name="V"></typeparam>
-        /// <param name="enumerable"></param>
+        /// <param name="items"></param>
         /// <param name="position"></param>
         /// <param name="value"></param>
         /// <returns></returns>
-        public static IEnumerable<V> InsertAt<V>(this IEnumerable<V> enumerable, int position, V value)
+        public static IEnumerable<V> InsertAt<V>(this IEnumerable<V> items, int position, V value)
         {
             position.ThrowIf(p => p < 0, new ArgumentException($"Invalid position: {position}"));
 
             int pos = 0;
-            foreach (var v in enumerable)
+            foreach (var v in items)
             {
                 if (pos++ == position) yield return value;
                 yield return v;
             }
+
+            // items was empty
+            if(pos == 0)
+                yield return value;
         }
         
         public static IEnumerable<V> WithEach<V>(this IEnumerable<V> enumerable, Action<V> action)

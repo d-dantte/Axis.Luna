@@ -106,10 +106,18 @@ namespace Axis.Luna.Common.Numerics
 
         public BigDecimal Negate() => new BigDecimal(BigInteger.Negate(_unscaledValue), _scale);
 
-        public static BigDecimal BigDivision(BigDecimal numerator, BigDecimal denominator)
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="numerator"></param>
+        /// <param name="denominator"></param>
+        /// <param name="bitPrecision"></param>
+        /// <returns></returns>
+        public static BigDecimal LongDivision(BigDecimal numerator, BigDecimal denominator, ushort bitPrecision = 128)
         {
-            var (nbaanced, dbalanced) = Balance(numerator, denominator);
-            var result = BigInteger.DivRem(balancedLeft, balancedRight);
+            var (nbalanced, dbalanced) = Balance(numerator, denominator);
+            var calc = new LongDivisionMechine(nbalanced, dbalanced);
+            return calc.Divide(bitPrecision);
         }
 
         #region IComparible
@@ -247,7 +255,7 @@ namespace Axis.Luna.Common.Numerics
             // Can the value can be represented as a standard decimal value?
             var fraction = balancedRight.GetBitLength() <= 96
                 ? new BigDecimal(((decimal)result.Remainder) / ((decimal)balancedRight))
-                : BigDivision(result.Remainder, balancedRight);
+                : LongDivision(result.Remainder, balancedRight);
 
             return result.Quotient + fraction;
         }
@@ -259,72 +267,69 @@ namespace Axis.Luna.Common.Numerics
             return new BigDecimal(remainder, Math.Max(left._scale, right._scale));
         }
 
-        public static BigDecimal IBitwiseOperators<BigDecimal, BigDecimal, BigDecimal>.operator &(BigDecimal left, BigDecimal right)
+        public static BigDecimal operator &(BigDecimal left, BigDecimal right)
         {
             throw new NotImplementedException();
         }
 
-        public static BigDecimal IBitwiseOperators<BigDecimal, BigDecimal, BigDecimal>.operator |(BigDecimal left, BigDecimal right)
+        public static BigDecimal operator |(BigDecimal left, BigDecimal right)
         {
             throw new NotImplementedException();
         }
 
-        public static BigDecimal IBitwiseOperators<BigDecimal, BigDecimal, BigDecimal>.operator ^(BigDecimal left, BigDecimal right)
+        public static BigDecimal operator ^(BigDecimal left, BigDecimal right)
         {
             throw new NotImplementedException();
         }
 
-        public static BigDecimal IShiftOperators<BigDecimal, int, BigDecimal>.operator <<(BigDecimal value, int shiftAmount)
+        public static BigDecimal operator <<(BigDecimal value, int shiftAmount)
         {
             throw new NotImplementedException();
         }
 
-        public static BigDecimal IShiftOperators<BigDecimal, int, BigDecimal>.operator >>(BigDecimal value, int shiftAmount)
+        public static BigDecimal operator >>(BigDecimal value, int shiftAmount)
         {
             throw new NotImplementedException();
         }
 
-        public static bool IEqualityOperators<BigDecimal, BigDecimal, bool>.operator ==(BigDecimal left, BigDecimal right)
+        public static bool operator ==(BigDecimal left, BigDecimal right)
         {
             throw new NotImplementedException();
         }
 
-        public static bool IEqualityOperators<BigDecimal, BigDecimal, bool>.operator !=(BigDecimal left, BigDecimal right)
+        public static bool operator !=(BigDecimal left, BigDecimal right)
         {
             throw new NotImplementedException();
         }
 
-        public static bool IComparisonOperators<BigDecimal, BigDecimal, bool>.operator <(BigDecimal left, BigDecimal right)
+        public static bool operator <(BigDecimal left, BigDecimal right)
         {
             throw new NotImplementedException();
         }
 
-        public static bool IComparisonOperators<BigDecimal, BigDecimal, bool>.operator >(BigDecimal left, BigDecimal right)
+        public static bool operator >(BigDecimal left, BigDecimal right)
         {
             throw new NotImplementedException();
         }
 
-        public static bool IComparisonOperators<BigDecimal, BigDecimal, bool>.operator <=(BigDecimal left, BigDecimal right)
+        public static bool operator <=(BigDecimal left, BigDecimal right)
         {
             throw new NotImplementedException();
         }
 
-        public static bool IComparisonOperators<BigDecimal, BigDecimal, bool>.operator >=(BigDecimal left, BigDecimal right)
+        public static bool operator >=(BigDecimal left, BigDecimal right)
         {
             throw new NotImplementedException();
         }
 
-        public static BigDecimal IShiftOperators<BigDecimal, int, BigDecimal>.operator >>>(BigDecimal value, int shiftAmount)
+        public static BigDecimal operator >>>(BigDecimal value, int shiftAmount)
         {
             throw new NotImplementedException();
         }
         #endregion
 
         #region Conversion Operators
-        public static implicit operator BigDecimal(BigInteger @int)
-        {
-
-        }
+        public static implicit operator BigDecimal(BigInteger @int) => new BigDecimal(@int);
         #endregion
 
         #region Helpers

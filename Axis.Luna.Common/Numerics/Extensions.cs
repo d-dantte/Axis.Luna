@@ -45,12 +45,34 @@ namespace Axis.Luna.Common.Numerics
             return (mantissa, scale);
         }
 
-        internal static BigInteger InsertBits(this BigInteger @this, byte[] bytes)
-        {
-            if (bytes is null)
-                throw new ArgumentNullException(nameof(bytes));
 
-            return bytes
+        internal static byte[] ToBytes(this BitArray bitArray)
+        {
+            var quotient = Math.DivRem(bitArray.Length, 8, out var rem);
+            var count = rem > 0 ? quotient + 1 : quotient;
+
+            return Enumerable
+                .Range(0, count)
+                .Select(index => bitArray.ToByte(index))
+                .ToArray();
+        }
+
+        internal static byte ToByte(this BitArray bitArray, int byteIndex)
+        {
+            var bitOffset = byteIndex * 8;
+            byte @byte = 0;
+
+            for (int index = 0; index < 8; index++)
+            {
+                var currentOffset = bitOffset + index;
+                if (currentOffset < bitArray.Length)
+                {
+                    if (bitArray[currentOffset])
+                        @byte |= ByteMasks[index];
+                }
+                else break;
+            }
+            return @byte;
         }
 
         /// <summary>

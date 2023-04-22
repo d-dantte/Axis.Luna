@@ -1,5 +1,6 @@
 ﻿using Axis.Luna.Extensions;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
@@ -8,8 +9,9 @@ namespace Axis.Luna.Common.Numerics
 {
     internal class LongDivisionMechine
     {
-        private readonly List<bool?> quotientBits = new List<bool>();
-        private BigInteger? dividend = null;
+        private const decimal DecimalDigitRatio = 0.30102999566398114m;
+        private readonly List<bool> fractionBits = new List<bool>();
+        private BigInteger dividend = default;
 
         /// <summary>
         /// 
@@ -27,41 +29,49 @@ namespace Axis.Luna.Common.Numerics
             Denominator = denominator;
 
             if (Denominator == 0)
-                throw new DivideByZeroException();
+                throw new ArgumentException($"{nameof(denominator)} cannot be 0");
         }
 
         public BigDecimal Divide(ushort bitPrecision = 128)
         {
-            var (remainder, quotient) = BigInteger.DivRem(Numerator, Denominator);
+            dividend = default;
+            var (quotient, remainder) = BigInteger.DivRem(Numerator, Denominator);
 
-            quotient
-                .ToByteArray()
-                .ToBitStream(true)
-                .Select(bit => (bool?)bit)
-                .Consume(quotientBits.AddRange);
+            if (remainder == 0)
+                return new BigDecimal(quotient);
 
-            // numerator < denominator. Include a null to indicate the fractional point.
-            if (quotientBits.Count == 0)
-                quotientBits.Add(null);
-
-            do
+            while (remainder != 0 && fractionBits.Count < bitPrecision)
             {
                 Load(remainder);
                 remainder = SubtractAndPush();
             }
-            while (remainder != 0 && quotientBits.Count < bitPrecision);
 
             // If fractional points exist, multiply by 10 for as many precisions are needed (to shift the point to the right),
             // then create and return the decimal.
+            var base2Scale = fractionBits.Count;
+            var normalizedFraction = fractionBits
+                // remove the initial zeros after the fractional point
+                .SkipWhile(bit => !bit)
+                .Reverse()
+                .ToArray()
+                .ApplyTo(bits => new BitArray(bits))
+                .ToBytes()
+                .ApplyTo(bytes => new BigInteger(bytes));
+
+            var decimalPrecision = (int)Math.Ceiling(bitPrecision * DecimalDigitRatio);
+            var normalizedQuotient = quotient * BigInteger.Pow(10, decimalPrecision);
+            normalizedFraction *= BigInteger.Pow(10, decimalPrecision);
+            normalizedFraction >>= base2Scale;
+
+            return new BigDecimal(
+                normalizedQuotient + normalizedFraction,
+                decimalPrecision);
         }
 
         private void Load(BigInteger remainder)
         {
-            // first time
-            var isFirstLoading = dividend is null;
-
             dividend = remainder;
-            var shifts = 0;
+            var shifts = -1;
             while (dividend < Denominator)
             {
                 dividend <<= 1;
@@ -69,9 +79,9 @@ namespace Axis.Luna.Common.Numerics
             }
 
             Enumerable
-                .Range(0, shifts - (isFirstLoading ? 0 : 1))
-                .Select(index => (bool?)false)
-                .Consume(quotientBits.AddRange);
+                .Range(0, shifts)
+                .Select(index => false)
+                .Consume(fractionBits.AddRange);
         }
 
         private BigInteger SubtractAndPush()
@@ -82,9 +92,9 @@ namespace Axis.Luna.Common.Numerics
                 throw new ArithmeticException($"Fatal error: dividend ({dividend}) is less than the denominator ({Denominator}).");
 
             if (result > 0)
-                quotientBits.Add(true);
+                fractionBits.Add(true);
 
-            return result ?? throw new InvalidOperationException($"Null dividend encountered");
+            return result;
         }
     }
 }
