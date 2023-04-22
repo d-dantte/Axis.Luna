@@ -45,7 +45,7 @@ namespace Axis.Luna.Common
         /// <summary>
         /// Represents a faulted result, and contains the exception
         /// </summary>
-        public struct ErrorResult : IResult<TData>
+        public readonly struct ErrorResult : IResult<TData>
         {
             private readonly Exception _cause;
 
@@ -57,7 +57,7 @@ namespace Axis.Luna.Common
             /// <summary>
             /// The optional error data 
             /// </summary>
-            public Types.Basic.BasicStruct? ErrorData => _cause?.ErrorResultData();
+            public object ErrorData => _cause.ErrorResultData();
 
             internal ErrorResult(Exception exception)
             {
@@ -130,7 +130,7 @@ namespace Axis.Luna.Common
         /// <summary>
         /// Represents data.
         /// </summary>
-        public struct DataResult : IResult<TData>
+        public readonly struct DataResult : IResult<TData>
         {
             /// <summary>
             /// The result data
@@ -443,7 +443,7 @@ namespace Axis.Luna.Common
 
         public static TException WithErrorData<TException>(this
             TException exception,
-            Types.Basic.BasicStruct data)
+            object data)
             where TException : Exception
         {
             if (exception is null)
@@ -453,14 +453,10 @@ namespace Axis.Luna.Common
             return exception;
         }
 
-        public static Types.Basic.BasicStruct? ErrorResultData<TException>(this
+        public static object ErrorResultData<TException>(this
             TException exception)
             where TException : Exception
-        {
-            return exception.Data.TryGetValue(ExceptionDataKey, out var data)
-                ? (Types.Basic.BasicStruct?)data
-                : null;
-        }
+            => exception.Data.TryGetValue(ExceptionDataKey, out var data) ? data : null;
 
         /// <summary>
         /// Folds the list of results into a result of list of values. All erros encountered are grouped into
