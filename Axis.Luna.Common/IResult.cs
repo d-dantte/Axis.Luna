@@ -45,7 +45,7 @@ namespace Axis.Luna.Common
         /// <summary>
         /// Represents a faulted result, and contains the exception
         /// </summary>
-        public struct ErrorResult : IResult<TData>
+        public readonly struct ErrorResult : IResult<TData>
         {
             private readonly Exception _cause;
 
@@ -130,7 +130,7 @@ namespace Axis.Luna.Common
         /// <summary>
         /// Represents data.
         /// </summary>
-        public struct DataResult : IResult<TData>
+        public readonly struct DataResult : IResult<TData>
         {
             /// <summary>
             /// The result data
