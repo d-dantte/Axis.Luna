@@ -1,5 +1,4 @@
-﻿using Axis.Luna.Common.Types.Basic;
-using Axis.Luna.Extensions;
+﻿using Axis.Luna.Extensions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 
@@ -32,7 +31,7 @@ namespace Axis.Luna.Common.Test
             var result = new IResult<int>.ErrorResult(new System.Exception());
             Assert.IsNotNull(result);
 
-            result = new IResult<int>.ErrorResult(new Exception().WithErrorData(new BasicStruct.Initializer { ["stuff"] = 54L }));
+            result = new IResult<int>.ErrorResult(new Exception().WithErrorData(new ErrorData { Stuff = 54L }));
             Assert.IsNotNull(result);
         }
 
@@ -64,11 +63,11 @@ namespace Axis.Luna.Common.Test
         public void ErrorData_ReturnsErrorDataInstance()
         {
             var exception = new Exception("some exception");
-            BasicStruct errorData = new BasicStruct.Initializer
+            var errorData = new ErrorData
             {
-                ["prop1"] = "something",
-                ["prop2"] = Guid.NewGuid(),
-                ["prop3"] = 5.4m
+                Name = "something",
+                Id = Guid.NewGuid(),
+                Something = 5.4m
             };
             var result = new IResult<int>.ErrorResult(exception.WithErrorData(errorData));
 
@@ -81,11 +80,11 @@ namespace Axis.Luna.Common.Test
         [TestMethod]
         public void Equality_Test()
         {
-            BasicStruct errorData = new BasicStruct.Initializer
+            var errorData = new ErrorData
             {
-                ["prop1"] = "something",
-                ["prop2"] = Guid.NewGuid(),
-                ["prop3"] = 5.4m
+                Name = "something",
+                Id = Guid.NewGuid(),
+                Something = 5.4m
             };
             var result = new IResult<int>.ErrorResult(new Exception("some exception").WithErrorData(errorData));
             var result2 = new IResult<int>.ErrorResult(new Exception("some exception"));
@@ -208,5 +207,13 @@ namespace Axis.Luna.Common.Test
             Assert.AreEqual("blank", outputResult1.As<IResult<string>.DataResult>().Data);
         }
         #endregion
+    }
+
+    public class ErrorData
+    {
+        public long Stuff { get; set; }
+        public string Name { get; set; }
+        public Guid Id { get; set; }
+        public decimal Something { get; set; }
     }
 }
