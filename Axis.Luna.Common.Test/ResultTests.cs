@@ -1,5 +1,6 @@
 ﻿using Axis.Luna.Extensions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Newtonsoft.Json;
 using System;
 
 namespace Axis.Luna.Common.Test
@@ -205,6 +206,22 @@ namespace Axis.Luna.Common.Test
             var outputResult1 = inputResult.MapError((e) => "blank");
             Assert.IsNotNull(outputResult1);
             Assert.AreEqual("blank", outputResult1.As<IResult<string>.DataResult>().Data);
+        }
+        #endregion
+
+        #region Json
+        [TestMethod]
+        public void ErrorResult_ToJson()
+        {
+            var result = Result.Of<string>(new Exception("Issues occured").WithErrorData(new ErrorData
+            {
+                Stuff = 54,
+                Name = "me",
+                Id = Guid.NewGuid(),
+                Something = 23m
+            }));
+
+            var json = JsonConvert.SerializeObject(result);
         }
         #endregion
     }
