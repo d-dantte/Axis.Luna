@@ -279,5 +279,19 @@ namespace Axis.Luna.Extensions
 
             return x;
         }
+
+        public static TException CaptureStackTrace<TException>(this TException exception)
+        where TException : Exception
+        {
+            if (exception is null)
+                throw new ArgumentNullException(nameof(exception));
+
+            if (exception.StackTrace is not null)
+                return exception;
+
+            try { throw exception; } catch { }
+
+            return exception;
+        }
     }
 }

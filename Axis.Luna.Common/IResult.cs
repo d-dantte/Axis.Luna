@@ -61,7 +61,7 @@ namespace Axis.Luna.Common
 
             internal ErrorResult(Exception exception)
             {
-                _cause = exception ?? throw new ArgumentNullException(nameof(exception));
+                _cause = exception?.CaptureStackTrace() ?? throw new ArgumentNullException(nameof(exception));
             }
 
             public IResult<TOut> Map<TOut>(Func<TData, TOut> mapper)
