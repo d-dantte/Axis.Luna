@@ -112,5 +112,7 @@
 
 2023/05/05 ==================================================================================
 -	Add 2 methods to the StateMachine class
-	1.	ActAsync: this returns a task that resolves when the state machine concludes (faults, or gets to the end state).
+	1. ActAsync: this returns a task that resolves when the state machine concludes (faults, or gets to the end state).
+	   This will require support for async state execution, which isn't trivial.
 	2. Act: synchronious version of the ActAsync method above.
+	   [Done]

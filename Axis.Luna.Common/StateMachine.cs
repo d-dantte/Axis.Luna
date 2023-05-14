@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace Axis.Luna.Common
 {
@@ -158,6 +159,16 @@ namespace Axis.Luna.Common
                 _ => throw new InvalidOperationException($"Invalid machine processing state: {_machineState}")
             };
         }
+
+
+        public TData Act()
+        {
+            while (TryAct()) ;
+
+            return StateData;
+        }
+
+        //public Task<TData> ActAsync() => Task.Run(Act);
 
         private StateMachine<TData> Transition()
         {
