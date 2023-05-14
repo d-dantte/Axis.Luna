@@ -69,5 +69,19 @@ namespace Axis.Luna.Extensions.Test
                 .Batch(20)
                 .ToArray();
         }
+
+        [TestMethod]
+        public void InsertAt_Tests()
+        {
+            var enm = new[] { 1, 2, 3, 4, 5 };
+
+            var result = enm.InsertAt(0, 50).ToArray();
+            Assert.AreEqual(6, result.Length);
+            Assert.AreEqual(50, result[0]);
+
+            result = enm.InsertAt(5, 50).ToArray();
+            Assert.AreEqual(6, result.Length);
+            Assert.AreEqual(50, result[5]);
+        }
     }
 }

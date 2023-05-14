@@ -91,10 +91,11 @@
 
 2020/03/21 ===============================================================================
 -	Investigate using ValueTasks for operation awaiting: this means migrating the entire code base to whatever .Net version supports them.
+	[obsolete]
 
 -	Overhaul AsyncOperation creation, as well as the Extension methods that create operations so Tasks are used in accordance to what is
 	found in the investigation above.
-	
+	[obsolete]
 
 -	Investigate using Structs for operation instances
 	[Cannot be done]
@@ -106,3 +107,10 @@
 
 2022/11/07 ==================================================================================
 -	Migrate language version of all projects to:  <LangVersion>latest</LangVersion>
+	[Done]
+
+
+2023/05/05 ==================================================================================
+-	Add 2 methods to the StateMachine class
+	1.	ActAsync: this returns a task that resolves when the state machine concludes (faults, or gets to the end state).
+	2. Act: synchronious version of the ActAsync method above.

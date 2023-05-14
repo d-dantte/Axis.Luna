@@ -1,4 +1,5 @@
-﻿using Axis.Luna.Extensions;
+﻿using Axis.Luna.Common.Results;
+using Axis.Luna.Extensions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -40,9 +41,9 @@ namespace Axis.Luna.Common.NewtonsoftJson.Tests
 
             var data = DateTimeOffset.Now;
             var exception = new Exception();
-            var result1 = Result.Of<DateTimeOffset>(data);
-            var result2 = Result.Of<DateTimeOffset>(exception);
-            var result3 = Result.Of<DateTimeOffset>(exception.WithErrorData(new Types.Basic.BasicStruct.Initializer
+            var result1 = Results.Of<DateTimeOffset>(data);
+            var result2 = Results.Of<DateTimeOffset>(exception);
+            var result3 = Results.Of<DateTimeOffset>(exception.WithErrorData(new Types.Basic.BasicStruct.Initializer
             {
                 ["Prop1"] = "bleh"
             }));
@@ -85,9 +86,9 @@ namespace Axis.Luna.Common.NewtonsoftJson.Tests
                 {
                     ["Prop1"] = "bleh"
                 });
-            var result1 = Result.Of<DateTimeOffset>(data);
-            var result2 = Result.Of<DateTimeOffset>(exception1);
-            var result3 = Result.Of<DateTimeOffset>(exception2);
+            var result1 = Results.Of<DateTimeOffset>(data);
+            var result2 = Results.Of<DateTimeOffset>(exception1);
+            var result3 = Results.Of<DateTimeOffset>(exception2);
 
             var json1 = JsonConvert.SerializeObject(result1, settings);
             var json2 = JsonConvert.SerializeObject(result2, settings);

@@ -4,204 +4,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace Axis.Luna.Common
+namespace Axis.Luna.Common.Results
 {
-    /// <summary>
-    /// A monadic tagged-union type encapsulating the binary states of any function's execution: a value, or an error.
-    /// </summary>
-    /// <typeparam name="TData">the encapsulated data type</typeparam>
-    public interface IResult<TData>
-    {
-        #region Members
-        /// <summary>
-        /// Maps the encapsulated result (or error) into a new result instance
-        /// </summary>
-        /// <typeparam name="TOut">the type of the output result</typeparam>
-        /// <param name="mapper">the mapping function</param>
-        IResult<TOut> Map<TOut>(Func<TData, TOut> mapper);
-
-        /// <summary>
-        /// Binds the encapsulated result (or error) to a new result instance
-        /// </summary>
-        /// <typeparam name="TOut">the type of the output result</typeparam>
-        /// <param name="binder">the binding function</param>
-        IResult<TOut> Bind<TOut>(Func<TData, IResult<TOut>> binder);
-
-        /// <summary>
-        /// Maps the encapsulated value to a new value, or maps the encapsulated error into the <see cref="TData"/> type, then uses the <paramref name="valueMapper"/>
-        /// to map the resulting value into the final <typeparamref name="TOut"/> type.
-        /// </summary>
-        /// <typeparam name="TOut">the output type</typeparam>
-        /// <param name="valueMapper">the value mapper</param>
-        /// <param name="errorMapper">the error mapper</param>
-        /// <returns></returns>
-        IResult<TOut> Map<TOut>(
-            Func<TData, TOut> valueMapper,
-            Func<Exception, TData> errorMapper);
-        #endregion
-
-        #region Union Types
-
-        /// <summary>
-        /// Represents a faulted result, and contains the exception
-        /// </summary>
-        public struct ErrorResult : IResult<TData>
-        {
-            private readonly Exception _cause;
-
-            /// <summary>
-            /// The error message
-            /// </summary>
-            public string Message => _cause?.Message;
-
-            /// <summary>
-            /// The optional error data 
-            /// </summary>
-            public Types.Basic.BasicStruct? ErrorData => _cause?.ErrorResultData();
-
-            internal ErrorResult(Exception exception)
-            {
-                _cause = exception ?? throw new ArgumentNullException(nameof(exception));
-            }
-
-            public IResult<TOut> Map<TOut>(Func<TData, TOut> mapper)
-            {
-                if (mapper is null)
-                    throw new ArgumentNullException(nameof(mapper));
-
-                return new IResult<TOut>.ErrorResult(_cause);
-            }
-
-            public IResult<TOut> Map<TOut>(
-                Func<TData, TOut> valueMapper,
-                Func<Exception, TData> errorMapper)
-            {
-                if (valueMapper is null)
-                    throw new ArgumentNullException(nameof(valueMapper));
-
-                if (errorMapper is null)
-                    throw new ArgumentNullException(nameof(errorMapper));
-
-                Exception cause = _cause;
-                return Result.Of(() =>
-                {
-                    var value = errorMapper.Invoke(cause);
-                    return valueMapper.Invoke(value);
-                });
-            }
-
-            public IResult<TOut> Bind<TOut>(Func<TData, IResult<TOut>> binder)
-            {
-                if (binder is null)
-                    throw new ArgumentNullException(nameof(binder));
-
-                return new IResult<TOut>.ErrorResult(_cause);
-            }
-
-            /// <summary>
-            /// Gets the exception
-            /// </summary>
-            public Exception Cause() => _cause;
-
-            /// <summary>
-            /// Throws the error
-            /// </summary>
-            public TData ThrowError() => _cause.Throw<TData>();
-
-
-            public override string ToString() => $"Error Result: {_cause?.ToString()}";
-
-            public override int GetHashCode() => HashCode.Combine(_cause, ErrorData);
-
-            public override bool Equals(object obj)
-            {
-                return obj is ErrorResult other
-                    && other._cause.NullOrEquals(_cause)
-                    && other.ErrorData.NullOrEquals(ErrorData);
-            }
-
-            public static bool operator ==(ErrorResult first, ErrorResult second) => first.Equals(second);
-
-            public static bool operator !=(ErrorResult first, ErrorResult second) => !first.Equals(second);
-
-        }
-
-
-        /// <summary>
-        /// Represents data.
-        /// </summary>
-        public struct DataResult : IResult<TData>
-        {
-            /// <summary>
-            /// The result data
-            /// </summary>
-            public TData Data { get; }
-
-            internal DataResult(TData data)
-            {
-                Data = data;
-            }
-
-            public IResult<TOut> Map<TOut>(Func<TData, TOut> mapper)
-            {
-                if (mapper is null)
-                    throw new ArgumentNullException(nameof(mapper));
-
-                TData data = Data;
-                return Result.Of(() => mapper.Invoke(data));
-            }
-
-            public IResult<TOut> Map<TOut>(
-                Func<TData, TOut> valueMapper,
-                Func<Exception, TData> errorMapper)
-            {
-                if (valueMapper is null)
-                    throw new ArgumentNullException(nameof(valueMapper));
-
-                if (errorMapper is null)
-                    throw new ArgumentNullException(nameof(errorMapper));
-
-                TData data = Data;
-                return Result.Of(() => valueMapper.Invoke(data));
-            }
-
-            public IResult<TOut> Bind<TOut>(Func<TData, IResult<TOut>> binder)
-            {
-                if (binder is null)
-                    throw new ArgumentNullException(nameof(binder));
-
-                TData data = Data;
-                return Result.Of(() => binder.Invoke(data).Resolve());
-            }
-
-            public override string ToString() => Data?.ToString();
-
-            public override int GetHashCode() => HashCode.Combine(Data);
-
-            public override bool Equals(object obj)
-            {
-                return obj is DataResult other
-                    && other.Data.NullOrEquals(Data);
-            }
-
-            public static bool operator ==(DataResult first, DataResult second) => first.Equals(second);
-
-            public static bool operator !=(DataResult first, DataResult second) => !first.Equals(second);
-        }
-        #endregion
-    }
-
-    /// <summary>
-    /// Indicates that the encountered result instance is not one of either <see cref="IResult{TData}.DataResult"/>, or <see cref="IResult{TData}.ErrorResult"/>
-    /// </summary>
-    public class InvalidResultTypeException: Exception
-    {
-        public InvalidResultTypeException()
-            :base($"the supplied result is not a valid {typeof(IResult<>)} implementation")
-        {
-        }
-    }
-
     /// <summary>
     /// Result extensions
     /// </summary>
@@ -222,7 +26,8 @@ namespace Axis.Luna.Common
             {
                 IResult<TData>.DataResult data => data.Data,
                 IResult<TData>.ErrorResult error => error.ThrowError(),
-                _ => throw new InvalidResultTypeException()
+                null => throw new ArgumentNullException(nameof(result)),
+                _ => throw new InvalidResultTypeException(result.GetType())
             };
         }
 
@@ -254,11 +59,11 @@ namespace Axis.Luna.Common
 
             try
             {
-                return Result.Of(valueSupplier.Invoke());
+                return Of(valueSupplier.Invoke());
             }
             catch (Exception e)
             {
-                return Result.Of<TData>(e);
+                return Of<TData>(e);
             }
         }
 
@@ -278,11 +83,11 @@ namespace Axis.Luna.Common
 
             try
             {
-                return Result.OfException(valueSupplier.Invoke());
+                return OfException(valueSupplier.Invoke());
             }
             catch (Exception e)
             {
-                return Result.OfError<TException>(e);
+                return OfError<TException>(e);
             }
         }
         #endregion
@@ -294,7 +99,7 @@ namespace Axis.Luna.Common
         /// <param name="lazyValue">the lazy instance</param>
         public static IResult<TResult> ResolveResult<TResult>(this
             Lazy<TResult> lazyValue)
-            => Result.Of(() => lazyValue.Value);
+            => Of(() => lazyValue.Value);
 
         /// <summary>
         /// Maps the result of the task to a <see cref="IResult{TData}"/>. Awaiting the new task returns the result instance.
@@ -318,9 +123,9 @@ namespace Axis.Luna.Common
                 {
                     return t.Status switch
                     {
-                        TaskStatus.RanToCompletion => Result.Of(t.Result),
-                        TaskStatus.Canceled => Result.Of<TResult>(new OperationCanceledException()),
-                        TaskStatus.Faulted => Result.Of<TResult>(t.Exception),
+                        TaskStatus.RanToCompletion => Of(t.Result),
+                        TaskStatus.Canceled => Of<TResult>(new OperationCanceledException()),
+                        TaskStatus.Faulted => Of<TResult>(t.Exception),
                         _ => throw new InvalidOperationException($"Invalid task state: {t.Status}")
                     };
                 });
@@ -358,7 +163,7 @@ namespace Axis.Luna.Common
         /// <exception cref="InvalidResultTypeException"></exception>
         public static IResult<TResult> MapError<TResult>(this
             IResult<TResult> result,
-            Func<Exception, TResult> errorMapper)
+            Func<ResultException, TResult> errorMapper)
         {
             if (errorMapper == null)
                 throw new ArgumentNullException(nameof(errorMapper));
@@ -366,10 +171,9 @@ namespace Axis.Luna.Common
             return result switch
             {
                 IResult<TResult>.DataResult data => data,
-
-                IResult<TResult>.ErrorResult error => Result.Of(() => errorMapper.Invoke(error.Cause())),
-
-                _ => throw new InvalidResultTypeException()
+                IResult<TResult>.ErrorResult error => Of(() => errorMapper.Invoke(error.Cause())),
+                null => throw new ArgumentNullException(nameof(result)),
+                _ => throw new InvalidResultTypeException(result.GetType())
             };
         }
 
@@ -443,7 +247,7 @@ namespace Axis.Luna.Common
 
         public static TException WithErrorData<TException>(this
             TException exception,
-            Types.Basic.BasicStruct data)
+            object data)
             where TException : Exception
         {
             if (exception is null)
@@ -453,13 +257,11 @@ namespace Axis.Luna.Common
             return exception;
         }
 
-        public static Types.Basic.BasicStruct? ErrorResultData<TException>(this
+        public static object ErrorResultData<TException>(this
             TException exception)
             where TException : Exception
         {
-            return exception.Data.TryGetValue(ExceptionDataKey, out var data)
-                ? (Types.Basic.BasicStruct?)data
-                : null;
+            return exception.Data.TryGetValue(ExceptionDataKey, out var data) ? data : null;
         }
 
         /// <summary>
@@ -487,10 +289,10 @@ namespace Axis.Luna.Common
             }
 
             if (errorList.Count > 0)
-                return Result.Of<IEnumerable<TResult>>(new AggregateException(errorList.ToArray()));
+                return Of<IEnumerable<TResult>>(new AggregateException(errorList.ToArray()));
 
             // else
-            return Result.Of<IEnumerable<TResult>>(valueList);
+            return Of<IEnumerable<TResult>>(valueList);
         }
 
         /// <summary>
@@ -534,9 +336,9 @@ namespace Axis.Luna.Common
                 .ToList();
 
             if (errors.Count > 0)
-                return Result.Of<IEnumerable<TResult>>(new AggregateException(errors.ToArray()));
+                return Of<IEnumerable<TResult>>(new AggregateException(errors.ToArray()));
 
-            return Result.Of<IEnumerable<TResult>>(values);
+            return Of<IEnumerable<TResult>>(values);
         }
 
         /// <summary>
@@ -554,7 +356,7 @@ namespace Axis.Luna.Common
             if (errorConsumer is null)
                 throw new ArgumentNullException(nameof(errorConsumer));
 
-            return  results
+            return results
                 .ThrowIfNull(new ArgumentNullException(nameof(results)))
                 .Aggregate(new List<TResult>(), (list, result) =>
                 {
@@ -566,7 +368,7 @@ namespace Axis.Luna.Common
 
                     return list;
                 })
-                .ApplyTo(values => Result.Of<IEnumerable<TResult>>(values));
+                .ApplyTo(values => Of<IEnumerable<TResult>>(values));
         }
     }
 }

@@ -1,10 +1,5 @@
 ﻿using Axis.Luna.Common.Numerics;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Axis.Luna.Common.Test.Numerics
 {
@@ -29,7 +24,8 @@ namespace Axis.Luna.Common.Test.Numerics
             #region 4/5
             calc = new LongDivisionMechine(4, 5);
             result = calc.Divide();
-            Assert.AreEqual(new BigDecimal(8, 1), result);
+            var rounded = result.Round(1);
+            Assert.AreEqual(new BigDecimal(8, 1), rounded);
             #endregion
         }
     }

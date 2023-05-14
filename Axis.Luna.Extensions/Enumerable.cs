@@ -287,8 +287,12 @@ namespace Axis.Luna.Extensions
                 yield return v;
             }
 
+            // adding at the end
+            if (pos == position)
+                yield return value;
+
             // items was empty
-            if(pos == 0)
+            if (pos == 0)
                 yield return value;
         }
         

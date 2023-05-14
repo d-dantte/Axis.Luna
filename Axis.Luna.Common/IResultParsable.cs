@@ -1,11 +1,13 @@
 ﻿
+using Axis.Luna.Common.Results;
+
 namespace Axis.Luna.Common
 {
     /// <summary>
     /// 
     /// </summary>
     /// <typeparam name="TSelf"></typeparam>
-    public interface IParsableResult<TSelf> where TSelf : IParsableResult<TSelf>
+    public interface IResultParsable<TSelf> where TSelf : IResultParsable<TSelf>
     {
         /// <summary>
         /// 

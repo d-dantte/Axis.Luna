@@ -4,8 +4,6 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Axis.Luna.Common.Numerics
 {
@@ -25,15 +23,66 @@ namespace Axis.Luna.Common.Numerics
 
         internal static bool IsSet(this byte @byte, int bitIndex) => (@byte & ByteMasks[bitIndex]) == ByteMasks[bitIndex];
 
-        internal static (BigInteger mantissa, short scale) Deconstruct(this double @double) => Deconstruct((decimal)@double);
+        internal static (BigInteger mantissa, int scale) NormalizeBigDecimal(this (BigInteger mantissa, int scale) values)
+        {
+            if (values.scale < 0)
+                throw new ArgumentOutOfRangeException($"{nameof(values.scale)} is < 0. '{values.scale}'");
+
+            if (values.scale == 0)
+                return values;
+
+            var trailingZeros = values.mantissa.TrailingDecimalZeroCount();
+            var truncationCount = trailingZeros >= values.scale
+                ? values.scale : trailingZeros;
+            var newScale = values.scale - truncationCount;
+
+            return (values.mantissa / (BigInteger.Pow(10, (int)truncationCount)), (int)newScale);
+        }
+
+        internal static (BigInteger mantissa, byte scale) Deconstruct(this Half half) => Deconstruct((double)half);
+
+        internal static (BigInteger mantissa, byte scale) Deconstruct(this float @float) => Deconstruct((double)@float);
+
+        internal static (BigInteger mantissa, byte scale) Deconstruct(this double @double)
+        {
+            return @double
+                .NonScientificNotation()
+                .DeconstructFromNotation();
+        }
 
         internal static (BigInteger mantissa, byte scale) Deconstruct(this decimal @decimal)
+        {
+            return @decimal
+                .NonScientificNotation()
+                .DeconstructFromNotation();
+        }
+
+        internal static (BigInteger mantissa, byte scale) DeconstructFromNotation(this string notation)
+        {
+            var negative = notation.StartsWith('-');
+            notation = notation.TrimStart("-");
+
+            var pointIndex = notation.IndexOf('.');
+            notation = notation.Replace(".", "");
+
+            var mantissa = BigInteger.Parse(notation.TrimStart('0'));
+            if (negative)
+                mantissa = BigInteger.Negate(mantissa);
+
+            var scale = pointIndex > 0
+                ? notation.Length - pointIndex
+                : 0;
+
+            return (mantissa, (byte)scale);
+        }
+
+        private static (BigInteger mantissa, byte scale) DeconstructFromUnderlyingRepresentation(this decimal @decimal)
         {
             var ints = decimal.GetBits(@decimal);
             var scaleComponent = BitConverter.GetBytes(ints[3]);
 
-            var scale = scaleComponent.ToArray()[2];
-            var sign = scaleComponent.ToArray()[3] == 0;
+            var scale = scaleComponent[2];
+            var sign = scaleComponent[3] == 0;
             var mantissa = ints
                 .Take(3)
                 .SelectMany(@int => BitConverter.GetBytes(@int))
@@ -44,7 +93,6 @@ namespace Axis.Luna.Common.Numerics
 
             return (mantissa, scale);
         }
-
 
         internal static byte[] ToBytes(this BitArray bitArray)
         {
@@ -156,5 +204,46 @@ namespace Axis.Luna.Common.Numerics
 
             return -1;
         }
+
+        internal static string NonScientificNotation(this double d) => d.ToString("0." + new string('#', 339));
+
+        internal static string NonScientificNotation(this decimal d) => d.ToString("0." + new string('#', 39));
+
+        internal static IEnumerable<TItem> TakeExactly<TItem>(this IEnumerable<TItem> items, int value)
+        {
+            if (items == null)
+                throw new ArgumentNullException(nameof(items));
+
+            if (value < 0)
+                throw new ArgumentOutOfRangeException(nameof(value));
+
+            var taken = items.Take(value);
+
+            using var enumerator = taken.GetEnumerator();
+            for (var index = 0; index < value; index++)
+            {
+                if (enumerator.MoveNext())
+                    yield return enumerator.Current;
+
+                else yield return default;
+            }
+        }
+
+        internal static int TrailingDecimalZeroCount(this BigInteger value)
+        {
+            var count = 0;
+            foreach(var @char in value.ToString().Reverse())
+            {
+                if (@char == '0')
+                    count++;
+
+                else break;
+            }
+
+            return count;
+        }
+
+        internal static string AsString(this IEnumerable<char> chars) => new string(chars.ToArray());
+
     }
 }

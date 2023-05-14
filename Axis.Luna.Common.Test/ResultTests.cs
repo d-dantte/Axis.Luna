@@ -1,10 +1,11 @@
-﻿using Axis.Luna.Common.Types.Basic;
+﻿using Axis.Luna.Common.Results;
 using Axis.Luna.Extensions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 
 namespace Axis.Luna.Common.Test
 {
+    using BasicStruct = System.Collections.Generic.Dictionary<string, object>;
 
     [TestClass]
     public class ResultTests
@@ -32,7 +33,7 @@ namespace Axis.Luna.Common.Test
             var result = new IResult<int>.ErrorResult(new System.Exception());
             Assert.IsNotNull(result);
 
-            result = new IResult<int>.ErrorResult(new Exception().WithErrorData(new BasicStruct.Initializer { ["stuff"] = 54L }));
+            result = new IResult<int>.ErrorResult(new Exception().WithErrorData(new BasicStruct { ["stuff"] = 54L }));
             Assert.IsNotNull(result);
         }
 
@@ -48,7 +49,7 @@ namespace Axis.Luna.Common.Test
             var exception = new Exception("some exception");
             var result = new IResult<int>.ErrorResult(exception);
 
-            Assert.AreEqual(exception, result.Cause());
+            Assert.AreEqual(exception, result.Cause().InnerException);
         }
 
         [TestMethod]
@@ -64,7 +65,7 @@ namespace Axis.Luna.Common.Test
         public void ErrorData_ReturnsErrorDataInstance()
         {
             var exception = new Exception("some exception");
-            BasicStruct errorData = new BasicStruct.Initializer
+            var errorData = new BasicStruct
             {
                 ["prop1"] = "something",
                 ["prop2"] = Guid.NewGuid(),
@@ -81,7 +82,7 @@ namespace Axis.Luna.Common.Test
         [TestMethod]
         public void Equality_Test()
         {
-            BasicStruct errorData = new BasicStruct.Initializer
+            BasicStruct errorData = new BasicStruct
             {
                 ["prop1"] = "something",
                 ["prop2"] = Guid.NewGuid(),
@@ -208,5 +209,19 @@ namespace Axis.Luna.Common.Test
             Assert.AreEqual("blank", outputResult1.As<IResult<string>.DataResult>().Data);
         }
         #endregion
+
+        [TestMethod]
+        public void MiscTest()
+        {
+            var result = Result.Of<int>(new Exception());
+
+            var x = result
+                .Map(i => true)
+                .MapError(err => false)
+                .Resolve();
+
+            Assert.IsFalse(x);
+        }
     }
+
 }

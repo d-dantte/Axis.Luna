@@ -1,4 +1,5 @@
-﻿using Axis.Luna.Common.Types.Basic;
+﻿using Axis.Luna.Common.Results;
+using Axis.Luna.Common.Types.Basic;
 using Axis.Luna.Extensions;
 using Axis.Luna.FInvoke;
 using Newtonsoft.Json;
@@ -228,9 +229,9 @@ namespace Axis.Luna.Common.NewtonsoftJson
 
 
         private static MethodInfo GetErrorResultInitializerMethod<T>()
-            => new Func<Exception, IResult<T>>(Result.Of<T>).Method;
+            => new Func<Exception, IResult<T>>(Results.Of<T>).Method;
 
-        private static MethodInfo GetDataResultInitializerMethod<T>() => new Func<T, IResult<T>>(Result.Of<T>).Method;
+        private static MethodInfo GetDataResultInitializerMethod<T>() => new Func<T, IResult<T>>(Results.Of<T>).Method;
 
         private static MethodInfo GetToJObjectMethod()
         {

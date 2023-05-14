@@ -1,4 +1,5 @@
-﻿using Axis.Luna.Extensions;
+﻿using Axis.Luna.Common.Results;
+using Axis.Luna.Extensions;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -205,6 +206,16 @@ namespace Axis.Luna.Common
 
             else
                 return enumerable.FirstOrDefault(predicate).AsOptional();
+        }
+
+        public static IResult<TValue> AsResult<TValue>(this
+            Optional<TValue> optional,
+            Exception exception = null)
+            where TValue: class
+        {
+            return optional.IsEmpty
+                ? Result.Of<TValue>(exception)
+                : Result.Of(optional.Value());
         }
     }
 }

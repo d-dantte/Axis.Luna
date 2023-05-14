@@ -1,3 +1,9 @@
+## Release Axis.Luna.Common 6.0.6 - 2023/04/29
+* Removed everything under `.Types.Basic.*`, reason being the `Axis.Ion` Library is a lot more matured than this.
+* Introduced the `BigDecimal` type.
+* Refactored `IResult` types, moving their namespaace to `Axis.Luna.Common.Results`.
+
+
 ## Release 6.0.3 - 2022/10/23
 * Axis.Luna.Common
     * Refactored `*.Types.Basic` types
