@@ -2,8 +2,9 @@
 using Axis.Luna.Extensions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
+using System.Linq;
 
-namespace Axis.Luna.Common.Test
+namespace Axis.Luna.Common.Test.Results
 {
     using BasicStruct = System.Collections.Generic.Dictionary<string, object>;
 
@@ -19,7 +20,7 @@ namespace Axis.Luna.Common.Test
             Assert.IsTrue(result is IResult<string>.DataResult);
 
 
-            result = Result.Of<string>(new System.Exception());
+            result = Result.Of<string>(new Exception());
 
             Assert.IsNotNull(result);
             Assert.IsTrue(result is IResult<string>.ErrorResult);
@@ -30,7 +31,7 @@ namespace Axis.Luna.Common.Test
         [TestMethod]
         public void Constructor_WithValidArgs_CreatesInstance()
         {
-            var result = new IResult<int>.ErrorResult(new System.Exception());
+            var result = new IResult<int>.ErrorResult(new Exception());
             Assert.IsNotNull(result);
 
             result = new IResult<int>.ErrorResult(new Exception().WithErrorData(new BasicStruct { ["stuff"] = 54L }));
@@ -207,6 +208,94 @@ namespace Axis.Luna.Common.Test
             var outputResult1 = inputResult.MapError((e) => "blank");
             Assert.IsNotNull(outputResult1);
             Assert.AreEqual("blank", outputResult1.As<IResult<string>.DataResult>().Data);
+        }
+        #endregion
+
+        #region Combine
+        [TestMethod]
+        public void Combine_ValidResults_Combines()
+        {
+            var result = Result.Of("me");
+            var result2 = Result.Of(Guid.NewGuid());
+
+            var combined = result.Combine(result2, (@string, guid) => $"name: {@string}, id: {guid}");
+            Assert.IsNotNull(combined);
+            Assert.IsTrue(combined is IResult<string>.DataResult);
+            var data = (IResult<string>.DataResult)combined;
+            Assert.AreEqual($"name: {result.Resolve()}, id: {result2.Resolve()}", data.Data);
+        }
+
+        [TestMethod]
+        public void Combine_WithErroredResults_CombinesErrors()
+        {
+            var result = Result.Of("me");
+            var exception1 = new Exception("1");
+            var resultError = Result.Of<string>(exception1);
+
+            var result2 = Result.Of(Guid.NewGuid());
+            var exception2 = new Exception("2");
+            var result2Error = Result.Of<Guid>(exception2);
+
+            Func<string, Guid, string> combiner1 = (@string, guid) => $"name: {@string}, id: {guid}";
+            Func<Guid, string, string> combiner2 = (guid, @string) => $"name: {@string}, id: {guid}";
+
+            var combined1 = result.Combine(result2Error, combiner1);
+            var combined2 = result2.Combine(resultError, combiner2);
+            var combined3 = resultError.Combine(result2, combiner1);
+            var combined4 = result2Error.Combine(result, combiner2);
+            var combined5 = resultError.Combine(result2Error, combiner1);
+
+            // combined 1
+            Assert.IsTrue(combined1 is IResult<string>.ErrorResult);
+            var stringError = (IResult<string>.ErrorResult)combined1;
+            Assert.AreEqual(exception2, stringError.Cause().InnerException);
+
+            // combined 2
+            Assert.IsTrue(combined2 is IResult<string>.ErrorResult);
+            stringError = (IResult<string>.ErrorResult)combined2;
+            Assert.AreEqual(exception1, stringError.Cause().InnerException);
+
+            // combined 3
+            Assert.IsTrue(combined3 is IResult<string>.ErrorResult);
+            stringError = (IResult<string>.ErrorResult)combined3;
+            Assert.AreEqual(exception1, stringError.Cause().InnerException);
+
+            // combined 4
+            Assert.IsTrue(combined4 is IResult<string>.ErrorResult);
+            stringError = (IResult<string>.ErrorResult)combined4;
+            Assert.AreEqual(exception2, stringError.Cause().InnerException);
+
+            // combined 5
+            Assert.IsTrue(combined5 is IResult<string>.ErrorResult);
+            stringError = (IResult<string>.ErrorResult)combined5;
+            var aggregate = stringError.Cause().InnerException as AggregateException;
+            Assert.IsNotNull(aggregate);
+            Assert.IsTrue(Enumerable.SequenceEqual(
+                aggregate.InnerExceptions,
+                new[] { exception1, exception2}));
+        }
+
+        [TestMethod]
+        public void Combine_WithInvalidArgs_ThrowsException()
+        {
+            var errorResult = Result.Of<string>(new Exception());
+            var dataResult = Result.Of("me");
+
+            // error result
+            Assert.ThrowsException<ArgumentNullException>(() => errorResult.Combine(
+                (IResult<string>)null,
+                (x, y) => ""));
+            Assert.ThrowsException<ArgumentNullException>(() => errorResult.Combine(
+                Result.Of("stuff"),
+                (Func<string, string, string>)null));
+
+            // data result
+            Assert.ThrowsException<ArgumentNullException>(() => dataResult.Combine(
+                (IResult<string>)null,
+                (x, y) => ""));
+            Assert.ThrowsException<ArgumentNullException>(() => dataResult.Combine(
+                Result.Of("stuff"),
+                (Func<string, string, string>)null));
         }
         #endregion
 

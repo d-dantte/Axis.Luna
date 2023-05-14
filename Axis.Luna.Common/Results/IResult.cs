@@ -18,13 +18,6 @@ namespace Axis.Luna.Common.Results
         IResult<TOut> Map<TOut>(Func<TData, TOut> mapper);
 
         /// <summary>
-        /// Binds the encapsulated result (or error) to a new result instance
-        /// </summary>
-        /// <typeparam name="TOut">the type of the output result</typeparam>
-        /// <param name="binder">the binding function</param>
-        IResult<TOut> Bind<TOut>(Func<TData, IResult<TOut>> binder);
-
-        /// <summary>
         /// Maps the encapsulated value to a new value, or maps the encapsulated error into the <see cref="TData"/> type, then uses the <paramref name="valueMapper"/>
         /// to map the resulting value into the final <typeparamref name="TOut"/> type.
         /// </summary>
@@ -35,6 +28,28 @@ namespace Axis.Luna.Common.Results
         IResult<TOut> Map<TOut>(
             Func<TData, TOut> valueMapper,
             Func<Exception, TData> errorMapper);
+
+        /// <summary>
+        /// Binds the encapsulated result (or error) to a new result instance
+        /// </summary>
+        /// <typeparam name="TOut">the type of the output result</typeparam>
+        /// <param name="binder">the binding function</param>
+        IResult<TOut> Bind<TOut>(Func<TData, IResult<TOut>> binder);
+
+        /// <summary>
+        /// Combines the encapsulated data of this result, and another result, into a Result of the combined type.
+        /// <para>
+        /// If either or both results are errored, the output result is a combination of both errors
+        /// </para>
+        /// </summary>
+        /// <typeparam name="TOther"></typeparam>
+        /// <typeparam name="TOut"></typeparam>
+        /// <param name="otherResult"></param>
+        /// <param name="combiner"></param>
+        /// <returns></returns>
+        IResult<TOut> Combine<TOther, TOut>(
+            IResult<TOther> otherResult,
+            Func<TData, TOther, TOut> combiner);
         #endregion
 
         #region Union Types
@@ -49,16 +64,21 @@ namespace Axis.Luna.Common.Results
             /// <summary>
             /// The error message
             /// </summary>
-            public string Message => _cause?.InnerException.Message;
+            public string Message => TrueCause.Message;
 
             /// <summary>
             /// The optional error data 
             /// </summary>
-            public object ErrorData => _cause?.InnerException.ErrorResultData();
+            public object ErrorData => TrueCause.ErrorResultData();
+
+            private Exception TrueCause => _cause.InnerException;
 
             internal ErrorResult(Exception exception)
             {
-                _cause = new ResultException(exception ?? throw new ArgumentNullException(nameof(exception)));
+                _cause = new ResultException(
+                    exception is null ? throw new ArgumentNullException(nameof(exception)) :
+                    exception is ResultException re ? re.InnerException :
+                    exception);
             }
 
             public IResult<TOut> Map<TOut>(Func<TData, TOut> mapper)
@@ -93,6 +113,25 @@ namespace Axis.Luna.Common.Results
                     throw new ArgumentNullException(nameof(binder));
 
                 return new IResult<TOut>.ErrorResult(_cause);
+            }
+
+            public IResult<TOut> Combine<TOther, TOut>(
+                IResult<TOther> otherResult,
+                Func<TData, TOther, TOut> combiner)
+            {
+                if (otherResult is null)
+                    throw new ArgumentNullException(nameof(otherResult));
+
+                if (combiner is null)
+                    throw new ArgumentNullException(nameof(combiner));
+
+                if (otherResult is IResult<TOther>.ErrorResult otherError)
+                    return new IResult<TOut>.ErrorResult(
+                        new AggregateException(
+                            TrueCause,
+                            otherError._cause.InnerException));
+
+                else return new IResult<TOut>.ErrorResult(TrueCause);
             }
 
             /// <summary>
@@ -169,6 +208,24 @@ namespace Axis.Luna.Common.Results
 
                 TData data = Data;
                 return Result.Of(() => binder.Invoke(data).Resolve());
+            }
+
+            public IResult<TOut> Combine<TOther, TOut>(
+                IResult<TOther> otherResult,
+                Func<TData, TOther, TOut> combiner)
+            {
+                if (otherResult is null)
+                    throw new ArgumentNullException(nameof(otherResult));
+
+                if (combiner is null)
+                    throw new ArgumentNullException(nameof(combiner));
+
+                if (otherResult is IResult<TOther>.ErrorResult otherError)
+                    return Result.Of<TOut>(otherError.Cause());
+
+                var other = otherResult.Resolve();
+                var data = Data;
+                return Result.Of(() => combiner.Invoke(data, other));
             }
 
             public override string ToString() => Data?.ToString();

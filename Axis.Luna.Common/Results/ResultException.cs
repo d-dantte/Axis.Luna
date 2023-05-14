@@ -11,7 +11,7 @@ namespace Axis.Luna.Common.Results
     /// </summary>
     public class ResultException : Exception
     {
-        public ResultException(Exception cause)
+        internal ResultException(Exception cause)
         : base("See Inner Exception", cause)
         {
             if (cause is null)
