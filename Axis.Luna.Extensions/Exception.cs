@@ -86,7 +86,7 @@ namespace Axis.Luna.Extensions
 
         public static T ThrowIfNot<T>(this T value, T compare, string message = null) => value.ThrowIfNot(compare, new Exception(message));
 
-        internal static T ThrowIfNot<T>(this
+        public static T ThrowIfNot<T>(this
             T value,
             Func<T, bool> predicate,
             Exception exception)
@@ -124,7 +124,7 @@ namespace Axis.Luna.Extensions
         public static T? ThrowIfNot<T>(this T? value, T? compare, string message = null)
         where T : struct => value.ThrowIfNot(compare, new Exception(message));
 
-        internal static T? ThrowIfNot<T>(this
+        public static T? ThrowIfNot<T>(this
             T? value,
             Func<T?, bool> predicate,
             Exception exception)
@@ -143,6 +143,34 @@ namespace Axis.Luna.Extensions
             }
 
             return value;
+        }
+
+        public static IEnumerable<TItem> ThrowIfNone<TItem>(this
+            IEnumerable<TItem> items,
+            Func<TItem, bool> predicate,
+            Exception exception = null)
+        {
+            if (items is null)
+                throw new ArgumentNullException(nameof(items));
+
+            if (predicate is null)
+                throw new ArgumentNullException(nameof(predicate));
+
+            var found = false;
+            foreach (var item in items)
+            {
+                if (predicate.Invoke(item))
+                    found = true;
+
+                yield return item;
+            }
+
+            if (!found)
+            {
+                ExceptionDispatchInfo
+                    .Capture(exception ?? new Exception("No element matched the predicate"))
+                    .Throw();
+            }
         }
 
         public static T ThrowIfNull<T>(this T value, System.Exception ex)

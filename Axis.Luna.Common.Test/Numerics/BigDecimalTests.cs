@@ -153,6 +153,74 @@ namespace Axis.Luna.Common.Test.Numerics
             Assert.AreEqual((byte)0, result);
         }
 
+        [TestMethod]
+        public void Power_Tests()
+        {
+            var first = new BigDecimal(48);
+            var second = new BigDecimal(5);
+            var result = BigDecimal.Power(first, second);
+            Assert.AreEqual(new BigDecimal(254803968), result);
+
+            first = new BigDecimal(25);
+            second = new BigDecimal(0.5);
+            result = BigDecimal.Power(first, second);
+            Assert.AreEqual(new BigDecimal(5), result);
+        }
+
+        [TestMethod]
+        public void Decimal_Rounding_Tests()
+        {
+            var value = new BigDecimal(45.6);
+            var d = (decimal)value;
+            Assert.AreEqual(45.6m, d);
+
+            value = new BigDecimal(45);
+            d = (decimal)value;
+            Assert.AreEqual(45m, d);
+        }
+
+        [TestMethod]
+        public void Double_Rounding_Tests()
+        {
+            var value = new BigDecimal(45.6);
+            var d = (double)value;
+            Assert.AreEqual(45.6d, d);
+
+            value = new BigDecimal(45);
+            d = (double)value;
+            Assert.AreEqual(45d, d);
+        }
+
+        [TestMethod]
+        public void Multiply_Tests()
+        {
+            var value = BigDecimal.Parse("0.7631257631257631257631257631").Resolve();
+            var value2 = new BigDecimal(2.5m);
+            var result = value * value2;
+            Assert.AreEqual(BigDecimal.Parse("1.90781440781440781440781440775").Resolve(), result);
+
+            value = new BigDecimal(-45);
+            result = value * value2;
+            Assert.AreEqual(new BigDecimal(-112.5m), result);
+        }
+
+        [TestMethod]
+        public void Modulo_Tests()
+        {
+            var value = BigDecimal.Parse("0.7631257631257631257631257631").Resolve();
+            var value2 = new BigDecimal(2.5m);
+            var result = value % value2;
+            Assert.AreEqual(value, result);
+
+            value = new BigDecimal(-45);
+            result = value % value2;
+            Assert.AreEqual(new BigDecimal(0), result);
+
+            value = new BigDecimal(7);
+            result = value % value2;
+            Assert.AreEqual(new BigDecimal(2), result);
+        }
+
 
         [TestMethod]
         public void miscTest()

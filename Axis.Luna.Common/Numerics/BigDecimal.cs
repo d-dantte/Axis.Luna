@@ -242,8 +242,8 @@ namespace Axis.Luna.Common.Numerics
             if (right == 1)
                 return left;
 
-            var (l, r) = Balance(left, right);
-            return new BigDecimal(l - r, left._scale + right._scale);
+            var (l, r) = Balance(left, right, out var scale);
+            return new BigDecimal(l * r, scale * 2);
         }
 
         #endregion
@@ -776,14 +776,38 @@ namespace Axis.Luna.Common.Numerics
 
         #region Helpers
 
+        public static BigDecimal Power(BigDecimal value, BigDecimal exponent)
+        {
+            if (value > double.MaxValue || value < double.MinValue)
+                throw new ArgumentOutOfRangeException(nameof(value));
+
+            if (exponent > double.MaxValue || exponent < double.MinValue)
+                throw new ArgumentOutOfRangeException(nameof(exponent));
+
+            if (BigDecimal.IsInteger(exponent))
+            {
+                var balanced = Balance(value, exponent);
+                return BigInteger.Pow(balanced.first, (int)balanced.second);
+            }
+            else  return Math.Pow((double)value, (double)exponent);
+        }
+
         internal static (BigInteger first, BigInteger second) Balance(BigDecimal first, BigDecimal second)
         {
-            return first._scale.CompareTo(second._scale) switch
+            return Balance(first, second, out _);
+        }
+
+        internal static (BigInteger first, BigInteger second) Balance(BigDecimal first, BigDecimal second, out int scale)
+        {
+            var values = first._scale.CompareTo(second._scale) switch
             {
-                0 => (first._value, second._value),
-                < 0 => (first._value * BigInteger.Pow(10, second._scale - first._scale), second._value),
-                > 0 => (first._value, second._value * BigInteger.Pow(10, first._scale - second._scale))
+                0 => (first._value, second._value, first._scale),
+                < 0 => (first._value * BigInteger.Pow(10, second._scale - first._scale), second._value, second._scale),
+                > 0 => (first._value, second._value * BigInteger.Pow(10, first._scale - second._scale), first._scale)
             };
+
+            scale = values._scale;
+            return (values.Item1, values.Item2);
         }
 
         internal static (BigInteger raisedValue, int decimalShifts) Raise(BigInteger dividend, BigInteger  divisor)
@@ -838,7 +862,7 @@ namespace Axis.Luna.Common.Numerics
             var text = _value.ToString();
             var sign = text[0] == '-';
 
-            var allDigits = text[1..];
+            var allDigits = text[(sign ? 1 : 0)..];
             var totalLength = allDigits.Length;
             var significantDigits = allDigits.Take(16).JoinUsing("");
             var doubleValue =

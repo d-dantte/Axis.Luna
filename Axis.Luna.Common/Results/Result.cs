@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace Axis.Luna.Common.Results
 {
@@ -289,7 +290,10 @@ namespace Axis.Luna.Common.Results
             }
 
             if (errorList.Count > 0)
-                return Of<IEnumerable<TResult>>(new AggregateException(errorList.ToArray()));
+                return Of<IEnumerable<TResult>>(errorList
+                    .Select(err => err is ResultException rex ? rex.InnerException : err)
+                    .ToArray()
+                    .ApplyTo(list => new AggregateException(list)));
 
             // else
             return Of<IEnumerable<TResult>>(valueList);
@@ -336,7 +340,10 @@ namespace Axis.Luna.Common.Results
                 .ToList();
 
             if (errors.Count > 0)
-                return Of<IEnumerable<TResult>>(new AggregateException(errors.ToArray()));
+                return Of<IEnumerable<TResult>>(errors
+                    .Select(err => err is ResultException rex ? rex.InnerException: err)
+                    .ToArray()
+                    .ApplyTo(list => new AggregateException(list)));
 
             return Of<IEnumerable<TResult>>(values);
         }
