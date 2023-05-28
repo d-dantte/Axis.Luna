@@ -59,6 +59,9 @@ namespace Axis.Luna.Common.Numerics
 
         internal static (BigInteger mantissa, byte scale) DeconstructFromNotation(this string notation)
         {
+            if ("0".Equals(notation))
+                return (0, 0);
+
             var negative = notation.StartsWith('-');
             notation = notation.TrimStart("-");
 

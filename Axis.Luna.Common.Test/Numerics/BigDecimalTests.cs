@@ -221,6 +221,13 @@ namespace Axis.Luna.Common.Test.Numerics
             Assert.AreEqual(new BigDecimal(2), result);
         }
 
+        [TestMethod]
+        public void Misc_Test_2()
+        {
+            var value = new BigDecimal(0m);
+            Assert.AreEqual(BigDecimal.Zero, value);
+        }
+
 
         [TestMethod]
         public void miscTest()
