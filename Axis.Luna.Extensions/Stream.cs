@@ -3,7 +3,7 @@ using System.Text;
 
 namespace Axis.Luna.Extensions
 {
-    public static class Stream
+    public static class StreamExtensions
     {
         /// <summary>
         /// https://stackoverflow.com/a/19283954
@@ -37,7 +37,7 @@ namespace Axis.Luna.Extensions
             else if (length >= 2 && bom[0] == 0xfe && bom[1] == 0xff)
                 encoding = Encoding.BigEndianUnicode;
 
-            else encoding = Encoding.Default;
+            else encoding = Encoding.ASCII;
 
             bufferedStream.Position = 0;
             return bufferedStream;
