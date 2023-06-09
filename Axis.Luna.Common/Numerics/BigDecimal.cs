@@ -899,7 +899,7 @@ namespace Axis.Luna.Common.Numerics
             };
         }
 
-        internal BigInteger Truncate()
+        public BigInteger Truncate()
         {
             if (_scale == 0)
                 return _significand;
@@ -932,7 +932,7 @@ namespace Axis.Luna.Common.Numerics
 
         internal double DemoteToDouble() => double.Parse(ToScientificString(14));
 
-        internal double ToDouble()
+        public double ToDouble()
         {
             if (this > double.MaxValue)
                 return double.MaxValue;
@@ -940,7 +940,7 @@ namespace Axis.Luna.Common.Numerics
             return DemoteToDouble();
         }
 
-        internal decimal ToDecimal()
+        public decimal ToDecimal()
         {
             if (this > decimal.MaxValue)
                 return decimal.MaxValue;
@@ -953,7 +953,7 @@ namespace Axis.Luna.Common.Numerics
         /// </summary>
         /// <param name="precision"></param>
         /// <returns></returns>
-        internal string ToScientificString(int precision = -1)
+        public string ToScientificString(int precision = -1)
         {
             if (precision < -1)
                 throw new ArgumentException($"Precision cannot be < -1");
@@ -971,7 +971,7 @@ namespace Axis.Luna.Common.Numerics
             };
         }
 
-        internal string ToNonScientificString(int precision = -1)
+        public string ToNonScientificString(int precision = -1)
         {
             if (precision < -1)
                 throw new ArgumentOutOfRangeException(nameof(precision), "Precision cannot be < -1");

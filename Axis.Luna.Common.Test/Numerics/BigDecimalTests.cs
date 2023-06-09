@@ -621,5 +621,13 @@ namespace Axis.Luna.Common.Test.Numerics
             var r = BigDecimal.Power(bd, 3);
             Console.WriteLine(r);
         }
+
+        [TestMethod]
+        public void DemotionTests()
+        {
+            var bd = new BigDecimal(4554.3109m);
+            var d = bd.DemoteToDecimal();
+            Assert.AreEqual(4554.3109m, d);
+        }
     }
 }
