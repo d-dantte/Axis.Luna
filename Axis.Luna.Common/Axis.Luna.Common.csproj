@@ -5,7 +5,7 @@
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <AssemblyVersion>6.0.0.0</AssemblyVersion>
     <FileVersion>6.0.0.0</FileVersion>
-    <Version>6.0.8-alpha-20230609-03</Version>
+    <Version>6.0.8-alpha-20230609-04</Version>
     <LangVersion>latest</LangVersion>
     <Description>Common Data types and functions that operate on them</Description>
     <PackageReleaseNotes></PackageReleaseNotes>

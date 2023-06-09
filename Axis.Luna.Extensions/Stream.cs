@@ -11,7 +11,7 @@ namespace Axis.Luna.Extensions
         /// <param name="stream"></param>
         /// <param name="encoding"></param>
         /// <returns></returns>
-        internal static System.IO.Stream PeekTextEncoding(this System.IO.Stream stream, out Encoding encoding)
+        public static Stream PeekTextEncoding(this System.IO.Stream stream, out Encoding encoding)
         {
             var bufferedStream = new BufferedStream(stream);
             var bom = new byte[4];
