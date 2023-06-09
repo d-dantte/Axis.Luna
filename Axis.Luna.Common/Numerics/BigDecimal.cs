@@ -39,6 +39,18 @@ namespace Axis.Luna.Common.Numerics
         private readonly int _scale;
         #endregion
 
+        #region Properties
+        /// <summary>
+        /// 
+        /// </summary>
+        public BigInteger Significand => _significand;
+
+        /// <summary>
+        /// 
+        /// </summary>
+        public int Scale => _scale;
+        #endregion
+
         #region Constructors
         public BigDecimal((BigInteger value, int scale) components)
         {
