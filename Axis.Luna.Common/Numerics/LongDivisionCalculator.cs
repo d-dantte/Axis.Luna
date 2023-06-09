@@ -32,13 +32,13 @@ namespace Axis.Luna.Common.Numerics
                 throw new ArgumentException($"{nameof(denominator)} cannot be 0");
         }
 
-        public BigDecimal___ Divide(ushort bitPrecision = 128)
+        public BigDecimal Divide(ushort bitPrecision = 128)
         {
             dividend = default;
             var (quotient, remainder) = BigInteger.DivRem(Numerator, Denominator);
 
             if (remainder == 0)
-                return new BigDecimal___(quotient);
+                return new BigDecimal(quotient);
 
             while (remainder != 0 && fractionBits.Count < bitPrecision)
             {
@@ -63,7 +63,7 @@ namespace Axis.Luna.Common.Numerics
             normalizedFraction *= BigInteger.Pow(10, decimalPrecision);
             normalizedFraction >>= base2Scale;
 
-            return new BigDecimal___(
+            return (
                 normalizedQuotient + normalizedFraction,
                 decimalPrecision);
         }

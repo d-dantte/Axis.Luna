@@ -23,80 +23,6 @@ namespace Axis.Luna.Common.Numerics
 
         internal static bool IsSet(this byte @byte, int bitIndex) => (@byte & ByteMasks[bitIndex]) == ByteMasks[bitIndex];
 
-        internal static (BigInteger mantissa, int scale) NormalizeBigDecimal(this (BigInteger mantissa, int scale) values)
-        {
-            if (values.scale < 0)
-                throw new ArgumentOutOfRangeException($"{nameof(values.scale)} is < 0. '{values.scale}'");
-
-            if (values.scale == 0)
-                return values;
-
-            var trailingZeros = values.mantissa.TrailingDecimalZeroCount();
-            var truncationCount = trailingZeros >= values.scale
-                ? values.scale : trailingZeros;
-            var newScale = values.scale - truncationCount;
-
-            return (values.mantissa / (BigInteger.Pow(10, (int)truncationCount)), (int)newScale);
-        }
-
-        internal static (BigInteger mantissa, byte scale) Deconstruct(this Half half) => Deconstruct((double)half);
-
-        internal static (BigInteger mantissa, byte scale) Deconstruct(this float @float) => Deconstruct((double)@float);
-
-        internal static (BigInteger mantissa, byte scale) Deconstruct(this double @double)
-        {
-            return @double
-                .NonScientificNotation()
-                .DeconstructFromNotation();
-        }
-
-        internal static (BigInteger mantissa, byte scale) Deconstruct(this decimal @decimal)
-        {
-            return @decimal
-                .NonScientificNotation()
-                .DeconstructFromNotation();
-        }
-
-        internal static (BigInteger mantissa, byte scale) DeconstructFromNotation(this string notation)
-        {
-            if ("0".Equals(notation))
-                return (0, 0);
-
-            var negative = notation.StartsWith('-');
-            notation = notation.TrimStart("-");
-
-            var pointIndex = notation.IndexOf('.');
-            notation = notation.Replace(".", "");
-
-            var mantissa = BigInteger.Parse(notation.TrimStart('0'));
-            if (negative)
-                mantissa = BigInteger.Negate(mantissa);
-
-            var scale = pointIndex > 0
-                ? notation.Length - pointIndex
-                : 0;
-
-            return (mantissa, (byte)scale);
-        }
-
-        private static (BigInteger mantissa, byte scale) DeconstructFromUnderlyingRepresentation(this decimal @decimal)
-        {
-            var ints = decimal.GetBits(@decimal);
-            var scaleComponent = BitConverter.GetBytes(ints[3]);
-
-            var scale = scaleComponent[2];
-            var sign = scaleComponent[3] == 0;
-            var mantissa = ints
-                .Take(3)
-                .SelectMany(@int => BitConverter.GetBytes(@int))
-                .ApplyTo(_bytes => new BigInteger(_bytes.ToArray(), true));
-
-            if (!sign)
-                mantissa = BigInteger.Negate(mantissa);
-
-            return (mantissa, scale);
-        }
-
         internal static byte[] ToBytes(this BitArray bitArray)
         {
             var quotient = Math.DivRem(bitArray.Length, 8, out var rem);
@@ -208,10 +134,6 @@ namespace Axis.Luna.Common.Numerics
             return -1;
         }
 
-        internal static string NonScientificNotation(this double d) => d.ToString("0." + new string('#', 339));
-
-        internal static string NonScientificNotation(this decimal d) => d.ToString("0." + new string('#', 39));
-
         internal static IEnumerable<TItem> TakeExactly<TItem>(this IEnumerable<TItem> items, int value)
         {
             if (items == null)
@@ -245,8 +167,6 @@ namespace Axis.Luna.Common.Numerics
 
             return count;
         }
-
-        internal static string AsString(this IEnumerable<char> chars) => new string(chars.ToArray());
 
 
         private static readonly decimal BitFactor = 0.3010299956639812m;
