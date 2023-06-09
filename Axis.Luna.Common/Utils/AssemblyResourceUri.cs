@@ -202,7 +202,7 @@ namespace Axis.Luna.Common.Utils
 
     public static class AssemblyResourceUriExtensions
     {
-        public static Stream ToResourceStream(this AssemblyResourceUri uri)
+        public static System.IO.Stream ToResourceStream(this AssemblyResourceUri uri)
         {
             var assembly = AppDomain.CurrentDomain
                 .GetAssemblies()

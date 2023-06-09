@@ -425,19 +425,19 @@ namespace Axis.Luna.Extensions
             yield return otherValue;
         }
 
-        public static IEnumerable<T> PrependTo<T>(this T value, IEnumerable<T> values)
+        public static IEnumerable<T> PrependTo<T>(this T item, IEnumerable<T> items)
         {
-            yield return value;
-            foreach (var t in values)
+            yield return item;
+            foreach (var t in items)
             {
                 yield return t;
             }
         }
 
-        public static IEnumerable<T> EnumerateWith<T>(this T value, params T[] values)
+        public static IEnumerable<T> EnumerateWith<T>(this T item, params T[] items)
         {
-            yield return value;
-            foreach (var t in values)
+            yield return item;
+            foreach (var t in items)
             {
                 yield return t;
             }

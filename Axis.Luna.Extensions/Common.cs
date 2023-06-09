@@ -334,6 +334,23 @@ namespace Axis.Luna.Extensions
         #endregion
 
         #region String extensions
+        public static IEnumerable<string> Split(this string @string, int splitIndex)
+        {
+            if (splitIndex < 0)
+                throw new ArgumentOutOfRangeException(
+                    nameof(splitIndex),
+                    $"value cannot be < 0");
+
+            if (splitIndex >= @string.Length)
+                yield return @string;
+
+            else
+            {
+                yield return @string[..splitIndex];
+                yield return @string[splitIndex..];
+            }
+        }
+
         public static string Trim(this string @string, string trimChars) => @string.TrimStart(trimChars).TrimEnd(trimChars);
 
         public static string TrimStart(this string original, string searchString)

@@ -235,11 +235,11 @@ namespace Axis.Luna.Common.Numerics
         internal static int TrailingDecimalZeroCount(this BigInteger value)
         {
             var count = 0;
-            foreach(var @char in value.ToString().Reverse())
+            var str = value.ToString();
+            for (int index = str.Length - 1; index >= 0; index--)
             {
-                if (@char == '0')
+                if (str[index] == '0')
                     count++;
-
                 else break;
             }
 
@@ -247,6 +247,108 @@ namespace Axis.Luna.Common.Numerics
         }
 
         internal static string AsString(this IEnumerable<char> chars) => new string(chars.ToArray());
+
+
+        private static readonly decimal BitFactor = 0.3010299956639812m;
+
+        internal static int DigitCount(this BigInteger integer)
+        {
+            if (integer.TryOptimizedDigitCount(out var intDigitCount))
+                return intDigitCount;
+
+            var digitCount = (long)(integer.GetBitLength() * BitFactor);
+
+            if (digitCount >= int.MaxValue)
+                throw new ArgumentOutOfRangeException(
+                    nameof(integer),
+                    $"Digit count exceeds upper limit: {int.MaxValue}");
+
+            intDigitCount = (int)digitCount;
+            var upperBoundary = BigInteger.Pow(10, intDigitCount);
+
+            if (upperBoundary > integer)
+                return intDigitCount;
+
+            // else
+            for (int cnt = 1; cnt < int.MaxValue; cnt++)
+            {
+                var boundary = BigInteger.Pow(10, cnt + intDigitCount);
+                if (boundary > integer)
+                    return intDigitCount + cnt;
+            }
+
+            throw new ArgumentOutOfRangeException(
+                nameof(integer),
+                "Digit count exceeds upper limit");
+        }
+
+        internal static bool TryOptimizedDigitCount(this BigInteger integer, out int digitCount)
+        {
+            if (integer < 10) //change this to some known optimized values - i.e < 10, < 100, < 1000, etc.
+                digitCount =  1;
+
+            else if (integer < 100)
+                digitCount =  2;
+
+            else if (integer < 1000)
+                digitCount =  3;
+
+            else if (integer < 10000)
+                digitCount =  4;
+
+            else if (integer < 100000)
+                digitCount =  5;
+
+            else if (integer < 1000000)
+                digitCount =  6;
+
+            else if (integer < 10000000)
+                digitCount =  7;
+
+            else if (integer < 100000000)
+                digitCount =  8;
+
+            else if (integer < 1000000000)
+                digitCount =  9;
+
+            else if (integer < 10000000000)
+                digitCount = 10;
+
+            else if (integer < 100000000000)
+                digitCount = 11;
+
+            else if (integer < 1000000000000)
+                digitCount = 12;
+
+            else if (integer < 10000000000000)
+                digitCount = 13;
+
+            else if (integer < 100000000000000)
+                digitCount = 14;
+
+            else if (integer < 1000000000000000)
+                digitCount = 15;
+
+            else if (integer < 10000000000000000)
+                digitCount = 16;
+
+            else if (integer < 100000000000000000)
+                digitCount = 17;
+
+            else if (integer < 1000000000000000000)
+                digitCount = 18;
+
+            else if (integer < 10000000000000000000)
+                digitCount = 19;
+
+            else
+            {
+                digitCount = -1;
+                return false;
+            }
+
+            return true;
+        }
 
     }
 }

@@ -89,6 +89,14 @@ namespace Axis.Luna.Extensions.Test
 
             Assert.AreEqual(39, value.As<int>());
         }
+
+        [TestMethod]
+        public void Trim_Tests()
+        {
+            var x = "abcdddd";
+            var r = x.TrimEnd('d');
+            Assert.AreEqual("abc", r);
+        }
     }
 
     [TestClass]

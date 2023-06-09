@@ -5,320 +5,99 @@ using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Linq;
 using System.Numerics;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 
 namespace Axis.Luna.Common.Numerics
 {
-    /// <summary>
-    /// Big Decimal - unlimited mantissa, with <c>int.MaxValue</c> max scale
-    /// <para>
-    /// Note:
-    /// <list type="number">
-    /// <item>For all <c>Parse(...)</c> and <c>TryParse(...)</c> methods that take <see cref="IFormatProvider"/> argument, the provider is ignored (for now).</item>
-    /// </list>
-    /// </para>
-    /// </summary>
     public readonly struct BigDecimal :
         IComparable,
         IComparable<BigDecimal>,
         IEquatable<BigDecimal>,
         IParsable<BigDecimal>,
         IResultParsable<BigDecimal>,
-        IUnaryPlusOperators<BigDecimal, BigDecimal>,
-        IUnaryNegationOperators<BigDecimal, BigDecimal>,
-        IAdditionOperators<BigDecimal, BigDecimal, BigDecimal>,
-        IAdditiveIdentity<BigDecimal, BigDecimal>,
-        ISubtractionOperators<BigDecimal, BigDecimal, BigDecimal>,
-        IMultiplyOperators<BigDecimal, BigDecimal, BigDecimal>,
-        IMultiplicativeIdentity<BigDecimal, BigDecimal>,
-        IDivisionOperators<BigDecimal, BigDecimal, BigDecimal>,
-        IIncrementOperators<BigDecimal>,
-        IDecrementOperators<BigDecimal>,
         ISpanFormattable,
         ISpanParsable<BigDecimal>,
-        IModulusOperators<BigDecimal, BigDecimal, BigDecimal>,
+        ISignedNumber<BigDecimal>,
         IEqualityOperators<BigDecimal, BigDecimal, bool>,
-        IComparisonOperators<BigDecimal, BigDecimal, bool>,
+        IUnaryPlusOperators<BigDecimal, BigDecimal>,
+        IUnaryNegationOperators<BigDecimal, BigDecimal>,
+        IIncrementOperators<BigDecimal>,
+        IDecrementOperators<BigDecimal>,
+        IAdditiveIdentity<BigDecimal, BigDecimal>,
+        IMultiplicativeIdentity<BigDecimal, BigDecimal>,
+        ISubtractionOperators<BigDecimal, BigDecimal, BigDecimal>,
+        IMultiplyOperators<BigDecimal, BigDecimal, BigDecimal>,
+        IDivisionOperators<BigDecimal, BigDecimal, BigDecimal>,
+        IModulusOperators<BigDecimal, BigDecimal, BigDecimal>,
         INumber<BigDecimal>,
         INumberBase<BigDecimal>
     {
-        private static readonly RegexOptions PatternOptions = RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.IgnoreCase;
-        internal static readonly Regex DecimalPattern = new Regex("^(?'integral'[\\+\\-]?\\d+)(\\.(?'fraction'\\d+))?$", PatternOptions);
-        internal static readonly Regex ScientificPattern = new Regex("^(?'integral'[\\+\\-]?\\d+)\\.(?'fraction'\\d+)E(?'exponent'\\-?\\d+)$", PatternOptions);
-        internal static readonly Regex DeconstructedPattern = new Regex("^\\[Mantissa\\:\\s*(?'mantissa'[\\+\\-]?\\d+),\\s*Scale\\:\\s*(?'scale'\\d+)\\]$", PatternOptions);
-
-        private readonly BigInteger _value;
+        #region Fields
+        private readonly BigInteger _significand;
         private readonly int _scale;
+        #endregion
 
-
-        public BigDecimal(int value)
+        #region Constructors
+        public BigDecimal((BigInteger value, int scale) components)
         {
-            _value = value;
-            _scale = 0;
-        }
-
-        public BigDecimal(byte value)
-        {
-            _value = value;
-            _scale = 0;
-        }
-
-        public BigDecimal(sbyte value)
-        {
-            _value = value;
-            _scale = 0;
-        }
-
-        public BigDecimal(uint value)
-        {
-            _value = value;
-            _scale = 0;
-        }
-
-        public BigDecimal(long value)
-        {
-            _value = value;
-            _scale = 0;
-        }
-
-        public BigDecimal(ulong value)
-        {
-            _value = value;
-            _scale = 0;
-        }
-
-        public BigDecimal(Half value)
-        {
-            var (Mantissa, Scale) = value.Deconstruct();
-            _value = Mantissa;
-            _scale = Scale;
-        }
-
-        public BigDecimal(float value)
-        {
-            var (Mantissa, Scale) = value.Deconstruct();
-            _value = Mantissa;
-            _scale = Scale;
-        }
-
-        public BigDecimal(double value)
-        {
-            var (Mantissa, Scale) = value.Deconstruct();
-            _value = Mantissa;
-            _scale = Scale;
-        }
-
-        public BigDecimal(decimal value)
-        {
-            var (Mantissa, Scale) = value.Deconstruct();
-            _value = Mantissa;
-            _scale = Scale;
+            var (value, scale) = Normalize(components.value);
+            _significand = value;
+            _scale = BigInteger.Zero.Equals(value) ? 0 : components.scale + scale;
         }
 
         public BigDecimal(BigInteger value)
-        : this(value, 0)
+        : this((value, 0))
         {
         }
 
-        public BigDecimal(BigInteger value, int scale)
+        public BigDecimal(ulong value)
+        : this((value, 0))
         {
-            var (Mantissa, Scale) = (value, scale).NormalizeBigDecimal();
-            _value = Mantissa;
-            _scale = Scale;
         }
 
-
-        public BigDecimal Floor() => new BigDecimal(Truncate(), 0);
-
-        public BigDecimal Ceiling()
+        public BigDecimal(long value)
+        : this((value, 0))
         {
-            if (_scale == 0)
-                return this;
-
-            var digits = _value.ToString();
-            byte roundingDigit = (byte)(digits[^_scale] - 48);
-            return Truncate() + roundingDigit switch
-            {
-                < 5 => 0,
-                _ => 1
-            };
         }
 
-        public BigDecimal Fraction()
+        public BigDecimal(double value)
+        : this(Deconstruct(value))
         {
-            var truncated = Truncate();
-            return this - truncated;
         }
 
-        public BigDecimal Round(int decimals = 0)
+        public BigDecimal(decimal value)
+        : this(Deconstruct(value))
         {
-            if (decimals < 0)
-                throw new ArgumentOutOfRangeException($"{nameof(decimals)} is < 0. '{decimals}'");
-
-            if (_scale == 0)
-                return this;
-
-            var newScale = decimals < _scale ? decimals : _scale;
-            var anchor = DigitAtDecimalPlace(decimals + 1);
-            var truncateCount = _scale > decimals ? _scale - decimals : 0;
-            var rounded = _value / BigInteger.Pow(10, truncateCount);
-            rounded += anchor >= 5 ? 1 : 0;
-
-            return new BigDecimal(rounded, newScale);
         }
 
+        public BigDecimal(string notation)
+        : this(BigDecimal
+            .ParseScientificNotation(notation)
+            .BindError(ex => ParseDecimalNotation(notation))
+            .Resolve())
+        { 
+        }
+        #endregion
 
         #region Object
-        public override string ToString()
-        {
-            return $"[Mantissa: {_value}, Scale: {_scale}]";
-        }
-
-        public override int GetHashCode() => HashCode.Combine(_value, _scale);
-
         public override bool Equals([NotNullWhen(true)] object obj)
         {
-            return CompareTo(obj) == 0;
+            return obj is BigDecimal other && Equals(other);
         }
 
-        public static bool operator ==(BigDecimal a, BigDecimal b) => a.Equals(b);
+        public override int GetHashCode()
+        {
+            return HashCode.Combine(_significand.GetHashCode(), _scale);
+        }
 
-        public static bool operator !=(BigDecimal a, BigDecimal b) => !(a == b);
-
+        public override string ToString() => ToScientificString();
         #endregion
 
-        #region IUnaryPlusOperators<,>
-
-        public static BigDecimal operator +(BigDecimal value) => value;
-
-        #endregion
-
-        #region IUnaryNegationOperator<,>
-
-        public static BigDecimal operator -(BigDecimal value) => new(BigInteger.Negate(value._value), value._scale);
-
-        #endregion
-
-        #region IAdditionOperators<,>
-
-        public static BigDecimal operator +(BigDecimal left, BigDecimal right)
-        {
-            if (left == 0)
-                return right;
-
-            if (right == 0)
-                return left;
-
-            var (l, r) = Balance(left, right);
-            return new BigDecimal(l + r, Math.Max(left._scale, right._scale));
-        }
-
-        #endregion
-
-        #region ISubtractionOperators<,>
-
-        public static BigDecimal operator -(BigDecimal left, BigDecimal right)
-        {
-            if (left == 0)
-                return right;
-
-            if (right == 0)
-                return left;
-
-            var (l, r) = Balance(left, right);
-            return new BigDecimal(l - r, Math.Max(left._scale, right._scale));
-        }
-
-        #endregion
-
-        #region IMultiplicationOperators<,>
-
-        public static BigDecimal operator *(BigDecimal left, BigDecimal right)
-        {
-            if (left == 1)
-                return right;
-
-            if (right == 1)
-                return left;
-
-            var (l, r) = Balance(left, right, out var scale);
-            return new BigDecimal(l * r, scale * 2);
-        }
-
-        #endregion
-
-        #region IDivisionOperators<,>
-
-        public static BigDecimal operator /(BigDecimal left, BigDecimal right)
-        {
-            if (left == 1)
-                return right;
-
-            if (right == 1)
-                return left;
-
-            if (left < decimal.MaxValue && right < decimal.MaxValue)
-            {
-                var dleft = left.DemoteToDecimal();
-                var dright = right.DemoteToDecimal();
-                return new BigDecimal(dleft / dright);
-            }
-
-            var (l, r) = Balance(left, right);
-            var (quotient, remainder) = BigInteger.DivRem(l, r);
-
-            if (remainder == 0)
-                return new BigDecimal(quotient);
-
-            var raised = Raise(remainder, r);
-
-            var maxFractionalDigits = FormatContext.AsyncLocal.MaxSignificantFractionalDigits;
-
-            #region Special optimization cases should come here
-            if (raised.raisedValue == r)
-            {
-                return new BigDecimal((quotient * 10) + 1, 1);
-            }
-            #endregion
-
-            var fnumerator = raised.raisedValue * BigInteger.Pow(10, maxFractionalDigits - 1);
-            var fquotientString = (fnumerator / r).ToString().TrimEnd('0');
-            var fquotient = BigInteger.Parse(fquotientString);
-
-            quotient *= BigInteger.Pow(10, fquotientString.Length);
-
-            return new BigDecimal(quotient + fquotient, fquotientString.Length);
-        }
-
-        #endregion
-
-        #region IComparisonOperators<,>
-
-        public static bool operator >(BigDecimal left, BigDecimal right)
-        {
-            var (l, r) = Balance(left, right);
-            return l > r;
-        }
-
-        public static bool operator >=(BigDecimal left, BigDecimal right)
-        {
-            var (l, r) = Balance(left, right);
-            return l >= r;
-        }
-
-        public static bool operator <(BigDecimal left, BigDecimal right)
-        {
-            var (l, r) = Balance(left, right);
-            return l < r;
-        }
-
-        public static bool operator <=(BigDecimal left, BigDecimal right)
-        {
-            var (l, r) = Balance(left, right);
-            return l <= r;
-        }
-
+        #region Values
+        public static readonly BigDecimal _zero = default;
+        public static readonly BigDecimal _one = new BigDecimal(1);
         #endregion
 
         #region ICompareable
@@ -334,6 +113,7 @@ namespace Axis.Luna.Common.Numerics
                 uint v => new BigDecimal(v),
                 long v => new BigDecimal(v),
                 ulong v => new BigDecimal(v),
+                Half v => new BigDecimal((double)v),
                 float v => new BigDecimal(v),
                 double v => new BigDecimal(v),
                 decimal v => new BigDecimal(v),
@@ -348,7 +128,7 @@ namespace Axis.Luna.Common.Numerics
 
         public int CompareTo(BigDecimal other)
         {
-            var (first, second) = Balance(this, other);
+            var (first, second, _) = Balance(this, other);
             return first.CompareTo(second);
         }
         #endregion
@@ -361,160 +141,6 @@ namespace Axis.Luna.Common.Numerics
         }
         #endregion
 
-        #region IParsable
-        public static BigDecimal Parse(string s, IFormatProvider provider)
-        {
-            return Parse(s).Resolve();
-        }
-
-        public static bool TryParse(
-            [NotNullWhen(true)] string s,
-            IFormatProvider provider,
-            [MaybeNullWhen(false)] out BigDecimal result)
-        {
-            result = default;
-            try
-            {
-                result = Parse(s, provider);
-                return true;
-            }
-            catch
-            {
-                return false;
-            }
-        }
-        #endregion
-
-        #region IParsableResult
-        public static bool TryParse(string text, out IResult<BigDecimal> result)
-        {
-            Match match = DecimalPattern.Match(text);
-            if (match.Success)
-            {
-                result = Results.Result.Of(ParseFromDecimal(match));
-                return true;
-            }
-
-            match = ScientificPattern.Match(text);
-            if (match.Success)
-            {
-                result = Results.Result.Of(ParseFromScientific(match));
-                return true;
-            }
-
-            match = DeconstructedPattern.Match(text);
-            if (match.Success)
-            {
-                result = Results.Result.Of(ParseFromDeconstructed(match));
-                return true;
-            }
-
-            // Note: Result.Of(..) captures the stack trace.
-            result = Results.Result.Of<BigDecimal>(new FormatException($"Invalid {nameof(BigDecimal)} format: '{text}'"));
-            return false;
-        }
-
-        public static IResult<BigDecimal> Parse(string text)
-        {
-            _ = TryParse(text, out var result);
-            return result;
-        }
-
-        private static BigDecimal ParseFromDecimal(Match match)
-        {
-            var integer = match.Groups["integral"].Value;
-            var fraction = match.Groups["fraction"].Success
-                ? match.Groups["fraction"].Value.TrimEnd('0') // <-- cannonicalizes the fraction.
-                : "";
-
-            var notation = $"{integer}.{fraction}";
-            var (mantissa, scale) = notation.DeconstructFromNotation();
-
-            return new BigDecimal(mantissa, scale);
-        }
-
-        private static BigDecimal ParseFromScientific(Match match)
-        {
-            var integer = match.Groups["integral"].Value;
-            var fraction = match.Groups["fraction"].Value;
-            var exponent = match.Groups["exponent"].Value;
-
-            var notation = exponent[0] switch
-            {
-                '-' => $"{PadLeft(integer, exponent[1..])}{fraction}",
-                '+' => $"{integer}{PadRight(fraction, exponent[1..])}",
-                _ => $"{integer}{PadRight(fraction, exponent)}"
-            };
-
-            var (mantissa, scale) = notation.DeconstructFromNotation();
-            return new BigDecimal(mantissa, scale);
-        }
-
-        private static BigDecimal ParseFromDeconstructed(Match match)
-        {
-            var mantissa = match.Groups["mantissa"].Value;
-            var scale = match.Groups["scale"].Value;
-
-            return new BigDecimal(
-                BigInteger.Parse(mantissa),
-                int.Parse(scale));
-        }
-
-        private static string PadLeft(string integer, string padCount)
-        {
-            if ("0".Equals(padCount))
-                return integer;
-
-            var ipadCount = int.Parse(padCount);
-            var padded = integer.PadLeft(ipadCount, '0');
-            return padded
-                .Insert(padded.Length - ipadCount, ".")
-                .ApplyTo(v => v.StartsWith(".") ? $"0{v}" : v);
-        }
-
-        private static string PadRight(string fraction, string padCount)
-        {
-            if ("0".Equals(padCount)
-                || fraction.Length.ToString().Equals(padCount))
-                return fraction;
-
-            var ipadCount = int.Parse(padCount);
-            var padded = fraction.PadRight(ipadCount, '0');
-            return ipadCount < fraction.Length ? padded.Insert(ipadCount, ".") : padded;
-        }
-        #endregion
-
-        #region ISpanParsable
-        public static BigDecimal Parse(ReadOnlySpan<char> s, IFormatProvider provider) => Parse(s.ToString()).Resolve();
-        public static bool TryParse(
-            ReadOnlySpan<char> s,
-            IFormatProvider provider,
-            [MaybeNullWhen(false)] out BigDecimal result)
-            => TryParse(s.ToString(), provider, out result);
-        #endregion
-
-        #region ISpanFormattable
-        public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider provider)
-        {
-            destination = new Span<char>(ToString().ToArray());
-            charsWritten = destination.Length;
-            return true;
-        }
-
-        public string ToString(string format, IFormatProvider formatProvider)
-        {
-            return ToString();
-        }
-        #endregion
-
-        #region IIncrementOperators<>
-        public static BigDecimal operator ++(BigDecimal value) => value + 1;
-        #endregion
-
-        #region IDecrementOperators<>
-        public static BigDecimal operator --(BigDecimal value) => value - 1;
-        #endregion
-
         #region IAdditiveIdentity<,>
         public static BigDecimal AdditiveIdentity => Zero;
         #endregion
@@ -523,9 +149,7 @@ namespace Axis.Luna.Common.Numerics
         public static BigDecimal MultiplicativeIdentity => One;
         #endregion
 
-        #region INumberBase<>
-        private static BigDecimal _one = new BigDecimal(1);
-        private static BigDecimal _zero = new BigDecimal(0);
+        #region NumberBase
 
         public static BigDecimal One => _one;
 
@@ -533,13 +157,17 @@ namespace Axis.Luna.Common.Numerics
 
         public static int Radix => 10;
 
-        public static BigDecimal Abs(BigDecimal value) => value < 0 ? -value : value;
-
         public static bool IsCanonical(BigDecimal value) => true;
 
         public static bool IsComplexNumber(BigDecimal value) => false;
 
-        public static bool IsEvenInteger(BigDecimal value) => IsInteger(value) && (value._value & 1) == 0;
+        public static bool IsEvenInteger(BigDecimal value)
+            => IsInteger(value) 
+            && (value._scale > 0
+            || (value._significand & 1) == 0);
+
+        public static bool IsOddInteger(BigDecimal value)
+            => value._scale == 0 && (value._significand & 1) == 1;
 
         public static bool IsFinite(BigDecimal value) => true;
 
@@ -547,19 +175,17 @@ namespace Axis.Luna.Common.Numerics
 
         public static bool IsInfinity(BigDecimal value) => false;
 
-        public static bool IsInteger(BigDecimal value) => value._scale == 0;
+        public static bool IsInteger(BigDecimal value) => value._scale >= 0;
 
         public static bool IsNaN(BigDecimal value) => false;
 
-        public static bool IsNegative(BigDecimal value) => BigInteger.IsNegative(value._value);
+        public static bool IsNegative(BigDecimal value) => BigInteger.IsNegative(value._significand);
 
         public static bool IsNegativeInfinity(BigDecimal value) => false;
 
-        public static bool IsNormal(BigDecimal value) => value != 0;
+        public static bool IsNormal(BigDecimal value) => value != _zero;
 
-        public static bool IsOddInteger(BigDecimal value) => !IsEvenInteger(value);
-
-        public static bool IsPositive(BigDecimal value) => BigInteger.IsPositive(value._value);
+        public static bool IsPositive(BigDecimal value) => BigInteger.IsPositive(value._significand);
 
         public static bool IsPositiveInfinity(BigDecimal value) => false;
 
@@ -567,9 +193,9 @@ namespace Axis.Luna.Common.Numerics
 
         public static bool IsSubnormal(BigDecimal value) => false;
 
-        public static bool IsZero(BigDecimal value) => value == 0;
+        public static bool IsZero(BigDecimal value) => value == _zero;
 
-        public static  BigDecimal MaxMagnitude(BigDecimal x, BigDecimal y)
+        public static BigDecimal MaxMagnitude(BigDecimal x, BigDecimal y)
         {
             var ax = Abs(x);
             var ay = Abs(y);
@@ -583,9 +209,9 @@ namespace Axis.Luna.Common.Numerics
             return y;
         }
 
-        public static  BigDecimal MaxMagnitudeNumber(BigDecimal x, BigDecimal y) => MaxMagnitude(x, y);
+        public static BigDecimal MaxMagnitudeNumber(BigDecimal x, BigDecimal y) => MaxMagnitude(x, y);
 
-        public static  BigDecimal MinMagnitude(BigDecimal x, BigDecimal y)
+        public static BigDecimal MinMagnitude(BigDecimal x, BigDecimal y)
         {
             var ax = Abs(x);
             var ay = Abs(y);
@@ -599,9 +225,13 @@ namespace Axis.Luna.Common.Numerics
             return y;
         }
 
-        public static  BigDecimal MinMagnitudeNumber(BigDecimal x, BigDecimal y) => MinMagnitude(x, y);
+        public static BigDecimal MinMagnitudeNumber(BigDecimal x, BigDecimal y) => MinMagnitude(x, y);
 
-        public static BigDecimal Parse(string s, NumberStyles style, IFormatProvider provider) => Parse(s, provider);
+        public static BigDecimal Parse(
+            string s,
+            NumberStyles style,
+            IFormatProvider provider) => Parse(s, provider);
+
 
         public static BigDecimal Parse(
             ReadOnlySpan<char> s,
@@ -644,7 +274,7 @@ namespace Axis.Luna.Common.Numerics
             [MaybeNullWhen(false)] out TOther result)
             => TryConvertTo(value, out result);
 
-        private static bool TryConvertFrom<TOther>(TOther value,  out BigDecimal result)
+        private static bool TryConvertFrom<TOther>(TOther value, out BigDecimal result)
         {
             var bigDecimal = value switch
             {
@@ -657,7 +287,7 @@ namespace Axis.Luna.Common.Numerics
                 uint v => new BigDecimal(v),
                 long v => new BigDecimal(v),
                 ulong v => new BigDecimal(v),
-                Half v => new BigDecimal(v),
+                Half v => new BigDecimal((double)v),
                 float v => new BigDecimal(v),
                 double v => new BigDecimal(v),
                 decimal v => new BigDecimal(v),
@@ -716,45 +346,116 @@ namespace Axis.Luna.Common.Numerics
             IFormatProvider provider,
             [MaybeNullWhen(false)] out BigDecimal result)
             => TryParse(s, provider, out result);
+
         #endregion
 
-        #region ISignedNumber<>
-        public static BigDecimal NegativeOne => -One;
-
-        static BigDecimal INumberBase<BigDecimal>.One => One;
-
-        static int INumberBase<BigDecimal>.Radix => Radix;
-
-        static BigDecimal INumberBase<BigDecimal>.Zero => Zero;
-
-        static BigDecimal IAdditiveIdentity<BigDecimal, BigDecimal>.AdditiveIdentity => AdditiveIdentity;
-
-        static BigDecimal IMultiplicativeIdentity<BigDecimal, BigDecimal>.MultiplicativeIdentity => MultiplicativeIdentity;
-        #endregion
-
-        #region IModulusOperator<,,>
-        public static BigDecimal operator %(BigDecimal left, BigDecimal right)
+        #region Arithmetic Operations
+        internal static BigDecimal Add(BigDecimal left, BigDecimal right)
         {
-            var (l, r) = Balance(left, right);
-            return new BigDecimal(l % r, Math.Max(left._scale, right._scale));
+            if (left == _zero)
+                return right;
+
+            if (right == _zero)
+                return left;
+
+            var (l, r, s) = Balance(left, right);
+
+            return new BigDecimal((l + r, s));
         }
+
+        internal static BigDecimal Subtract(BigDecimal left, BigDecimal right)
+        {
+            if (left == _zero)
+                return right;
+
+            if (right == _zero)
+                return left;
+
+            var (l, r, s) = Balance(left, right);
+
+            return new BigDecimal((l - r, s));
+        }
+
+        internal static BigDecimal Multiply(BigDecimal left, BigDecimal right)
+        {
+            if (left == _zero || right == _zero)
+                return _zero;
+
+            if (left == 1)
+                return right;
+
+            if (right == 1)
+                return left;
+
+            return (
+                left._significand * right._significand,
+                (left._scale + right._scale));
+        }
+
+        internal static BigDecimal Divide(BigDecimal left, BigDecimal right, int precision = 64)
+        {
+            if (precision < 0)
+                throw new ArgumentOutOfRangeException(nameof(precision), "Precision cannot be < 0");
+
+            if (left == _zero)
+                return _zero;
+                
+            if (right == _zero)
+                throw new DivideByZeroException();
+
+            if (right == _one)
+                return left;
+
+            var (first, second, _) = Balance(left, right);
+            var (Quotient, Remainder) = BigInteger.DivRem(first, second);
+            var fraction = DecimalShift(Remainder, precision) / second;
+            return (
+                DecimalShift(Quotient, precision) + fraction,
+                -precision);
+        }
+
+        internal static BigDecimal Modulus(BigDecimal left, BigDecimal right)
+        {
+            if (left == _zero)
+                return _zero;
+
+            if (right == _zero)
+                throw new DivideByZeroException();
+
+            if (right == _one)
+                return left;
+
+            var (bfirst, bsecond, scale) = Balance(left, right);
+
+            return (
+                bfirst % bsecond,
+                scale);
+        }
+
+        public static BigDecimal Power(BigDecimal value, int exponent)
+        {
+            return (
+                BigInteger.Pow(value._significand, exponent),
+                value._scale * exponent);
+        }
+
         #endregion
 
         #region Implicits
-        public static implicit operator BigDecimal(byte value) => new BigDecimal(value);
-        public static implicit operator BigDecimal(sbyte value) => new BigDecimal(value);
-        public static implicit operator BigDecimal(char value) => new BigDecimal(value);
-        public static implicit operator BigDecimal(short value) => new BigDecimal(value);
-        public static implicit operator BigDecimal(ushort value) => new BigDecimal(value);
-        public static implicit operator BigDecimal(int value) => new BigDecimal(value);
-        public static implicit operator BigDecimal(uint value) => new BigDecimal(value);
-        public static implicit operator BigDecimal(long value) => new BigDecimal(value);
+        public static implicit operator BigDecimal(BigInteger value) => new BigDecimal(value);
         public static implicit operator BigDecimal(ulong value) => new BigDecimal(value);
-        public static implicit operator BigDecimal(Half value) => new BigDecimal(value);
+        public static implicit operator BigDecimal(long value) => new BigDecimal(value);
+        public static implicit operator BigDecimal(uint value) => new BigDecimal(value);
+        public static implicit operator BigDecimal(int value) => new BigDecimal(value);
+        public static implicit operator BigDecimal(ushort value) => new BigDecimal(value);
+        public static implicit operator BigDecimal(short value) => new BigDecimal(value);
+        public static implicit operator BigDecimal(sbyte value) => new BigDecimal(value);
+        public static implicit operator BigDecimal(byte value) => new BigDecimal(value);
+        public static implicit operator BigDecimal(Half value) => new BigDecimal((double)value);
         public static implicit operator BigDecimal(float value) => new BigDecimal(value);
         public static implicit operator BigDecimal(double value) => new BigDecimal(value);
         public static implicit operator BigDecimal(decimal value) => new BigDecimal(value);
-        public static implicit operator BigDecimal(BigInteger value) => new BigDecimal(value);
+        public static implicit operator BigDecimal(ValueTuple<BigInteger, int> value) => new BigDecimal(value);
         #endregion
 
         #region Explicits
@@ -774,53 +475,162 @@ namespace Axis.Luna.Common.Numerics
         public static explicit operator BigInteger(BigDecimal value) => (char)value.Truncate();
         #endregion
 
-        #region Helpers
+        #region IResultParsable
+        public static bool TryParse(
+            string text,
+            out IResult<BigDecimal> result)
+            => (result = Parse(text)) is IResult<BigDecimal>.DataResult;
 
-        public static BigDecimal Power(BigDecimal value, BigDecimal exponent)
+        public static IResult<BigDecimal> Parse(string text)
         {
-            if (value > double.MaxValue || value < double.MinValue)
-                throw new ArgumentOutOfRangeException(nameof(value));
+            if (ParseScientificNotation(text) is IResult<(BigInteger, int)>.DataResult data)
+                return data.Map(components => new BigDecimal(components));
 
-            if (exponent > double.MaxValue || exponent < double.MinValue)
-                throw new ArgumentOutOfRangeException(nameof(exponent));
+            return ParseDecimalNotation(text).Map(components => new BigDecimal(components));
+        }
+        #endregion
 
-            if (BigDecimal.IsInteger(exponent))
-            {
-                var balanced = Balance(value, exponent);
-                return BigInteger.Pow(balanced.first, (int)balanced.second);
-            }
-            else  return Math.Pow((double)value, (double)exponent);
+        #region IParsable
+        public static BigDecimal Parse(string s, IFormatProvider provider) => Parse(s).Resolve();
+
+        public static bool TryParse(
+            [NotNullWhen(true)] string s,
+            IFormatProvider provider,
+            [MaybeNullWhen(false)] out BigDecimal result)
+        {
+            bool parsed;
+            result = (parsed = TryParse(s, out var r))
+                ? r.Resolve()
+                : default;
+
+            return parsed;
+        }
+        #endregion
+
+        #region ISpanParsable
+        public static BigDecimal Parse(ReadOnlySpan<char> s, IFormatProvider provider) => Parse(s.ToString()).Resolve();
+
+        public static bool TryParse(
+            ReadOnlySpan<char> s,
+            IFormatProvider provider,
+            [MaybeNullWhen(false)] out BigDecimal result)
+            => TryParse(s.ToString(), provider, out result);
+        #endregion
+
+        #region ISpanFormattable
+        public bool TryFormat(
+            Span<char> destination,
+            out int charsWritten,
+            ReadOnlySpan<char> format,
+            IFormatProvider provider)
+        {
+            destination = new Span<char>(ToString().ToArray());
+            charsWritten = destination.Length;
+            return true;
         }
 
-        internal static (BigInteger first, BigInteger second) Balance(BigDecimal first, BigDecimal second)
+        public string ToString(string format, IFormatProvider formatProvider)
         {
-            return Balance(first, second, out _);
+            return ToString();
+        }
+        #endregion
+
+        #region ISignedNumber<>
+        public static BigDecimal NegativeOne => -One;
+        #endregion
+
+        #region Operators
+
+        #region IEqualityOperators
+        public static bool operator ==(BigDecimal left, BigDecimal right) => left.Equals(right);
+
+        public static bool operator !=(BigDecimal left, BigDecimal right) => !left.Equals(right);
+        #endregion
+
+        #region IComparisonOperators<,>
+
+        public static bool operator >(BigDecimal left, BigDecimal right)
+        {
+            var (l, r, _) = Balance(left, right);
+            return l > r;
         }
 
-        internal static (BigInteger first, BigInteger second) Balance(BigDecimal first, BigDecimal second, out int scale)
+        public static bool operator >=(BigDecimal left, BigDecimal right)
         {
-            var values = first._scale.CompareTo(second._scale) switch
-            {
-                0 => (first._value, second._value, first._scale),
-                < 0 => (first._value * BigInteger.Pow(10, second._scale - first._scale), second._value, second._scale),
-                > 0 => (first._value, second._value * BigInteger.Pow(10, first._scale - second._scale), first._scale)
-            };
-
-            scale = values._scale;
-            return (values.Item1, values.Item2);
+            var (l, r, _) = Balance(left, right);
+            return l >= r;
         }
 
-        internal static (BigInteger raisedValue, int decimalShifts) Raise(BigInteger dividend, BigInteger  divisor)
+        public static bool operator <(BigDecimal left, BigDecimal right)
         {
-            var decimalShifts = 0;
-            var raisedValue = dividend;
-            while (raisedValue < divisor)
-            {
-                raisedValue *= 10;
-                decimalShifts++;
-            }
+            var (l, r, _) = Balance(left, right);
+            return l < r;
+        }
 
-            return (raisedValue, decimalShifts);
+        public static bool operator <=(BigDecimal left, BigDecimal right)
+        {
+            var (l, r, _) = Balance(left, right);
+            return l <= r;
+        }
+
+        #endregion
+
+        #region IUnaryPlusOperators<,>
+
+        public static BigDecimal operator +(BigDecimal value) => value;
+
+        #endregion
+
+        #region IUnaryNegationOperator<,>
+
+        public static BigDecimal operator -(BigDecimal value) => new((BigInteger.Negate(value._significand), value._scale));
+
+        #endregion
+
+        #region IAdditionOperators<,>
+
+        public static BigDecimal operator +(BigDecimal left, BigDecimal right) => Add(left, right);
+
+        #endregion
+
+        #region ISubtractionOperators<,>
+
+        public static BigDecimal operator -(BigDecimal left, BigDecimal right) => Subtract(left, right);
+
+        #endregion
+
+        #region IMultiplicationOperators<,>
+
+        public static BigDecimal operator *(BigDecimal left, BigDecimal right) => Multiply(left, right);
+
+        #endregion
+
+        #region IDivisionOperators<,>
+
+        public static BigDecimal operator /(BigDecimal left, BigDecimal right) => Divide(left, right);
+
+        #endregion
+
+        #region IModulusOperator<,,>
+        public static BigDecimal operator %(BigDecimal left, BigDecimal right) => Modulus(left, right);
+        #endregion
+
+        #region IIncrementOperators<>
+        public static BigDecimal operator ++(BigDecimal value) => value + 1;
+        #endregion
+
+        #region IDecrementOperators<>
+        public static BigDecimal operator --(BigDecimal value) => value - 1;
+        #endregion
+
+        #endregion
+
+        #region Misc
+        public static BigDecimal Abs(BigDecimal value)
+        {
+            return (
+                BigInteger.Abs(value._significand),
+                value._scale);
         }
 
         public static BigDecimal WithContext(FormatContext context, Func<BigDecimal> func)
@@ -836,15 +646,278 @@ namespace Axis.Luna.Common.Numerics
             }
         }
 
+        public BigDecimal Floor() => new BigDecimal((Truncate(), 0));
+
+        public BigDecimal Ceiling()
+        {
+            if (_scale >= 0)
+                return this;
+
+            var digits = _significand.ToString();
+            if (-_scale > digits.Length)
+                return Zero;
+
+            byte roundingDigit = (byte)(digits[^-_scale] - 48);
+            return Truncate() + roundingDigit switch
+            {
+                < 5 => 0,
+                _ => 1
+            };
+        }
+
+        public BigDecimal Fraction() =>  this - Truncate();
+
+        public BigDecimal Round(int decimals = 0)
+        {
+            if (decimals < 0)
+                throw new ArgumentOutOfRangeException($"{nameof(decimals)} is < 0. '{decimals}'");
+
+            if (_scale >= 0)
+                return this;
+
+            if (decimals >= -_scale)
+                return this;
+
+            var digits = _significand
+                .ToString()
+                .PadLeft(-_scale, '0');
+
+            var anchor = _scale + decimals;
+            return (
+                DecimalShift(_significand, anchor) + digits[^(-anchor)] switch
+                {
+                    >= '5' => 1,
+                    _ => 0
+                },
+                -decimals);
+        }
+        #endregion
+
+        #region Helpers
+
+        private static readonly RegexOptions RegexOptions =
+            RegexOptions.Compiled
+            | RegexOptions.CultureInvariant
+            | RegexOptions.IgnoreCase;
+
+        internal static readonly string SignPattern = "(?'sign'[\\+\\-])";
+        internal static readonly string IntegralPattern = "(?'integral'\\d+)";
+        internal static readonly string FractionPattern = "(?'fraction'\\.\\d+)";
+        internal static readonly string ExponentPattern = "(?'exponent'E[\\+\\-]?\\d+)";
+
+        internal static readonly Regex DecimalRegex = new Regex(
+            $"^{SignPattern}?{IntegralPattern}{FractionPattern}?\\z",
+            RegexOptions);
+
+        internal static readonly Regex IntegerRegex = new Regex(
+            "^(?'sign'\\-)?(?'integral'\\d+)\\z",
+            RegexOptions);
+
+        internal static readonly Regex ScientificRegex = new Regex(
+            $"^{SignPattern}?{IntegralPattern}{FractionPattern}?{ExponentPattern}\\z",
+            RegexOptions);
+
+        /// <summary>
+        /// Truncates and converts any trailing zeros to scale
+        /// </summary>
+        /// <param name="value">The value to normalize</param>
+        /// <returns>The noralizing components</returns>
+        internal static (BigInteger value, int scale) Normalize(BigInteger value)
+        {
+            if (value == BigInteger.Zero)
+                return (value, 0);
+
+            return (
+                BigInteger.Parse(value.ToString().TrimEnd('0')),
+                value.TrailingDecimalZeroCount());
+        }
+
+        /// <summary>
+        /// </summary>
+        internal static (BigInteger first, BigInteger second, int scale) Balance(BigDecimal first, BigDecimal second)
+        {
+            var dfirst = Denormalize(first);
+            var dsecond = Denormalize(second);
+            return dfirst.shifts.CompareTo(dsecond.shifts) switch
+            {
+                0 => (dfirst.value, dsecond.value, first._scale),
+
+                > 0 => (
+                    dfirst.value,
+                    DecimalShift(dsecond.value, dfirst.shifts - dsecond.shifts),
+                    first._scale),
+
+                < 0 => (
+                    DecimalShift(dfirst.value, dsecond.shifts - dfirst.shifts),
+                    dsecond.value,
+                    second._scale)
+            };
+        }
+
+
+        /// <summary>
+        /// </summary>
+        internal static (BigInteger value, int scale) Deconstruct(double value)
+        {
+            return BigDecimal
+                .ParseScientificNotation(value.ToString("E17"))
+                .Resolve();
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        internal static (BigInteger value, int scale) Deconstruct(decimal value)
+        {
+            return BigDecimal
+                .ParseScientificNotation(value.ToString("E39"))
+                .Resolve();
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        internal static IResult<(BigInteger value, int scale)> ParseScientificNotation(string scientificNotation)
+        {
+            var match = ScientificRegex.Match(scientificNotation);
+
+            if (!match.Success)
+                return Result.Of<(BigInteger value, int scale)>(
+                    new ArgumentException($"Invalid number format: {scientificNotation}"));
+
+            try
+            {
+                var sign = match.Groups["sign"].Value switch
+                {
+                    "+" or "" => true,
+                    "-" => false,
+                    _ => throw new FormatException($"Invalid number format: '{scientificNotation}'")
+                };
+
+                var significantIntegral = match.Groups["integral"].Value
+                    .TrimStart('0')
+                    .PadLeft(1, '0'); // sets a zero in case the integral part only contained zeros.
+
+                var significantFractional = match.Groups["fraction"].Success switch
+                {
+                    false => "",
+                    true => match.Groups
+                        ["fraction"].Value
+                        [1..]
+                        .TrimEnd('0')
+                };
+
+                var exponent = match.Groups["exponent"].Value[1..];
+                var significantDigits = $"{significantIntegral}{significantFractional}";
+
+                var intValue = BigInteger.Parse($"{(sign ? "" : "-")}{significantDigits}");
+                var unadjustedScale = int.Parse(exponent);
+                var pointPosition = significantIntegral.Length;
+
+                return Result.Of((
+                    intValue,
+                    BigInteger.Zero.Equals(intValue) ? 0 : unadjustedScale - (significantDigits.Length - pointPosition)));
+            }
+            catch(Exception e)
+            {
+                return Result.Of<(BigInteger value, int scale)>(e);
+            }
+        }
+
+        internal static IResult<(BigInteger value, int scale)> ParseDecimalNotation(string decimalNotation)
+        {
+            return ParseScientificNotation($"{decimalNotation}E0");
+        }
+
+        /// <summary>
+        /// Returns the significant digits, and an integer representing the decimal point shifts made to transform the fraction
+        /// to a whole number
+        /// </summary>
+        /// <param name="value"></param>
+        /// <returns></returns>
+        internal static (BigInteger value, int shifts) Denormalize(BigDecimal value)
+        {
+            return value._scale switch
+            {
+                0 => (value._significand, 0),
+                > 0 => (PowerShift(value._significand, value._scale), 0),
+                < 0 => (value._significand, -value._scale),
+            };
+        }
+
+        /// <summary>
+        /// Has faster benchmark for <paramref name="shiftCount"/> &lt;= -30.
+        /// </summary>
+        /// <param name="value"></param>
+        /// <param name="shiftCount"></param>
+        /// <returns></returns>
+        internal static BigInteger StringShift(BigInteger value, int shiftCount)
+        {
+            return shiftCount switch
+            {
+                0 => value,
+                > 0 => $"{value}{new string('0', shiftCount)}".ApplyTo(BigInteger.Parse),
+                < 0 => value
+                    .ToString()
+                    .ApplyTo(stringValue =>
+                    {
+                        var absShit = Math.Abs(shiftCount);
+                        var signless = stringValue[0] == '-' ? stringValue[1..] : stringValue;
+                        return absShit.CompareTo(signless.Length) switch
+                        {
+                            < 0 => stringValue[..(stringValue.Length - absShit)].ApplyTo(BigInteger.Parse),
+                            _ => BigInteger.Zero
+                        };
+                    })
+            };
+        }
+
+        /// <summary>
+        /// Has faster benchmark for <paramref name="shiftCount"/> &gt; -30.
+        /// </summary>
+        /// <param name="value"></param>
+        /// <param name="shiftCount"></param>
+        /// <returns></returns>
+        internal static BigInteger PowerShift(BigInteger value, int shiftCount)
+        {
+            return shiftCount switch
+            {
+                0 => value,
+                > 0 => value * BigInteger.Pow(10, shiftCount),
+                < 0 => value / BigInteger.Pow(10, Math.Abs(shiftCount))
+            };
+        }
+
+        internal static BigInteger DecimalShift(BigInteger value, int shiftCount)
+        {
+            return shiftCount switch
+            {
+                > 0 => PowerShift(value, shiftCount),
+                0 => value,
+                > -30 => PowerShift(value, shiftCount),
+                <= -30 => StringShift(value, shiftCount)
+            };
+        }
+
+        internal BigInteger Truncate()
+        {
+            if (_scale == 0)
+                return _significand;
+
+            return DecimalShift(_significand, _scale);
+        }
+
         internal decimal DemoteToDecimal()
         {
-            var sign = _value.Sign switch
+            var sign = _significand.Sign switch
             {
                 < 0 => false,
                 >= 0 => true
             };
-            var absoluteValue = !sign ? BigInteger.Negate(_value) : _value;
-            var ints = absoluteValue
+
+            var (value, shifts) = Denormalize(this);
+            var ints = BigInteger
+                .Abs(value)
                 .ToByteArray()
                 .TakeExactly(12)
                 .Select((@byte, index) => (@byte, index))
@@ -852,26 +925,12 @@ namespace Axis.Luna.Common.Numerics
                 .Select(bytes => BitConverter.ToInt32(bytes.ToArray()))
                 .ToArray();
 
-            var scale = BitConverter.ToInt32(new byte[] { 0, 0, (byte)_scale, (byte)(sign ? 0 : 1) });
+            var scale = BitConverter.ToInt32(new byte[] { 0, 0, (byte)shifts, (byte)(sign ? 0 : 1) });
 
             return new decimal(ints.Append(scale).ToArray());
         }
 
-        internal double DemoteToDouble()
-        {
-            var text = _value.ToString();
-            var sign = text[0] == '-';
-
-            var allDigits = text[(sign ? 1 : 0)..];
-            var totalLength = allDigits.Length;
-            var significantDigits = allDigits.Take(16).JoinUsing("");
-            var doubleValue =
-                IsPointSignificant(totalLength, _scale) ? significantDigits.InsertAt(totalLength - _scale, '.').JoinUsing("") :
-                _scale >= allDigits.Length ? $"0.{significantDigits.PadLeft(_scale - totalLength, '0')}" :
-                significantDigits;
-
-            return double.Parse(doubleValue);
-        }
+        internal double DemoteToDouble() => double.Parse(ToScientificString(14));
 
         internal double ToDouble()
         {
@@ -889,53 +948,65 @@ namespace Axis.Luna.Common.Numerics
             return DemoteToDecimal();
         }
 
-        internal BigInteger Truncate()
+        /// <summary>
+        /// precision of <c>-1</c> means use only the exact amount of significant digits available
+        /// </summary>
+        /// <param name="precision"></param>
+        /// <returns></returns>
+        internal string ToScientificString(int precision = -1)
         {
-            if (_scale == 0)
-                return _value;
+            if (precision < -1)
+                throw new ArgumentException($"Precision cannot be < -1");
 
-            return _value / BigInteger.Pow(10, _scale);
-        }
+            var intComponents = IntegerRegex.Match(_significand.ToString());
+            var intString = intComponents.Groups["integral"].Value;
+            var sign = intComponents.Groups["sign"].Value;
 
-        internal static bool IsPointSignificant(int totalValueLength, int scale)
-        {
-            return totalValueLength > scale && scale > totalValueLength - 16;
-        }
-
-        internal byte DigitAtDecimalPlace(int decimalPlace)
-        {
-            if (decimalPlace < 1)
-                throw new ArgumentOutOfRangeException($"{nameof(decimalPlace)} is < 1. '{decimalPlace}'");
-
-            var decimalIndex = decimalPlace - 1;
-            var significantDigits = _value.ToString();
-            var significantDigitCount = significantDigits.Length;
-
-            if (_scale > significantDigitCount)
+            var exponent = _scale + (intString.Length - 1);
+            return intString.Length switch
             {
-                if (decimalIndex < (_scale - significantDigitCount))
-                    return 0;
-
-                else
-                    return (byte)(significantDigits[decimalIndex - (_scale - significantDigitCount)] - 48);
-            }
-
-            else if (decimalIndex >= significantDigitCount)
-                return 0;
-
-            else
-            {
-                var resolvedIndex = decimalIndex + (significantDigitCount - _scale);
-
-                if (resolvedIndex < significantDigitCount)
-                    return (byte)(significantDigits[resolvedIndex] - 48);
-
-                else return 0;
-            }
+                1 => $"{sign}{intString}.0E{exponent}",
+                > 1 => $"{sign}{intString[0]}.{AtMost(intString[1..], precision)}E{exponent}",
+                _ => throw new FormatException($"Invalid number format: '{_significand}'")
+            };
         }
 
-        internal int SignificantDigitCount() => _value.ToString().Length;
+        internal string ToNonScientificString(int precision = -1)
+        {
+            if (precision < -1)
+                throw new ArgumentOutOfRangeException(nameof(precision), "Precision cannot be < -1");
 
+            if (Zero.Equals(this))
+                return "0";
+
+            var sign = IsNegative(this) ? "-" : "";
+
+            var digits = _significand
+                .ToString()
+                .ApplyTo(text => "".Equals(sign) ? text: text[1..]);
+
+            var text =
+                (int.IsNegative(_scale) && -_scale >= digits.Length) ? $"{sign}0.{new string('0', -_scale - digits.Length)}{digits}" :
+                int.IsNegative(_scale) ? $"{sign}{digits.Split(digits.Length + _scale).JoinUsing(".")}":
+                $"{sign}{digits}{new string('0', _scale)}";
+
+            var currentPrecision = text.Length -  (text.IndexOf('.') + 1);
+            return
+                precision == -1 ? text :
+                precision > currentPrecision ? text :
+                text[..(currentPrecision - precision)];
+        }
+
+        private static string AtMost(string s, int length)
+        {
+            if (length == -1 || length > s.Length)
+                return s;
+
+            if (length == 0)
+                return "";
+
+            return s[0..length];
+        }
         #endregion
 
         #region Nested types

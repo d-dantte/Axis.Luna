@@ -179,6 +179,34 @@ namespace Axis.Luna.Common.Results
         }
 
         /// <summary>
+        /// Maps the encapsulate error if available, into a result
+        /// </summary>
+        /// <typeparam name="TResult"></typeparam>
+        /// <param name="result"></param>
+        /// <param name="errorMapper"></param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentNullException"></exception>
+        /// <exception cref="InvalidResultTypeException"></exception>
+        public static IResult<TResult> BindError<TResult>(this
+            IResult<TResult> result,
+            Func<ResultException, IResult<TResult>> errorBinder)
+        {
+            if (errorBinder == null)
+                throw new ArgumentNullException(nameof(errorBinder));
+
+            return result switch
+            {
+                IResult<TResult>.DataResult data => data,
+                IResult<TResult>.ErrorResult error => Of(() => errorBinder
+                    .Invoke(error.Cause())
+                    .Resolve()),
+
+                null => throw new ArgumentNullException(nameof(result)),
+                _ => throw new InvalidResultTypeException(result.GetType())
+            };
+        }
+
+        /// <summary>
         /// Consumes the error of the result, if available
         /// </summary>
         /// <typeparam name="TResult">the encapsulated type</typeparam>
