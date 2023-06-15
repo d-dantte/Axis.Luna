@@ -83,5 +83,23 @@ namespace Axis.Luna.Extensions.Test
             Assert.AreEqual(6, result.Length);
             Assert.AreEqual(50, result[5]);
         }
+
+        [TestMethod]
+        public void SKipEvery_Tests()
+        {
+            var x = new[] { 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0 };
+            var skipped = x.SkipEvery(4).ToArray();
+
+            skipped.ForAll(t => Console.Write(t + " "));
+        }
+
+        [TestMethod]
+        public void TakeEvery_Tests()
+        {
+            var x = new[] { 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0 };
+            var skipped = x.TakeEvery(3).ToArray();
+
+            skipped.ForAll(t => Console.Write(t + " "));
+        }
     }
 }

@@ -1,0 +1,196 @@
+﻿using Axis.Luna.Extensions;
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
+using System.Numerics;
+
+namespace Axis.Luna.Common
+{
+    /// <summary>
+    /// A sequence of bits, represented as bools, that can be manipulated into
+    /// bytes.
+    /// </summary>
+    public struct BitSequence : IEnumerable<bool>
+    {
+        #region Fields
+        private bool[] bits;
+        #endregion
+
+        #region Members
+        public int Length => bits?.Length ?? -1;
+
+        public bool this[int index]
+        {
+            get
+            {
+                ValidateState();
+                return bits[index];
+            }
+        }
+
+        public BitSequence Slice(int start, int length)
+        {
+            ValidateState();
+            return new BitSequence(bits.Slice(start, length));
+        }
+        #endregion
+
+        #region Construction
+        public BitSequence(IEnumerable<bool> bits)
+        {
+            ArgumentNullException.ThrowIfNull(bits);
+
+            this.bits = bits.ToArray();
+        }
+
+        public static BitSequence Of(IEnumerable<bool> bits) => new BitSequence(bits);
+
+        public static BitSequence Of(byte[] bytes)
+            => new BitArray(bytes).SelectAs<bool>().ApplyTo(Of);
+
+        public static BitSequence Of(byte @byte) => Of(new[] { @byte });
+
+        public static BitSequence Of(sbyte @byte) => Of(new[] { (byte)@byte });
+
+        public static BitSequence Of(short value) => Of(BitConverter.GetBytes(value));
+
+        public static BitSequence Of(ushort value) => Of(BitConverter.GetBytes(value));
+
+        public static BitSequence Of(int value) => Of(BitConverter.GetBytes(value));
+
+        public static BitSequence Of(uint value) => Of(BitConverter.GetBytes(value));
+
+        public static BitSequence Of(long value) => Of(BitConverter.GetBytes(value));
+
+        public static BitSequence Of(ulong value) => Of(BitConverter.GetBytes(value));
+
+        public static BitSequence Of(Half value) => Of(BitConverter.GetBytes(value));
+
+        public static BitSequence Of(float value) => Of(BitConverter.GetBytes(value));
+
+        public static BitSequence Of(double value) => Of(BitConverter.GetBytes(value));
+
+        public static BitSequence Of(
+            decimal value)
+            => decimal
+                .GetBits(value)
+                .Select(BitConverter.GetBytes)
+                .SelectMany()
+                .ToArray()
+                .ApplyTo(Of);
+
+        public static BitSequence Of(BigInteger value) => Of(value.ToByteArray());
+
+        public static BitSequence Of(Guid guid) => Of(guid.ToByteArray());
+
+        public static BitSequence Of(BitArray bits) => Of(bits.SelectAs<bool>());
+        #endregion
+
+        #region Implicits
+        public static implicit operator BitSequence(byte[] value) => Of(value);
+        public static implicit operator BitSequence(byte value) => Of(value);
+        public static implicit operator BitSequence(sbyte value) => Of(value);
+        public static implicit operator BitSequence(short value) => Of(value);
+        public static implicit operator BitSequence(ushort value) => Of(value);
+        public static implicit operator BitSequence(int value) => Of(value);
+        public static implicit operator BitSequence(uint value) => Of(value);
+        public static implicit operator BitSequence(long value) => Of(value);
+        public static implicit operator BitSequence(ulong value) => Of(value);
+        public static implicit operator BitSequence(Half value) => Of(value);
+        public static implicit operator BitSequence(float value) => Of(value);
+        public static implicit operator BitSequence(double value) => Of(value);
+        public static implicit operator BitSequence(decimal value) => Of(value);
+        public static implicit operator BitSequence(BigInteger value) => Of(value);
+        public static implicit operator BitSequence(Guid value) => Of(value);
+        public static implicit operator BitSequence(BitArray value) => Of(value);
+        #endregion
+
+        #region IEnumerable
+        public IEnumerator<bool> GetEnumerator()
+        {
+            return ((IEnumerable<bool>)bits).GetEnumerator();
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return bits.GetEnumerator();
+        }
+        #endregion
+
+        #region Byte Manipulation methods
+        internal static byte[] BitMasks = new byte[]
+        {
+            1,  // index 0
+            2,  // index 1
+            4,  // index 2
+            8,  // index 3
+            16, // index 4
+            32, // index 5
+            64, // index 6
+            128 // index 7
+        };
+
+        public byte ByteAt(Index index)
+        {
+            ValidateState();
+            var actualIndex = index.GetOffset(bits.Length);
+            if (actualIndex >= bits.Length)
+                throw new ArgumentOutOfRangeException(nameof(index));
+
+            var totalCount = bits.Length - actualIndex;
+
+            return this
+                .ToByteArray(
+                    actualIndex,
+                    totalCount > 8 ? 8 : totalCount)
+                [0];
+        }
+
+        public byte[] ToByteArray() => ToByteArray(Range.All);
+
+        public byte[] ToByteArray(Range range)
+        {
+            ValidateState();
+            var rangeInfo = range.GetOffsetAndLength(bits.Length);
+            return ToByteArray(rangeInfo.Offset, rangeInfo.Length);
+        }
+
+        public byte[] ToByteArray(int startIndex, int bitLength)
+        {
+            ValidateState();
+            return bits
+                .Slice(startIndex, bitLength)
+                .Batch(8)
+                .Select(ToByte)
+                .ToArray();
+        }
+        #endregion
+
+        #region Misc
+        public BitArray ToBitArray() => new BitArray(bits);
+        #endregion
+
+        #region Helpers
+
+        private void ValidateState()
+        {
+            if (bits is null)
+                throw new InvalidOperationException("BitSequence is in invalid state");
+        }
+
+
+        private static byte ToByte(IEnumerable<bool> bitOctet)
+        {
+            return bitOctet
+                .Select((bit, index) => (bit, index))
+                .Aggregate((byte)0, (@byte, bitInfo) => @byte |= bitInfo.bit switch
+                {
+                    true => BitMasks[bitInfo.index],
+                    false => 0
+                });
+        }
+
+        #endregion
+    }
+}

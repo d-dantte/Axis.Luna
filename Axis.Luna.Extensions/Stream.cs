@@ -11,7 +11,10 @@ namespace Axis.Luna.Extensions
         /// <param name="stream"></param>
         /// <param name="encoding"></param>
         /// <returns></returns>
-        public static Stream PeekTextEncoding(this System.IO.Stream stream, out Encoding encoding)
+        public static Stream PeekTextEncoding(
+            this Stream stream,
+            out Encoding encoding,
+            Encoding defaultEncoding)
         {
             var bufferedStream = new BufferedStream(stream);
             var bom = new byte[4];
@@ -37,10 +40,21 @@ namespace Axis.Luna.Extensions
             else if (length >= 2 && bom[0] == 0xfe && bom[1] == 0xff)
                 encoding = Encoding.BigEndianUnicode;
 
-            else encoding = Encoding.ASCII;
+            else encoding = defaultEncoding ?? Encoding.ASCII;
 
             bufferedStream.Position = 0;
             return bufferedStream;
         }
+
+        /// <summary>
+        /// https://stackoverflow.com/a/19283954
+        /// </summary>
+        /// <param name="stream"></param>
+        /// <param name="encoding"></param>
+        /// <returns></returns>
+        public static Stream PeekTextEncoding(
+            this Stream stream,
+            out Encoding encoding)
+            => PeekTextEncoding(stream, out encoding, null);
     }
 }

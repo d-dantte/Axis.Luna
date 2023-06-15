@@ -116,3 +116,26 @@
 	   This will require support for async state execution, which isn't trivial.
 	2. Act: synchronious version of the ActAsync method above.
 	   [Done]
+
+
+2023/06/15 ==================================================================================
+-   Refactor SkipEvery(...), and TakeEVery(...). They API aren't intuitive. refactor them to:
+	1. IEnumerable<TItem> SkipEvery<TItem>(
+		this IEnumerable<TItem> items,
+		int skipCount,
+		Func<
+			int, //total skipped
+			int, //index
+			TItem, //item
+			bool> takeWhen);
+
+	2. IEnumerable<TItem> TakeEvery<TItem>(
+		this IEnumerable<TItem> items,
+		int takeCount,
+		Func<
+			int, //total taken
+			int, //index
+			TItem, //item
+			bool> skipWhen);
+
+-   Include a JoinUsing API that joins any given sequence appropriately

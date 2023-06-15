@@ -10,6 +10,38 @@ namespace Axis.Luna.Extensions
     public static class EnumerableExtensions
     {
         /// <summary>
+        /// 
+        /// </summary>
+        /// <typeparam name="TItem"></typeparam>
+        /// <param name="items"></param>
+        /// <param name="delimiter"></param>
+        /// <returns></returns>
+        internal static IEnumerable<TItem> JoinUsing<TItem>(
+            this IEnumerable<IEnumerable<TItem>> items,
+            params TItem[] delimiter)
+        {
+            return items
+                .Join(delimiter)
+                .SelectMany();
+        }
+
+        private static IEnumerable<IEnumerable<TItem>> Join<TItem>(
+            this IEnumerable<IEnumerable<TItem>> items,
+            params TItem[] delimiter)
+        {
+            using var enumerator = items.GetEnumerator();
+
+            if (enumerator.MoveNext())
+                yield return enumerator.Current;
+
+            while (enumerator.MoveNext())
+            {
+                yield return delimiter;
+                yield return enumerator.Current;
+            }
+        }
+
+        /// <summary>
         /// Casts the given <see cref="IEnumerable"/> items into the supplied type
         /// </summary>
         /// <typeparam name="TOut">The type to be casted into</typeparam>
@@ -650,6 +682,7 @@ namespace Axis.Luna.Extensions
             }
         }
 
+
         /// <summary>
         /// Skips the last <c>count</c> elements of a sequence
         /// </summary>
@@ -686,7 +719,10 @@ namespace Axis.Luna.Extensions
         /// <param name="takeCount"></param>
         /// <param name="whilenot">a condition that must be false for the skip process to happen</param>
         /// <returns></returns>
-        public static IEnumerable<T> TakeEvery<T>(this IEnumerable<T> sequence, int takeCount, Func<long, T, bool> whilenot = null)
+        public static IEnumerable<T> TakeEvery<T>(
+            this IEnumerable<T> sequence,
+            int takeCount,
+            Func<long, T, bool> whilenot = null)
         {
             var count = -1L;
             var mod = takeCount + 1;
@@ -723,6 +759,23 @@ namespace Axis.Luna.Extensions
 
             if (batch.Count > 0)
                 yield return index++.ValuePair(batch.AsEnumerable());
+        }
+
+        /// <summary>
+        /// TODO: unit test this
+        /// </summary>
+        /// <typeparam name="TItem"></typeparam>
+        /// <param name="source"></param>
+        /// <param name="batchSize"></param>
+        /// <param name="skipBatches"></param>
+        /// <returns></returns>
+        public static IEnumerable<KeyValuePair<long, IEnumerable<TItem>>> BatchGroup_<TItem>(this IEnumerable<TItem> source, int batchSize, int skipBatches = 0)
+        {
+            return source
+                .Select((item, index) => (item, index))
+                .GroupBy(tuple => tuple.index / batchSize)
+                .Select(group => group.Select(tuple => tuple.item))
+                .Select((batch, index) => KeyValuePair.Create((long)index, batch));
         }
 
         // This should be deprecated
