@@ -85,6 +85,12 @@ namespace Axis.Luna.Common
         public static BitSequence Of(Guid guid) => Of(guid.ToByteArray());
 
         public static BitSequence Of(BitArray bits) => Of(bits.SelectAs<bool>());
+
+        public static BitSequence Of(bool[] bits) => Of(bits);
+
+        public static BitSequence Of(Span<bool> bits) => Of(bits.ToArray());
+
+        public static BitSequence Of(ArraySegment<bool> bits) => Of(bits.ToArray());
         #endregion
 
         #region Implicits
@@ -104,6 +110,9 @@ namespace Axis.Luna.Common
         public static implicit operator BitSequence(BigInteger value) => Of(value);
         public static implicit operator BitSequence(Guid value) => Of(value);
         public static implicit operator BitSequence(BitArray value) => Of(value);
+        public static implicit operator BitSequence(bool[] value) => Of(value);
+        public static implicit operator BitSequence(Span<bool> value) => Of(value);
+        public static implicit operator BitSequence(ArraySegment<bool> value) => Of(value);
         #endregion
 
         #region IEnumerable
