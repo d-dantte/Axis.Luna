@@ -111,7 +111,7 @@ namespace Axis.Luna.Common.Numerics
         #region DefaultProvider
         public bool IsDefault => _scale == 0 && _significand == 0;
 
-        public BigDecimal Default => Zero;
+        public static BigDecimal Default => Zero;
         #endregion
 
         #region Values

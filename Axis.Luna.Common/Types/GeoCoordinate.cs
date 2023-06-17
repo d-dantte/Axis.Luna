@@ -37,7 +37,7 @@ namespace Axis.Luna.Common.Types
 
         public bool IsDefault => Longitude == 0 && Latitude == 0 && Altitude is null;
 
-        public GeoCoordinate Default => default;
+        public static GeoCoordinate Default => default;
 
         public bool Equals(GeoCoordinate coordinate)
         {

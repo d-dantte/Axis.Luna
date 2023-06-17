@@ -15,6 +15,6 @@
         /// <summary>
         /// The default value for the given type
         /// </summary>
-        public TValue Default { get; }
+        static abstract TValue Default { get; }
     }
 }

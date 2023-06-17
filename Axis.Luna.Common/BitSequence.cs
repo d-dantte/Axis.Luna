@@ -215,7 +215,7 @@ namespace Axis.Luna.Common
         #region DefaultProvider
         public bool IsDefault => bits is null;
 
-        public BitSequence Default => default;
+        public static BitSequence Default => default;
         #endregion
 
         #region Misc

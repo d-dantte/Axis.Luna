@@ -72,7 +72,7 @@ namespace Axis.Luna.Common.Utils
 
         public bool IsDefault => _data is null;
 
-        public Page<TData> Default => default;
+        public static Page<TData> Default => default;
 
         public override bool Equals(object obj)
             => obj is Page<TData> other
@@ -144,7 +144,7 @@ namespace Axis.Luna.Common.Utils
 
         public bool IsDefault => _adjacencySet is null;
 
-        public PageAdjacencySet Default => default;
+        public static PageAdjacencySet Default => default;
 
         private static int[] EvaluateRefs(int sequenceLength, int pageLength, int setLength, ref int pageIndex)
         {

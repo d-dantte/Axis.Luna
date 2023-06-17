@@ -165,7 +165,7 @@ namespace Axis.Luna.Common
         #region DefaultProvider
         public bool IsDefault => IsEmpty;
 
-        public Optional<T> Default => default;
+        public static Optional<T> Default => default;
         #endregion
 
         #region Operators

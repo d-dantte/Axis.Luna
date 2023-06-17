@@ -160,7 +160,7 @@ namespace Axis.Luna.Common.Results
 
             public bool IsDefault => _cause is null;
 
-            public ErrorResult Default => default;
+            public static ErrorResult Default => default;
 
             public static bool operator ==(ErrorResult first, ErrorResult second) => first.Equals(second);
 
@@ -246,7 +246,7 @@ namespace Axis.Luna.Common.Results
                     && other.Data.NullOrEquals(Data);
             }
 
-            public DataResult Default => default;
+            public static DataResult Default => default;
 
             public bool IsDefault => Data.NullOrEquals(default);
 
