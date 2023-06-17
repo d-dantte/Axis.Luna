@@ -9,6 +9,21 @@ namespace Axis.Luna.Extensions
 {
     public static class EnumerableExtensions
     {
+        public static IEnumerable<IGrouping<TKey, TItem>> GroupBy<TKey, TItem>(
+            this IEnumerable<TItem> items,
+            Func<TItem, int, TKey> grouper)
+        {
+            ArgumentNullException.ThrowIfNull(items);
+            ArgumentNullException.ThrowIfNull(grouper);
+
+            return items
+                .Select((item, index) => (item, index))
+                .GroupBy(tuple => grouper.Invoke(tuple.item, tuple.index))
+                .Select(group => new Grouping<TKey, TItem>(
+                    group.Key,
+                    group.Select(t => t.item)) as IGrouping<TKey, TItem>);
+        }
+
         /// <summary>
         /// 
         /// </summary>
@@ -16,7 +31,7 @@ namespace Axis.Luna.Extensions
         /// <param name="items"></param>
         /// <param name="delimiter"></param>
         /// <returns></returns>
-        internal static IEnumerable<TItem> JoinUsing<TItem>(
+        public static IEnumerable<TItem> JoinUsing<TItem>(
             this IEnumerable<IEnumerable<TItem>> items,
             params TItem[] delimiter)
         {
@@ -819,5 +834,24 @@ namespace Axis.Luna.Extensions
                 return false;
             }
         }
+
+        #region Nested types
+        internal readonly struct Grouping<TKey, TItem> : IGrouping<TKey, TItem>
+        {
+            private readonly TItem[] items;
+
+            public TKey Key { get; }
+
+            internal Grouping(TKey key, IEnumerable<TItem> items)
+            {
+                Key = key;
+                this.items = items?.ToArray() ?? throw new ArgumentNullException(nameof(items));
+            }
+
+            public IEnumerator<TItem> GetEnumerator() => ((IEnumerable<TItem>)items).GetEnumerator();
+
+            IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+        }
+        #endregion
     }
 }

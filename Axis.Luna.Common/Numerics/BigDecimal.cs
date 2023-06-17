@@ -32,7 +32,8 @@ namespace Axis.Luna.Common.Numerics
         IDivisionOperators<BigDecimal, BigDecimal, BigDecimal>,
         IModulusOperators<BigDecimal, BigDecimal, BigDecimal>,
         INumber<BigDecimal>,
-        INumberBase<BigDecimal>
+        INumberBase<BigDecimal>,
+        IDefaultValueProvider<BigDecimal>
     {
         #region Fields
         private readonly BigInteger _significand;
@@ -107,6 +108,12 @@ namespace Axis.Luna.Common.Numerics
         public override string ToString() => ToScientificString();
         #endregion
 
+        #region DefaultProvider
+        public bool IsDefault => _scale == 0 && _significand == 0;
+
+        public BigDecimal Default => Zero;
+        #endregion
+
         #region Values
         public static readonly BigDecimal _zero = default;
         public static readonly BigDecimal _one = new BigDecimal(1);
@@ -149,7 +156,8 @@ namespace Axis.Luna.Common.Numerics
 
         public bool Equals(BigDecimal other)
         {
-            return CompareTo(other) == 0;
+            return (_scale == other._scale && _significand == other._significand)
+                || CompareTo(other) == 0;
         }
         #endregion
 

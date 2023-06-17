@@ -2,6 +2,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Numerics;
 
@@ -11,7 +12,9 @@ namespace Axis.Luna.Common
     /// A sequence of bits, represented as bools, that can be manipulated into
     /// bytes.
     /// </summary>
-    public struct BitSequence : IEnumerable<bool>
+    public struct BitSequence :
+        IEnumerable<bool>,
+        IDefaultValueProvider<BitSequence>
     {
         #region Fields
         private bool[] bits;
@@ -46,7 +49,7 @@ namespace Axis.Luna.Common
 
         public static BitSequence Of(IEnumerable<bool> bits) => new BitSequence(bits);
 
-        public static BitSequence Of(byte[] bytes)
+        public static BitSequence Of(params byte[] bytes)
             => new BitArray(bytes).SelectAs<bool>().ApplyTo(Of);
 
         public static BitSequence Of(byte @byte) => Of(new[] { @byte });
@@ -86,7 +89,7 @@ namespace Axis.Luna.Common
 
         public static BitSequence Of(BitArray bits) => Of(bits.SelectAs<bool>());
 
-        public static BitSequence Of(bool[] bits) => Of(bits);
+        public static BitSequence Of(params bool[] bits) => new BitSequence(bits);
 
         public static BitSequence Of(Span<bool> bits) => Of(bits.ToArray());
 
@@ -113,6 +116,39 @@ namespace Axis.Luna.Common
         public static implicit operator BitSequence(bool[] value) => Of(value);
         public static implicit operator BitSequence(Span<bool> value) => Of(value);
         public static implicit operator BitSequence(ArraySegment<bool> value) => Of(value);
+        #endregion
+
+        #region Object overrides
+        public override string ToString()
+        {
+            return bits?
+                .Select(bit => bit ? "1" : "0")
+                .GroupBy((bit, index) => index / 8)
+                .Select(group => group
+                    .GroupBy((bit, index) => index / 4)
+                    .Select(group => group.JoinUsing(""))
+                    .JoinUsing(" "))
+                .JoinUsing(", ")
+                .WrapIn("[", "]")
+                ?? "[*]";
+        }
+
+        public override int GetHashCode()
+        {
+            return bits?
+                .Select(bit => bit ? 1 : 0)
+                .Aggregate(0, HashCode.Combine)
+                ?? 0;
+        }
+
+        public override bool Equals([NotNullWhen(true)] object obj)
+        {
+            return obj is BitSequence other
+                && bits.NullOrTrue(other.bits, Enumerable.SequenceEqual);
+        }
+
+        public static bool operator ==(BitSequence first, BitSequence second) => first.Equals(second);
+        public static bool operator !=(BitSequence first, BitSequence second) => !first.Equals(second);
         #endregion
 
         #region IEnumerable
@@ -176,6 +212,12 @@ namespace Axis.Luna.Common
         }
         #endregion
 
+        #region DefaultProvider
+        public bool IsDefault => bits is null;
+
+        public BitSequence Default => default;
+        #endregion
+
         #region Misc
         public BitArray ToBitArray() => new BitArray(bits);
         #endregion
@@ -184,8 +226,8 @@ namespace Axis.Luna.Common
 
         private void ValidateState()
         {
-            if (bits is null)
-                throw new InvalidOperationException("BitSequence is in invalid state");
+            if (IsDefault)
+                throw new InvalidOperationException("BitSequence is in an invalid state");
         }
 
 

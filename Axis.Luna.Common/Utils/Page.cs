@@ -9,7 +9,7 @@ namespace Axis.Luna.Common.Utils
     /// Represents an indexed chunk of continguous data from a stream of data
     /// </summary>
     /// <typeparam name="TData">The type of data</typeparam>
-    public struct Page<TData>
+    public struct Page<TData>: IDefaultValueProvider<Page<TData>>
     {
         private readonly TData[] _data;
         private readonly int _dataHash;
@@ -42,11 +42,20 @@ namespace Axis.Luna.Common.Utils
         /// <param name="data">The data chunk</param>
         public Page(int index, int maxCount, params TData[] data)
         {
+            if (data is null)
+                throw new ArgumentNullException(nameof(data));
+
+            if (index < 0)
+                throw new ArgumentOutOfRangeException(nameof(index));
+
+            if (maxCount < 0)
+                throw new ArgumentOutOfRangeException(nameof(maxCount));
+
             _data = new TData[data.Length];
             Array.Copy(data, _data, data.Length);
 
-            Index = Math.Abs(index);
-            MaxCount = Math.Abs(maxCount);
+            Index = index;
+            MaxCount = maxCount;
             _dataHash = Luna.Extensions.Common.ValueHash(_data.HardCast<TData, object>());
         }
 
@@ -61,11 +70,15 @@ namespace Axis.Luna.Common.Utils
         {
         }
 
+        public bool IsDefault => _data is null;
+
+        public Page<TData> Default => default;
+
         public override bool Equals(object obj)
             => obj is Page<TData> other
-            && Index == other.Index
-            && MaxCount == other.MaxCount
-            && _data.SequenceEqual(other._data);                
+                && Index == other.Index
+                && MaxCount == other.MaxCount
+                && _data.NullOrTrue(other._data, Enumerable.SequenceEqual);                
 
         public override int GetHashCode() => HashCode.Combine(_dataHash, Index, MaxCount);
 
@@ -77,7 +90,7 @@ namespace Axis.Luna.Common.Utils
     /// <summary>
     /// This struct is used to generate pagination references - i.e, given some parameters, it creates an array of consecutive page indexes.
     /// </summary>
-    public readonly struct PageAdjacencySet
+    public readonly struct PageAdjacencySet: IDefaultValueProvider<PageAdjacencySet>
     {
         private readonly int[] _adjacencySet;
         private readonly int _adjacencyHash;
@@ -128,6 +141,11 @@ namespace Axis.Luna.Common.Utils
             PageIndex = pageIndex;
         }
 
+
+        public bool IsDefault => _adjacencySet is null;
+
+        public PageAdjacencySet Default => default;
+
         private static int[] EvaluateRefs(int sequenceLength, int pageLength, int setLength, ref int pageIndex)
         {
             var pageCount = Math.DivRem(
@@ -158,10 +176,10 @@ namespace Axis.Luna.Common.Utils
 
         public override bool Equals(object obj)
             => obj is PageAdjacencySet other
-            && PageIndex == other.PageIndex
-            && PageLength == other.PageLength
-            && SequenceLength == other.SequenceLength
-            && _adjacencySet.SequenceEqual(other._adjacencySet);
+                && PageIndex == other.PageIndex
+                && PageLength == other.PageLength
+                && SequenceLength == other.SequenceLength
+                && _adjacencySet.NullOrTrue(other._adjacencySet, Enumerable.SequenceEqual);
 
         public override int GetHashCode() 
             => HashCode.Combine(

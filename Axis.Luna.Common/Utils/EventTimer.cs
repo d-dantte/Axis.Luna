@@ -15,6 +15,7 @@ namespace Axis.Luna.Common.Utils
             }
             catch(Exception e)
             {
+                // stop here so time spent creating and throwing exception isn't included
                 stopwatch.Stop();
                 throw new TimerException(stopwatch.Elapsed, e);
             }

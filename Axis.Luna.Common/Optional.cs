@@ -10,7 +10,8 @@ namespace Axis.Luna.Common
     /// Essentially, a <c>Maybe</c> of ref-type values.
     /// </summary>
     /// <typeparam name="T"></typeparam>
-    public struct Optional<T> where T: class
+    public struct Optional<T>: IDefaultValueProvider<Optional<T>>
+    where T: class
     {
 
         public delegate TResult StructMapper<out TResult>(T arg) where TResult: struct;
@@ -159,6 +160,12 @@ namespace Axis.Luna.Common
         }
 
         public override int GetHashCode() => HashCode.Combine(_value);
+        #endregion
+
+        #region DefaultProvider
+        public bool IsDefault => IsEmpty;
+
+        public Optional<T> Default => default;
         #endregion
 
         #region Operators

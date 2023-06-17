@@ -8,7 +8,9 @@ namespace Axis.Luna.Common.Types
     /// Geographic coordinate representing Longitude, Latitude, and optionally Altitude.
     /// The string representation of this is <c>longitude, latitude[, altitude]</c>
     /// </summary>
-    public struct GeoCoordinate
+    public struct GeoCoordinate: 
+        IEquatable<GeoCoordinate>,
+        IDefaultValueProvider<GeoCoordinate>
     {
         /// <summary>
         /// Longitude
@@ -25,20 +27,17 @@ namespace Axis.Luna.Common.Types
         /// </summary>
         public double? Altitude { get; }
 
-        private readonly string stringValue;
-
         
         public GeoCoordinate(double longitude, double latitude, double? altitude = null)
         {
             Longitude = longitude;
             Latitude = latitude;
             Altitude = altitude;
-
-            stringValue = $"{longitude}, {latitude}";
-
-            if (altitude != null)
-                stringValue += $", {altitude}";
         }
+
+        public bool IsDefault => Longitude == 0 && Latitude == 0 && Altitude is null;
+
+        public GeoCoordinate Default => default;
 
         public bool Equals(GeoCoordinate coordinate)
         {
@@ -90,7 +89,15 @@ namespace Axis.Luna.Common.Types
 
         public override int GetHashCode() => ValueHash(Longitude, Latitude, Altitude);
 
-        public override string ToString() => stringValue;
+        public override string ToString()
+        {
+            var stringValue = $"{Longitude}, {Latitude}";
+
+            if (Altitude != null)
+                stringValue += $", {Altitude}";
+
+            return stringValue;
+        }
 
         public static bool operator ==(GeoCoordinate first, GeoCoordinate second) => first.Equals(second);
 

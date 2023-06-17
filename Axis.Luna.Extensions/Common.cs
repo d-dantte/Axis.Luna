@@ -76,13 +76,13 @@ namespace Axis.Luna.Extensions
             if (predicate == null)
                 throw new ArgumentNullException(nameof(predicate));
 
-            if (operand1 == null && operand2 == null)
+            if (operand1 is null && operand2 is null)
                 return true;
 
-            if (operand1 != null && operand2 != null)
-                return predicate.Invoke(operand1, operand2);
+            if (operand1 is null ^ operand2 is null)
+                return false;
 
-            return false;
+            return predicate.Invoke(operand1, operand2);
         }
 
 

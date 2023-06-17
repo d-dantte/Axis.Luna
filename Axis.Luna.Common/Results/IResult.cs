@@ -57,7 +57,9 @@ namespace Axis.Luna.Common.Results
         /// <summary>
         /// Represents a faulted result, and contains the exception
         /// </summary>
-        public readonly struct ErrorResult : IResult<TData>
+        public readonly struct ErrorResult :
+            IResult<TData>,
+            IDefaultValueProvider<ErrorResult>
         {
             private readonly ResultException _cause;
 
@@ -156,6 +158,10 @@ namespace Axis.Luna.Common.Results
                     && other.ErrorData.NullOrEquals(ErrorData);
             }
 
+            public bool IsDefault => _cause is null;
+
+            public ErrorResult Default => default;
+
             public static bool operator ==(ErrorResult first, ErrorResult second) => first.Equals(second);
 
             public static bool operator !=(ErrorResult first, ErrorResult second) => !first.Equals(second);
@@ -166,7 +172,9 @@ namespace Axis.Luna.Common.Results
         /// <summary>
         /// Represents data.
         /// </summary>
-        public readonly struct DataResult : IResult<TData>
+        public readonly struct DataResult :
+            IResult<TData>,
+            IDefaultValueProvider<DataResult>
         {
             /// <summary>
             /// The result data
@@ -237,6 +245,10 @@ namespace Axis.Luna.Common.Results
                 return obj is DataResult other
                     && other.Data.NullOrEquals(Data);
             }
+
+            public DataResult Default => default;
+
+            public bool IsDefault => Data.NullOrEquals(default);
 
             public static bool operator ==(DataResult first, DataResult second) => first.Equals(second);
 
