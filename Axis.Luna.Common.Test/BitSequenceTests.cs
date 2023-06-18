@@ -574,6 +574,20 @@ namespace Axis.Luna.Common.Test
             Console.WriteLine(index.IsFromEnd);
         }
 
+        [TestMethod]
+        public void Empty_Tests()
+        {
+            BitSequence bs = new bool[0];
+           
+            Assert.ThrowsException<IndexOutOfRangeException>(() => bs.ByteAt(0));
+            Assert.AreEqual(0, bs.ToByteArray().Length);
+            Assert.AreEqual(0, bs.ToByteArray(..).Length);
+            Assert.AreEqual(0, bs.ToByteArray(0, 0).Length);
+            Assert.AreEqual(0, bs.ToBitArray().Length);
+            Assert.AreEqual("[]", bs.ToString());
+            Assert.AreEqual(0, bs[..].Length);
+        }
+
         private void PrintSequence<T>(IEnumerable<T> enm)
         {
             var text = string.Join(

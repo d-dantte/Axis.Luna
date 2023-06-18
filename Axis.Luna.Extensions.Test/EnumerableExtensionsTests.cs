@@ -82,6 +82,11 @@ namespace Axis.Luna.Extensions.Test
             result = enm.InsertAt(5, 50).ToArray();
             Assert.AreEqual(6, result.Length);
             Assert.AreEqual(50, result[5]);
+
+            enm = new int[0];
+            result = enm.InsertAt(0, 2).ToArray();
+            Assert.AreEqual(1, result.Length);
+            Assert.AreEqual(2, result[0]);
         }
 
         [TestMethod]

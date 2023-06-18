@@ -328,6 +328,14 @@ namespace Axis.Luna.Extensions
             position.ThrowIf(p => p < 0, new ArgumentException($"Invalid position: {position}"));
 
             int pos = 0;
+
+            // insert at the start
+            if (position == 0)
+            {
+                yield return value;
+                pos++;
+            }
+
             foreach (var v in items)
             {
                 if (pos++ == position) yield return value;
@@ -336,10 +344,6 @@ namespace Axis.Luna.Extensions
 
             // adding at the end
             if (pos == position)
-                yield return value;
-
-            // items was empty
-            if (pos == 0)
                 yield return value;
         }
         

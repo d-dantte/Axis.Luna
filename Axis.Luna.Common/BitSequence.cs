@@ -121,6 +121,13 @@ namespace Axis.Luna.Common
         #region Object overrides
         public override string ToString()
         {
+            // 1. converts bools into 1 or 0
+            // 2. group the list into octets (sets of 8)
+            // 3. further group each octet into a quartet (sets of 4)
+            // 4. join the quartets using a space " "
+            // 5. join the octets using a comma ","
+            // 6. surround the result in sqare brackets "[..]"
+            // 7. if the original data was null, return "[*]"
             return bits?
                 .Select(bit => bit ? "1" : "0")
                 .GroupBy((bit, index) => index / 8)
@@ -181,7 +188,7 @@ namespace Axis.Luna.Common
             ValidateState();
             var actualIndex = index.GetOffset(bits.Length);
             if (actualIndex >= bits.Length)
-                throw new ArgumentOutOfRangeException(nameof(index));
+                throw new IndexOutOfRangeException(nameof(index));
 
             var totalCount = bits.Length - actualIndex;
 
@@ -197,6 +204,7 @@ namespace Axis.Luna.Common
         public byte[] ToByteArray(Range range)
         {
             ValidateState();
+
             var rangeInfo = range.GetOffsetAndLength(bits.Length);
             return ToByteArray(rangeInfo.Offset, rangeInfo.Length);
         }
