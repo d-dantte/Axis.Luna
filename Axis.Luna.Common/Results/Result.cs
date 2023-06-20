@@ -14,6 +14,22 @@ namespace Axis.Luna.Common.Results
         private static readonly string ExceptionDataKey = "Axis.Luna.Common.ErrorResult.ExceptionData";
 
         /// <summary>
+        /// Checks if the supplied result is an instance of <see cref="IResult{TData}.DataResult"/>
+        /// </summary>
+        /// <typeparam name="TData">The type of the result</typeparam>
+        /// <param name="result">The result instance</param>
+        /// <returns>True if the instance is a Data result, false otherwise</returns>
+        public static bool IsDataResult<TData>(this IResult<TData> result) => result is IResult<TData>.DataResult;
+
+        /// <summary>
+        /// Checks if the supplied result is an instance of <see cref="IResult{TData}.ErrorResult"/>
+        /// </summary>
+        /// <typeparam name="TData">The type of the result</typeparam>
+        /// <param name="result">The result instance</param>
+        /// <returns>True if the instance is a Error result, false otherwise</returns>
+        public static bool IsErrorResult<TData>(this IResult<TData> result) => result is IResult<TData>.ErrorResult;
+
+        /// <summary>
         /// Resolves the result; returning its value, or throwing its error.
         /// </summary>
         /// <typeparam name="TData">The type of the result</typeparam>

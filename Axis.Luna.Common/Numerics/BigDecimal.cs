@@ -646,6 +646,12 @@ namespace Axis.Luna.Common.Numerics
         #endregion
 
         #region Misc
+        public void Deconstruct(out BigInteger significand, out int scale)
+        {
+            significand = _significand;
+            scale = _scale;
+        }
+
         public static BigDecimal Abs(BigDecimal value)
         {
             return (

@@ -17,7 +17,7 @@ namespace Axis.Luna.Common
         IDefaultValueProvider<BitSequence>
     {
         #region Fields
-        private bool[] bits;
+        private readonly bool[] bits;
         #endregion
 
         #region Members
