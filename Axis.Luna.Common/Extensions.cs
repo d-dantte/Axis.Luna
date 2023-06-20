@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
 using System.Linq.Expressions;
+using System.Numerics;
 using System.Reflection;
 
 namespace Axis.Luna.Common
@@ -16,6 +17,18 @@ namespace Axis.Luna.Common
         /// <returns></returns>
         public static TException OverwriteStackTrace<TException>(this TException exception, StackTrace stackTrace)
         where TException : Exception => (TException)StackTraceSetter.Invoke(exception, stackTrace);
+
+        /// <summary>
+        /// Converts the significant bits of the integer to a <see cref="BitSequence"/> instance
+        /// </summary>
+        /// <param name="integer">The integer to convert</param>
+        /// <returns>The bit sequence</returns>
+        public static BitSequence ToBitSequence(this BigInteger integer)
+        {
+            return BitSequence
+                .Of(integer.ToByteArray())
+                [..(int)(integer.GetBitLength())];
+        }
 
         #region Helpers
         private static readonly Func<Exception, StackTrace, Exception> StackTraceSetter = CreateStackTraceSetter();
