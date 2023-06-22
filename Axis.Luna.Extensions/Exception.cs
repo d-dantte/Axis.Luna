@@ -210,13 +210,11 @@ namespace Axis.Luna.Extensions
         public static IEnumerable<TItem> ThrowIfNone<TItem>(this
             IEnumerable<TItem> items,
             Func<TItem, bool> predicate,
-            Exception exception = null)
+            Func<IEnumerable<TItem>, Exception> exceptionProvider)
         {
-            if (items is null)
-                throw new ArgumentNullException(nameof(items));
-
-            if (predicate is null)
-                throw new ArgumentNullException(nameof(predicate));
+            ArgumentNullException.ThrowIfNull(items);
+            ArgumentNullException.ThrowIfNull(predicate);
+            ArgumentNullException.ThrowIfNull(exceptionProvider);
 
             var found = false;
             foreach (var item in items)
@@ -230,21 +228,26 @@ namespace Axis.Luna.Extensions
             if (!found)
             {
                 ExceptionDispatchInfo
-                    .Capture(exception ?? new Exception("No element matched the predicate"))
+                    .Capture(exceptionProvider.Invoke(items) ?? new Exception("No element matched the predicate"))
                     .Throw();
             }
         }
 
-        public static IEnumerable<TItem> ThrowIfAll<TItem>(this
+        public static IEnumerable<TItem> ThrowIfNone<TItem>(this
             IEnumerable<TItem> items,
             Func<TItem, bool> predicate,
             Exception exception = null)
-        {
-            if (items is null)
-                throw new ArgumentNullException(nameof(items));
+            => items.ThrowIfNone(predicate, _ => exception);
 
-            if (predicate is null)
-                throw new ArgumentNullException(nameof(predicate));
+
+        public static IEnumerable<TItem> ThrowIfAll<TItem>(this
+            IEnumerable<TItem> items,
+            Func<TItem, bool> predicate,
+            Func<IEnumerable<TItem>, Exception> exceptionProvider)
+        {
+            ArgumentNullException.ThrowIfNull(items);
+            ArgumentNullException.ThrowIfNull(predicate);
+            ArgumentNullException.ThrowIfNull(exceptionProvider);
 
             var allMatch = true;
             var empty = true;
@@ -261,8 +264,35 @@ namespace Axis.Luna.Extensions
             if (allMatch && !empty)
             {
                 ExceptionDispatchInfo
-                    .Capture(exception ?? new Exception("No element matched the predicate"))
+                    .Capture(exceptionProvider.Invoke(items) ?? new Exception("No element matched the predicate"))
                     .Throw();
+            }
+        }
+
+        public static IEnumerable<TItem> ThrowIfAll<TItem>(this
+            IEnumerable<TItem> items,
+            Func<TItem, bool> predicate,
+            Exception exception = null)
+            => items.ThrowIfAll(predicate, _ => exception);
+
+
+        public static IEnumerable<TItem> ThrowIfAny<TItem>(this
+            IEnumerable<TItem> items,
+            Func<TItem, bool> predicate,
+            Func<TItem, Exception> exceptionProvider)
+        {
+            ArgumentNullException.ThrowIfNull(items);
+            ArgumentNullException.ThrowIfNull(predicate);
+            ArgumentNullException.ThrowIfNull(exceptionProvider);
+
+            foreach (var item in items)
+            {
+                if (predicate.Invoke(item))
+                    ExceptionDispatchInfo
+                        .Capture(exceptionProvider.Invoke(item) ?? new Exception("No element matched the predicate"))
+                        .Throw();
+
+                yield return item;
             }
         }
 
@@ -270,23 +300,7 @@ namespace Axis.Luna.Extensions
             IEnumerable<TItem> items,
             Func<TItem, bool> predicate,
             Exception exception = null)
-        {
-            if (items is null)
-                throw new ArgumentNullException(nameof(items));
-
-            if (predicate is null)
-                throw new ArgumentNullException(nameof(predicate));
-
-            foreach (var item in items)
-            {
-                if (predicate.Invoke(item))
-                    ExceptionDispatchInfo
-                        .Capture(exception ?? new Exception("No element matched the predicate"))
-                        .Throw();
-
-                yield return item;
-            }
-        }
+            => items.ThrowIfAny(predicate, _ => exception);
         #endregion
 
         #region Throw if null
