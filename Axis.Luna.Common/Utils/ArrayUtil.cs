@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Axis.Luna.Extensions;
+using System;
 
 namespace Axis.Luna.Common.Utils
 {
@@ -22,6 +23,11 @@ namespace Axis.Luna.Common.Utils
         {
             ArgumentNullException.ThrowIfNull(items);
             return items.Length == 0;
+        }
+
+        public static bool IsNullOrEmpty<T>(this T[] array)
+        {
+            return array is null || array.IsEmpty();
         }
     }
 }

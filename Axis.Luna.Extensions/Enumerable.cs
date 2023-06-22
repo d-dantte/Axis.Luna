@@ -194,17 +194,6 @@ namespace Axis.Luna.Extensions
                 .LastOrNull();
         }
 
-        public static bool IsEmpty<T>(this T[] array)
-            => array
-                .ThrowIfNull(new ArgumentNullException(nameof(array)))
-                .Length == 0;
-
-        public static bool IsNullOrEmpty<T>(this T[] array)
-        {
-            return array == null
-                || array.IsEmpty();
-        }
-
         /// <summary>
         /// Uses hard-casting on the individual values of the enumerable. This means it may throw <see cref="InvalidCastException"/>.
         /// Note that with boxed values, this cast may fail.
