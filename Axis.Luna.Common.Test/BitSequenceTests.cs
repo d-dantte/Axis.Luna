@@ -596,5 +596,45 @@ namespace Axis.Luna.Common.Test
             Console.WriteLine(text);
         }
 
+        [TestMethod]
+        public void ToBits_Test()
+        {
+            var bytes = new byte[100];
+            var bits = BitSequence.ToBits(bytes);
+            Assert.AreEqual(bytes.Length * 8, bits.Length);
+        }
+
+        [TestMethod]
+        public void OfSignificantBits_Tests()
+        {
+            var bytes = BitConverter.GetBytes(0);
+            var bs = BitSequence.OfSignificantBits(bytes);
+            Assert.AreEqual(0, bs.Length);
+
+            bytes = BitConverter.GetBytes(1);
+            bs = BitSequence.OfSignificantBits(bytes);
+            Assert.AreEqual(1, bs.Length);
+            Assert.AreEqual(true, bs[0]);
+
+            bytes = BitConverter.GetBytes(3);
+            bs = BitSequence.OfSignificantBits(bytes);
+            Assert.AreEqual(2, bs.Length);
+            Assert.AreEqual(true, bs[0]);
+            Assert.AreEqual(true, bs[1]);
+
+            bytes = BitConverter.GetBytes(256);
+            bs = BitSequence.OfSignificantBits(bytes);
+            Assert.AreEqual(9, bs.Length);
+            Assert.AreEqual(true, bs[8]);
+            Assert.AreEqual(false, bs[7]);
+            Assert.AreEqual(false, bs[6]);
+            Assert.AreEqual(false, bs[5]);
+            Assert.AreEqual(false, bs[4]);
+            Assert.AreEqual(false, bs[3]);
+            Assert.AreEqual(false, bs[2]);
+            Assert.AreEqual(false, bs[1]);
+            Assert.AreEqual(false, bs[0]);
+        }
+
     }
 }

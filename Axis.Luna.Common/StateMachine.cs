@@ -123,7 +123,7 @@ namespace Axis.Luna.Common
             states
                 .ThrowIfNull(new ArgumentNullException(nameof(states)))
                 .ThrowIf(
-                    EnumerableExtensions.IsEmpty,
+                    ArrayExtensions.IsEmpty,
                     new ArgumentException("Empty states not allowed"))
                 .ForAll(state =>
                 {

@@ -1,4 +1,5 @@
-﻿using Axis.Luna.Extensions;
+﻿using Axis.Luna.Common.Numerics;
+using Axis.Luna.Extensions;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -49,8 +50,30 @@ namespace Axis.Luna.Common
 
         public static BitSequence Of(IEnumerable<bool> bits) => new BitSequence(bits);
 
-        public static BitSequence Of(params byte[] bytes)
-            => new BitArray(bytes).SelectAs<bool>().ApplyTo(Of);
+        public static BitSequence Of(params byte[] bytes) => Of(ToBits(bytes));
+
+        /// <summary>
+        /// converts only the significant bits of the bytes given.
+        /// <para>
+        /// Significant bits are what are left after trimming "0" bits from the right-end of the list of bits.
+        /// 0000-0000 => empty bit sequence
+        /// 0000-0001 => 1 bit sequence
+        /// 0000-0100 => 100 bit sequence
+        /// </para>
+        /// </summary>
+        /// <param name="bytes"></param>
+        /// <returns></returns>
+        public static BitSequence OfSignificantBits(params byte[] bytes)
+        {
+            ArgumentNullException.ThrowIfNull(bytes);
+
+            if (bytes.IsEmpty())
+                return new BitSequence(Enumerable.Empty<bool>());
+
+            var bits = ToBitList(bytes);
+            var lastIndexOf1 = bits.LastIndexOf(true);
+            return bits.ToArray()[..(lastIndexOf1 + 1)];
+        }
 
         public static BitSequence Of(byte @byte) => Of(new[] { @byte });
 
@@ -248,6 +271,34 @@ namespace Axis.Luna.Common
                     true => BitMasks[bitInfo.index],
                     false => 0
                 });
+        }
+
+        internal static bool[] ToBits(byte @byte)
+        {
+            var array = new bool[8];
+            array[0] = @byte.IsSet(0);
+            array[1] = @byte.IsSet(1);
+            array[2] = @byte.IsSet(2);
+            array[3] = @byte.IsSet(3);
+            array[4] = @byte.IsSet(4);
+            array[5] = @byte.IsSet(5);
+            array[6] = @byte.IsSet(6);
+            array[7] = @byte.IsSet(7);
+            return array;
+        }
+
+        internal static bool[] ToBits(byte[] bytes) => ToBitList(bytes).ToArray();
+
+        internal static List<bool> ToBitList(byte[] bytes)
+        {
+            var list = new List<bool>(8 * bytes.Length);
+            foreach (var @byte in bytes)
+            {
+                var bits = ToBits(@byte);
+                list.AddRange(bits);
+            }
+
+            return list;
         }
 
         #endregion

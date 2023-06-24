@@ -18,16 +18,5 @@ namespace Axis.Luna.Common.Utils
 
             return arr;
         }
-
-        public static bool IsEmpty<TItem>(this TItem[] items)
-        {
-            ArgumentNullException.ThrowIfNull(items);
-            return items.Length == 0;
-        }
-
-        public static bool IsNullOrEmpty<T>(this T[] array)
-        {
-            return array is null || array.IsEmpty();
-        }
     }
 }
