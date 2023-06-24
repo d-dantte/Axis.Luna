@@ -250,6 +250,8 @@ namespace Axis.Luna.Common
         #endregion
 
         #region Misc
+        public bool IsEmpty => bits?.Length == 0;
+
         public BitArray ToBitArray() => new BitArray(bits);
         #endregion
 

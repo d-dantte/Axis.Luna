@@ -53,11 +53,16 @@ namespace Axis.Luna.Common.Numerics
         #endregion
 
         #region Constructors
-        public BigDecimal((BigInteger value, int scale) components)
+        public BigDecimal(BigInteger significand, int scale)
         {
-            var (value, scale) = Normalize(components.value);
-            _significand = value;
-            _scale = BigInteger.Zero.Equals(value) ? 0 : components.scale + scale;
+            var (nsig, nscale) = Normalize(significand);
+            _significand = nsig;
+            _scale = BigInteger.Zero.Equals(nsig) ? 0 : scale + nscale;
+        }
+
+        public BigDecimal((BigInteger significand, int scale) components)
+            : this(components.significand, components.scale)
+        { 
         }
 
         public BigDecimal(BigInteger value)
