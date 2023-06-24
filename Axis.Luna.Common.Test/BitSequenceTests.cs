@@ -19,7 +19,7 @@ namespace Axis.Luna.Common.Test
         public void Length_Tests()
         {
             BitSequence bs = default;
-            Assert.AreEqual(-1, bs.Length);
+            Assert.AreEqual(0, bs.Length);
 
             bs = (byte)3;
             Assert.AreEqual(8, bs.Length);
@@ -31,9 +31,6 @@ namespace Axis.Luna.Common.Test
         [TestMethod]
         public void Indexer_Tests()
         {
-            Assert.ThrowsException<InvalidOperationException>(
-                () => default(BitSequence)[0]);
-
             Assert.ThrowsException<IndexOutOfRangeException>(
                 () => BitSequence.Of((byte)3)[8]);
 
@@ -47,9 +44,6 @@ namespace Axis.Luna.Common.Test
         [TestMethod]
         public void Slice_Tests()
         {
-            Assert.ThrowsException<InvalidOperationException>(
-                () => default(BitSequence).Slice(0, 2));
-
             // LE: 1011 1111
             BitSequence bs = (byte)191;
 
@@ -67,8 +61,6 @@ namespace Axis.Luna.Common.Test
         [TestMethod]
         public void ByteAt_Tests()
         {
-            Assert.ThrowsException<InvalidOperationException>(
-                () => default(BitSequence).ByteAt(0));
 
             BitSequence bs = SampleValue;
 
@@ -92,9 +84,6 @@ namespace Axis.Luna.Common.Test
         [TestMethod]
         public void ToByteArray_Tests()
         {
-            Assert.ThrowsException<InvalidOperationException>(
-                () => default(BitSequence).ToByteArray(0, 3));
-
             BitSequence bs = SampleValue;
 
             // 0000 1111, 1101 0010, 0011 1010, 0001 0011
@@ -124,9 +113,6 @@ namespace Axis.Luna.Common.Test
         [TestMethod]
         public void ToByteArray_WithRange_Tests()
         {
-            Assert.ThrowsException<InvalidOperationException>(
-                () => default(BitSequence).ToByteArray(0..3));
-
             BitSequence bs = SampleValue;
 
             // 0000 1111, 1101 0010, 0011 1010, 0001 0011
@@ -636,5 +622,123 @@ namespace Axis.Luna.Common.Test
             Assert.AreEqual(false, bs[0]);
         }
 
+        [TestMethod]
+        public void Concat_Tests()
+        {
+            BitSequence bs1 = new[] { true, false, true, false };
+            BitSequence bs2 = new[] { true, true, true };
+
+            var bs3 = bs1.Concat(bs2);
+            Assert.IsTrue(Enumerable.SequenceEqual(
+                bs3,
+                new[] { true, false, true, false, true, true, true }));
+
+            bs3 = bs1.Concat(default);
+            Assert.AreEqual(bs1, bs3);
+
+            bs3 = default(BitSequence).Concat(bs1);
+            Assert.AreEqual(bs1, bs3);
+
+            bs3 = default(BitSequence).Concat(default);
+            Assert.AreEqual(default, bs3);
+        }
+
+
+        [TestMethod]
+        public void LeftShift_Tests()
+        {
+            BitSequence bs1 = new[] { true, false, true, false };
+
+            var bs2 = bs1.LeftShift(1);
+            Assert.IsTrue(Enumerable.SequenceEqual(
+                bs2,
+                new[] { false, true, false, true }));
+
+            bs2 = bs1.LeftShift(2);
+            Assert.IsTrue(Enumerable.SequenceEqual(
+                bs2,
+                new[] { false, false, true, false }));
+        }
+
+
+        [TestMethod]
+        public void RightShift_Tests()
+        {
+            BitSequence bs1 = new[] { true, false, true, false };
+
+            var bs2 = bs1.RightShift(1);
+            Assert.IsTrue(Enumerable.SequenceEqual(
+                bs2,
+                new[] { false, true, false, false }));
+
+            bs2 = bs1.RightShift(2);
+            Assert.IsTrue(Enumerable.SequenceEqual(
+                bs2,
+                new[] { true, false, false, false }));
+        }
+
+
+        [TestMethod]
+        public void LeftCycle_Test()
+        {
+            BitSequence bs1 = new[] { true, false, true, false };
+
+            var bs2 = bs1.CycleLeft(1);
+            Assert.IsTrue(Enumerable.SequenceEqual(
+                bs2,
+                new[] { false, true, false, true }));
+
+            bs2 = bs1.CycleLeft(2);
+            Assert.IsTrue(Enumerable.SequenceEqual(
+                bs2,
+                new[] { true, false, true, false }));
+        }
+
+
+        [TestMethod]
+        public void RightCycle_Tests()
+        {
+            BitSequence bs1 = new[] { true, false, true, false };
+
+            var bs2 = bs1.CycleRight(1);
+            Assert.IsTrue(Enumerable.SequenceEqual(
+                bs2,
+                new[] { false, true, false, true }));
+
+            bs2 = bs1.CycleRight(2);
+            Assert.IsTrue(Enumerable.SequenceEqual(
+                bs2,
+                new[] { true, false, true, false }));
+        }
+
+        [TestMethod]
+        public void Split_Tests()
+        {
+            BitSequence bs1 = new[] { true, false, true, false };
+
+            Assert.ThrowsException<IndexOutOfRangeException>(() => bs1.Split(-1));
+            Assert.ThrowsException<IndexOutOfRangeException>(() => bs1.Split(5));
+
+            var split = bs1.Split(0);
+            Assert.AreEqual(0, split.Left.Length);
+            Assert.AreEqual(4, split.Right.Length);
+
+            split = bs1.Split(1);
+            Assert.AreEqual(1, split.Left.Length);
+            Assert.AreEqual(true, split.Left[0]);
+            Assert.AreEqual(3, split.Right.Length);
+
+            split = bs1.Split(2);
+            Assert.AreEqual(2, split.Left.Length);
+            Assert.AreEqual(2, split.Right.Length);
+
+            split = bs1.Split(3);
+            Assert.AreEqual(3, split.Left.Length);
+            Assert.AreEqual(1, split.Right.Length);
+
+            split = bs1.Split(4);
+            Assert.AreEqual(4, split.Left.Length);
+            Assert.AreEqual(0, split.Right.Length);
+        }
     }
 }

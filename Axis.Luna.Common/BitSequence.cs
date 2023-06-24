@@ -10,8 +10,12 @@ using System.Numerics;
 namespace Axis.Luna.Common
 {
     /// <summary>
-    /// A sequence of bits, represented as bools, that can be manipulated into
-    /// bytes.
+    /// A sequence of zero or more bits, represented as bools, that can be manipulated into bytes, or have some
+    /// bitwise operations performed on them.
+    /// <para>
+    /// Despite being a struct, a <see cref="BitSequence"/> is seen to externally be a sequence of zero or more bits;
+    /// i.e, it's internal list of bits is either empty, or contains elements, it is (externally) never null;
+    /// </para>
     /// </summary>
     public struct BitSequence :
         IEnumerable<bool>,
@@ -22,20 +26,24 @@ namespace Axis.Luna.Common
         #endregion
 
         #region Members
-        public int Length => bits?.Length ?? -1;
+        public int Length => bits?.Length ?? 0;
 
         public bool this[int index]
         {
             get
             {
-                ValidateState();
+                if (IsDefault || index < 0 || index >= bits.Length)
+                    throw new IndexOutOfRangeException();
+
                 return bits[index];
             }
         }
 
         public BitSequence Slice(int start, int length)
         {
-            ValidateState();
+            if (IsDefault && start == 0 && length == 0)
+                return this;
+
             return new BitSequence(bits.Slice(start, length));
         }
         #endregion
@@ -45,7 +53,8 @@ namespace Axis.Luna.Common
         {
             ArgumentNullException.ThrowIfNull(bits);
 
-            this.bits = bits.ToArray();
+            var barr = bits.ToArray();
+            this.bits = barr.IsEmpty() ? null : barr;
         }
 
         public static BitSequence Of(IEnumerable<bool> bits) => new BitSequence(bits);
@@ -160,7 +169,7 @@ namespace Axis.Luna.Common
                     .JoinUsing(" "))
                 .JoinUsing(", ")
                 .WrapIn("[", "]")
-                ?? "[*]";
+                ?? "[]";
         }
 
         public override int GetHashCode()
@@ -184,13 +193,12 @@ namespace Axis.Luna.Common
         #region IEnumerable
         public IEnumerator<bool> GetEnumerator()
         {
-            return ((IEnumerable<bool>)bits).GetEnumerator();
+            return IsDefault
+                ? Enumerable.Empty<bool>().GetEnumerator()
+                : ((IEnumerable<bool>)bits).GetEnumerator();
         }
 
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            return bits.GetEnumerator();
-        }
+        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
         #endregion
 
         #region Byte Manipulation methods
@@ -208,7 +216,9 @@ namespace Axis.Luna.Common
 
         public byte ByteAt(Index index)
         {
-            ValidateState();
+            if (IsDefault)
+                throw new IndexOutOfRangeException();
+
             var actualIndex = index.GetOffset(bits.Length);
             if (actualIndex >= bits.Length)
                 throw new IndexOutOfRangeException(nameof(index));
@@ -226,15 +236,18 @@ namespace Axis.Luna.Common
 
         public byte[] ToByteArray(Range range)
         {
-            ValidateState();
-
-            var rangeInfo = range.GetOffsetAndLength(bits.Length);
+            var rangeInfo = range.GetOffsetAndLength(Length);
             return ToByteArray(rangeInfo.Offset, rangeInfo.Length);
         }
 
         public byte[] ToByteArray(int startIndex, int bitLength)
         {
-            ValidateState();
+            if (startIndex == 0 && bitLength == 0)
+                return Array.Empty<byte>();
+
+            if (IsDefault)
+                throw new IndexOutOfRangeException();
+
             return bits
                 .Slice(startIndex, bitLength)
                 .Batch(8)
@@ -249,20 +262,95 @@ namespace Axis.Luna.Common
         public static BitSequence Default => default;
         #endregion
 
-        #region Misc
-        public bool IsEmpty => bits?.Length == 0;
+        #region API
+        public bool IsEmpty => IsDefault;
 
-        public BitArray ToBitArray() => new BitArray(bits);
+        public static BitSequence Empty => Default;
+
+        public BitArray ToBitArray() => IsDefault 
+            ? new BitArray(Array.Empty<bool>())
+            : new BitArray(bits);
+
+        /// <summary>
+        /// Creates a new bit sequence that is the concatenation of one bit sequence to the other
+        /// </summary>
+        /// <param name="sequence"></param>
+        /// <returns></returns>
+        public BitSequence Concat(BitSequence sequence)
+        {
+            return Of(((IEnumerable<bool>)this).Concat(sequence));
+        }
+
+        /// <summary>
+        /// Creates a new bit sequence that is the result of shifting the bits of this sequence
+        /// <paramref name="count"/> number of times to the left, padding the shifted side with "0"
+        /// </summary>
+        /// <param name="count"></param>
+        /// <returns></returns>
+        public BitSequence LeftShift(int count)
+        {
+            return this
+                .ToBitArray()
+                .LeftShift(count);
+        }
+
+        /// <summary>
+        /// Creates a new bit sequence that is the result of shifting the bits of this sequence
+        /// <paramref name="count"/> number of times to the right, padding the shifted side with "0"
+        /// </summary>
+        /// <param name="count"></param>
+        /// <returns></returns>
+        public BitSequence RightShift(int count)
+        {
+            return this
+                .ToBitArray()
+                .RightShift(count);
+        }
+
+        /// <summary>
+        /// Same as the left shift, except that the shifted end is padded with the values shifted
+        /// off from the opposite end
+        /// </summary>
+        /// <param name="count"></param>
+        /// <returns></returns>
+        public BitSequence CycleLeft(int count)
+        {
+            if (count == Length)
+                return this;
+
+            count %= Length;
+            var (left, right) = Split(Length - count);
+            return right.Concat(left);
+        }
+
+        /// <summary>
+        /// Same as the right shift, except that the shifted end is padded with the values shifted
+        /// off from the opposite end
+        /// </summary>
+        /// <param name="count"></param>
+        /// <returns></returns>
+        public BitSequence CycleRight(int count)
+        {
+            if (count == Length)
+                return this;
+
+            count %= Length;
+            var (left, right) = Split(count);
+            return right.Concat(left);
+        }
+
+        public (BitSequence Left, BitSequence Right) Split(int index)
+        {
+            if (index < 0 || index > Length)
+                throw new IndexOutOfRangeException();
+
+            return (
+                Left: this[..index],
+                Right: this[index..]);
+        }
         #endregion
 
         #region Helpers
-
-        private void ValidateState()
-        {
-            if (IsDefault)
-                throw new InvalidOperationException("BitSequence is in an invalid state");
-        }
-
 
         private static byte ToByte(IEnumerable<bool> bitOctet)
         {
