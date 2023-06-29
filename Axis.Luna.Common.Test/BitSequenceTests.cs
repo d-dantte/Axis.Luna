@@ -637,4 +637,51 @@ namespace Axis.Luna.Common.Test
         }
 
     }
+
+    [TestClass]
+    public class BitSequence2Tests
+    {
+        [TestMethod]
+        public void ChunkTests()
+        {
+            var bytes = new byte[] { 219 , 75 };
+
+            var result = BitSequence2.Chunk(bytes, 0..13);
+            var result2 = BitSequence2.Chunk2(bytes, 0..13);
+            AssertEquals(result, result2);
+
+            result = BitSequence2.Chunk(bytes, 1..13);
+            result2 = BitSequence2.Chunk2(bytes, 1..13);
+            AssertEquals(result, result2);
+
+            result = BitSequence2.Chunk(bytes, 2..13);
+            result2 = BitSequence2.Chunk2(bytes, 2..13);
+            AssertEquals(result, result2);
+
+            result = BitSequence2.Chunk(bytes, 3..13);
+            result2 = BitSequence2.Chunk2(bytes, 3..13);
+            AssertEquals(result, result2);
+
+            result = BitSequence2.Chunk(bytes, 4..13);
+            result2 = BitSequence2.Chunk2(bytes, 4..13);
+            AssertEquals(result, result2);
+
+            result = BitSequence2.Chunk(bytes, 5..13);
+            result2 = BitSequence2.Chunk2(bytes, 5..13);
+            AssertEquals(result, result2);
+
+            result = BitSequence2.Chunk(bytes, 6..13);
+            result2 = BitSequence2.Chunk2(bytes, 6..13);
+            AssertEquals(result, result2);
+
+            result = BitSequence2.Chunk(bytes, 7..13);
+            result2 = BitSequence2.Chunk2(bytes, 7..13);
+            AssertEquals(result, result2);
+        }
+
+        public static void AssertEquals(byte[] b1, byte[] b2)
+        {
+            Assert.IsTrue(Enumerable.SequenceEqual(b1, b2));
+        }
+    }
 }

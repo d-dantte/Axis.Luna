@@ -13,24 +13,26 @@ namespace Axis.Luna.Common.Benchmarks
 
 
         #region ToBits
-        [Benchmark]
+        //[Benchmark]
         public void ToBits10()
         {
             var t = Common.BitSequence.ToBits(Bytes10);
         }
 
-        [Benchmark]
+        //[Benchmark]
         public void ToBits100()
         {
 
             var t = Common.BitSequence.ToBits(Bytes100);
         }
 
-        [Benchmark]
+        //[Benchmark]
         public void ToBits1000()
         {
             var t = Common.BitSequence.ToBits(Bytes1000);
         }
         #endregion
+
+        #region 
     }
 }

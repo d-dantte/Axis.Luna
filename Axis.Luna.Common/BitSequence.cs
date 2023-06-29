@@ -303,4 +303,121 @@ namespace Axis.Luna.Common
 
         #endregion
     }
+
+    public struct BitSequence2
+    {
+        internal static byte[] BitMasks = new byte[]
+        {
+            1,  // index 0
+            2,  // index 1
+            4,  // index 2
+            8,  // index 3
+            16, // index 4
+            32, // index 5
+            64, // index 6
+            128 // index 7
+        };
+
+
+        /// <summary>
+        /// </summary>
+        /// <param name="bytes"></param>
+        /// <param name="bitRange"></param>
+        /// <returns></returns>
+        public static byte[] Chunk(byte[] bytes, Range bitRange)
+        {
+            ArgumentNullException.ThrowIfNull(bytes);
+
+            var chunkInfo = ToChunkInfo(bytes.Length, bitRange);
+            var bitCount = chunkInfo.BitCount;
+            var byteArray = new byte[Math.DivRem(bitCount, 8, out var rem) + (rem > 0 ? 1 : 0)];
+            var byteIndex = 0;
+            for(int cnt = chunkInfo.Offset; cnt < chunkInfo.Length; cnt++)
+            {
+                byteArray[byteIndex++] = (byte) (chunkInfo.BitPivot switch
+                {
+                    0 => bytes[cnt] & OnBits(bitCount),
+
+                    1 => bitCount > 7
+                        ? (bytes[cnt] >> 1) | (bytes[cnt + 1] << 7)
+                        : (bytes[cnt] >> 1) & OnBits(bitCount),
+
+                    2 => bitCount > 6
+                        ? (bytes[cnt] >> 2) | (bytes[cnt + 1] << 6)
+                        : (bytes[cnt] >> 2) & OnBits(bitCount),
+
+                    3 => bitCount > 5
+                        ? (bytes[cnt] >> 3) | (bytes[cnt + 1] << 5)
+                        : (bytes[cnt] >> 3) & OnBits(bitCount),
+
+                    4 => bitCount > 4
+                        ? (bytes[cnt] >> 4) | (bytes[cnt + 1] << 4)
+                        : (bytes[cnt] >> 4) & OnBits(bitCount),
+
+                    5 => bitCount > 3
+                        ? (bytes[cnt] >> 5) | (bytes[cnt + 1] << 3)
+                        : (bytes[cnt] >> 5) & OnBits(bitCount),
+
+                    6 => bitCount > 2
+                        ? (bytes[cnt] >> 6) | (bytes[cnt + 1] << 2)
+                        : (bytes[cnt] >> 6) & OnBits(bitCount),
+
+                    7 => bitCount > 1
+                        ? (bytes[cnt] >> 7) | (bytes[cnt + 1] << 1)
+                        : (bytes[cnt] >> 7) & OnBits(bitCount),
+
+                    _ => throw new InvalidOperationException($"Invalid Bit Pivot value: {chunkInfo.BitPivot}")
+                });
+                bitCount -= 8;
+            }
+
+            return byteArray;
+        }
+
+        public static byte[] Chunk2(byte[] bytes, Range bitRange)
+        {
+            var bitArray = new BitArray(bytes);
+            var offset = bitRange.GetOffsetAndLength(bytes.Length * 8);
+            return new BitArray(
+                bitArray
+                    .SelectAs<bool>()
+                    .Skip(offset.Offset)
+                    .Take(offset.Length)
+                    .ToArray())
+                .ToBytes();
+        }
+
+
+
+        private static (int Offset, int Length, int BitPivot, int BitCount) ToChunkInfo(
+            int byteCount,
+            Range bitRange)
+        {
+            var offset = bitRange.GetOffsetAndLength(byteCount * 8);
+            return (
+                Offset: offset.Offset / 8,
+                Length: Math.DivRem(offset.Length, 8, out var rem) + (rem > 0 ? 1 : 0),
+                BitPivot: offset.Offset % 8,
+                BitCount: offset.Length);
+        }
+
+        private static byte OnBits(int bitCount)
+        {
+            if (bitCount < 0)
+                throw new ArgumentOutOfRangeException(nameof(bitCount));
+
+            return bitCount switch
+            {
+                0 => 0,
+                1 => 1,
+                2 => 3,
+                3 => 7,
+                4 => 15,
+                5 => 31,
+                6 => 63,
+                7 => 127,
+                _ => 255
+            };
+        }
+    }
 }
