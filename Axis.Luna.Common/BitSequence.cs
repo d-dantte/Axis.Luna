@@ -814,4 +814,108 @@ namespace Axis.Luna.Common
 
         #endregion
     }
+
+    public struct BitSequence2
+    {
+        internal static byte[] BitMasks = new byte[]
+        {
+            1,  // index 0
+            2,  // index 1
+            4,  // index 2
+            8,  // index 3
+            16, // index 4
+            32, // index 5
+            64, // index 6
+            128 // index 7
+        };
+
+
+        /// <summary>
+        /// </summary>
+        /// <param name="bytes"></param>
+        /// <param name="bitRange"></param>
+        /// <returns></returns>
+        internal static byte[] Chunk(byte[] bytes, Range bitRange)
+        {
+            ArgumentNullException.ThrowIfNull(bytes);
+
+            var chunkInfo = ToChunkInfo(bytes.Length, bitRange);
+            var byteArray = new byte[chunkInfo.DestinationByteCount];
+            var bitCount = chunkInfo.BitCount;
+            var sourceIndex = chunkInfo.SourceByteOffset;
+            for(int destinationIndex = 0; destinationIndex < byteArray.Length; destinationIndex++)
+            {
+                byteArray[destinationIndex] = (byte) (OnBits(bitCount) & (chunkInfo.BitPivot switch
+                {
+                    0 => bytes[sourceIndex],
+
+                    1 => (bytes[sourceIndex] >> 1) | (bitCount > 7 ? (bytes[sourceIndex + 1] << 7) : 0),
+
+                    2 => (bytes[sourceIndex] >> 2) | (bitCount > 6 ? (bytes[sourceIndex + 1] << 6) : 0),
+
+                    3 => (bytes[sourceIndex] >> 3) | (bitCount > 5 ? (bytes[sourceIndex + 1] << 5) : 0),
+
+                    4 => (bytes[sourceIndex] >> 4) | (bitCount > 4 ? (bytes[sourceIndex + 1] << 4) : 0),
+
+                    5 => (bytes[sourceIndex] >> 5) | (bitCount > 3 ? (bytes[sourceIndex + 1] << 3) : 0),
+
+                    6 => (bytes[sourceIndex] >> 6) | (bitCount > 2 ? (bytes[sourceIndex + 1] << 2) : 0),
+
+                    7 => (bytes[sourceIndex] >> 7) | (bitCount > 1 ? (bytes[sourceIndex + 1] << 1) : 0),
+
+                    _ => throw new InvalidOperationException($"Invalid Bit Pivot value: {chunkInfo.BitPivot}")
+                }));
+
+                sourceIndex++;
+                bitCount -= 8;
+            }
+
+            return byteArray;
+        }
+
+        internal static byte[] Chunk2(byte[] bytes, Range bitRange)
+        {
+            var bitArray = new BitArray(bytes);
+            var offset = bitRange.GetOffsetAndLength(bytes.Length * 8);
+            return new BitArray(
+                bitArray
+                    .SelectAs<bool>()
+                    .Skip(offset.Offset)
+                    .Take(offset.Length)
+                    .ToArray())
+                .ToBytes();
+        }
+
+
+        private static (int SourceByteOffset, int DestinationByteCount, int BitPivot, int BitCount) ToChunkInfo(
+            int byteCount,
+            Range bitRange)
+        {
+            var offset = bitRange.GetOffsetAndLength(byteCount * 8);
+            return (
+                SourceByteOffset: offset.Offset / 8,
+                DestinationByteCount: Math.DivRem(offset.Length, 8, out var rem) + (rem > 0 ? 1 : 0),
+                BitPivot: offset.Offset % 8,
+                BitCount: offset.Length);
+        }
+
+        private static byte OnBits(int bitCount)
+        {
+            if (bitCount < 0)
+                throw new ArgumentOutOfRangeException(nameof(bitCount));
+
+            return bitCount switch
+            {
+                0 => 0,
+                1 => 1,
+                2 => 3,
+                3 => 7,
+                4 => 15,
+                5 => 31,
+                6 => 63,
+                7 => 127,
+                _ => 255
+            };
+        }
+    }
 }

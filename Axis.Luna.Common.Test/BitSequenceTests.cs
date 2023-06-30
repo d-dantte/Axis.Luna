@@ -761,4 +761,80 @@ namespace Axis.Luna.Common.Test
             Console.WriteLine(dto.Nanosecond/100);
         }
     }
+
+    [TestClass]
+    public class BitSequence2Tests
+    {
+        [TestMethod]
+        public void ChunkTests()
+        {
+            var bytes = new byte[] { 219 , 75 };
+
+            var result = BitSequence2.Chunk(bytes, 0..13);
+            var result2 = BitSequence2.Chunk2(bytes, 0..13);
+            AssertEquals(result, result2);
+
+            result = BitSequence2.Chunk(bytes, 1..13);
+            result2 = BitSequence2.Chunk2(bytes, 1..13);
+            AssertEquals(result, result2);
+
+            result = BitSequence2.Chunk(bytes, 2..13);
+            result2 = BitSequence2.Chunk2(bytes, 2..13);
+            AssertEquals(result, result2);
+
+            result = BitSequence2.Chunk(bytes, 3..13);
+            result2 = BitSequence2.Chunk2(bytes, 3..13);
+            AssertEquals(result, result2);
+
+            result = BitSequence2.Chunk(bytes, 4..13);
+            result2 = BitSequence2.Chunk2(bytes, 4..13);
+            AssertEquals(result, result2);
+
+            result = BitSequence2.Chunk(bytes, 5..13);
+            result2 = BitSequence2.Chunk2(bytes, 5..13);
+            AssertEquals(result, result2);
+
+            result = BitSequence2.Chunk(bytes, 6..13);
+            result2 = BitSequence2.Chunk2(bytes, 6..13);
+            AssertEquals(result, result2);
+
+            result = BitSequence2.Chunk(bytes, 7..13);
+            result2 = BitSequence2.Chunk2(bytes, 7..13);
+            AssertEquals(result, result2);
+
+            result = BitSequence2.Chunk(bytes, 8..13);
+            result2 = BitSequence2.Chunk2(bytes, 8..13);
+            AssertEquals(result, result2);
+
+            result = BitSequence2.Chunk(bytes, 9..13);
+            result2 = BitSequence2.Chunk2(bytes, 9..13);
+            AssertEquals(result, result2);
+
+            result = BitSequence2.Chunk(bytes, 10..13);
+            result2 = BitSequence2.Chunk2(bytes, 10..13);
+            AssertEquals(result, result2);
+
+            result = BitSequence2.Chunk(bytes, 11..13);
+            result2 = BitSequence2.Chunk2(bytes, 11..13);
+            AssertEquals(result, result2);
+
+            result = BitSequence2.Chunk(bytes, 12..13);
+            result2 = BitSequence2.Chunk2(bytes, 12..13);
+            AssertEquals(result, result2);
+
+            result = BitSequence2.Chunk(bytes, 13..13);
+            result2 = BitSequence2.Chunk2(bytes, 13..13);
+            AssertEquals(result, result2);
+
+            Assert.ThrowsException<ArgumentOutOfRangeException>(() => BitSequence2.Chunk(bytes, 14..13));
+            Assert.ThrowsException<ArgumentOutOfRangeException>(() => BitSequence2.Chunk2(bytes, 14..13));
+            AssertEquals(result, result2);
+        }
+
+        public static void AssertEquals(byte[] b1, byte[] b2)
+        {
+            var areEqual = Enumerable.SequenceEqual(b1, b2);
+            Assert.IsTrue(areEqual);
+        }
+    }
 }
