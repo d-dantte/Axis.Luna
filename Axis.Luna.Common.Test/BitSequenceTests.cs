@@ -740,5 +740,25 @@ namespace Axis.Luna.Common.Test
             Assert.AreEqual(4, split.Left.Length);
             Assert.AreEqual(0, split.Right.Length);
         }
+
+
+        [TestMethod]
+        public void Miscc_Tests()
+        {
+            var dto = DateTimeOffset.Now;
+            var bs = BitSequence.Of(dto.Year);
+
+            Console.WriteLine(bs);
+            Console.WriteLine(bs.SignificantBits);
+
+            bs = BitSequence.Of((byte)14);
+            Console.WriteLine(bs);
+            Console.WriteLine(bs.SignificantBits);
+
+            Console.WriteLine(dto.Millisecond);
+            Console.WriteLine(dto.Microsecond);
+            Console.WriteLine(dto.Nanosecond);
+            Console.WriteLine(dto.Nanosecond/100);
+        }
     }
 }

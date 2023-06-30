@@ -28,6 +28,27 @@ namespace Axis.Luna.Common
         #region Members
         public int Length => bits?.Length ?? 0;
 
+        public BitSequence SignificantBits
+        {
+            get
+            {
+                if (IsDefault)
+                    return this;
+
+                int index = bits.Length - 1;
+                for(; index >= 0; index--)
+                {
+                    if (bits[index])
+                        break;
+                }
+
+                if (index < 0)
+                    return this;
+
+                return this[..(index + 1)];
+            }
+        }
+
         public bool this[int index]
         {
             get
@@ -201,7 +222,14 @@ namespace Axis.Luna.Common
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
         #endregion
 
-        #region Byte Manipulation methods
+        #region DefaultProvider
+        public bool IsDefault => bits is null;
+
+        public static BitSequence Default => default;
+        #endregion
+
+        #region API
+
         internal static byte[] BitMasks = new byte[]
         {
             1,  // index 0
@@ -213,6 +241,10 @@ namespace Axis.Luna.Common
             64, // index 6
             128 // index 7
         };
+
+        public bool IsEmpty => IsDefault;
+
+        public static BitSequence Empty => Default;
 
         public byte ByteAt(Index index)
         {
@@ -234,9 +266,9 @@ namespace Axis.Luna.Common
 
         public byte[] ToByteArray() => ToByteArray(Range.All);
 
-        public byte[] ToByteArray(Range range)
+        public byte[] ToByteArray(Range bitRange)
         {
-            var rangeInfo = range.GetOffsetAndLength(Length);
+            var rangeInfo = bitRange.GetOffsetAndLength(Length);
             return ToByteArray(rangeInfo.Offset, rangeInfo.Length);
         }
 
@@ -254,18 +286,6 @@ namespace Axis.Luna.Common
                 .Select(ToByte)
                 .ToArray();
         }
-        #endregion
-
-        #region DefaultProvider
-        public bool IsDefault => bits is null;
-
-        public static BitSequence Default => default;
-        #endregion
-
-        #region API
-        public bool IsEmpty => IsDefault;
-
-        public static BitSequence Empty => Default;
 
         public BitArray ToBitArray() => IsDefault 
             ? new BitArray(Array.Empty<bool>())
@@ -348,6 +368,407 @@ namespace Axis.Luna.Common
                 Left: this[..index],
                 Right: this[index..]);
         }
+        #endregion
+
+        #region Operators
+        public static BitSequence operator +(BitSequence left, BitSequence right) => left.Concat(right);
+
+        public static BitSequence operator <<(BitSequence sequence, int shiftCount) => sequence.LeftShift(shiftCount);
+
+        public static BitSequence operator >>(BitSequence sequence, int shiftCount) => sequence.RightShift(shiftCount);
+        #endregion
+
+        #region Helpers
+
+        private static byte ToByte(IEnumerable<bool> bitOctet)
+        {
+            return bitOctet
+                .Select((bit, index) => (bit, index))
+                .Aggregate((byte)0, (@byte, bitInfo) => @byte |= bitInfo.bit switch
+                {
+                    true => BitMasks[bitInfo.index],
+                    false => 0
+                });
+        }
+
+        internal static bool[] ToBits(byte @byte)
+        {
+            var array = new bool[8];
+            array[0] = @byte.IsSet(0);
+            array[1] = @byte.IsSet(1);
+            array[2] = @byte.IsSet(2);
+            array[3] = @byte.IsSet(3);
+            array[4] = @byte.IsSet(4);
+            array[5] = @byte.IsSet(5);
+            array[6] = @byte.IsSet(6);
+            array[7] = @byte.IsSet(7);
+            return array;
+        }
+
+        internal static bool[] ToBits(byte[] bytes) => ToBitList(bytes).ToArray();
+
+        internal static List<bool> ToBitList(byte[] bytes)
+        {
+            var list = new List<bool>(8 * bytes.Length);
+            foreach (var @byte in bytes)
+            {
+                var bits = ToBits(@byte);
+                list.AddRange(bits);
+            }
+
+            return list;
+        }
+
+        #endregion
+    }
+
+    public struct BitSequence2 :
+        IEnumerable<bool>,
+        IDefaultValueProvider<BitSequence2>
+    {
+        internal static byte[] BitMasks = new byte[]
+        {
+            1,  // index 0
+            2,  // index 1
+            4,  // index 2
+            8,  // index 3
+            16, // index 4
+            32, // index 5
+            64, // index 6
+            128 // index 7
+        };
+
+        #region Fields
+        private readonly byte[] bits;
+        private readonly long length;
+        #endregion
+
+        #region Members
+        public int Length
+        {
+            get
+            {
+                throw new NotImplementedException();
+            }
+        }
+
+        public BitSequence2 SignificantBits
+        {
+            get
+            {
+                throw new NotImplementedException();
+            }
+        }
+
+        public bool this[int index]
+        {
+            get
+            {
+                throw new NotImplementedException();
+            }
+        }
+
+        public BitSequence2 Slice(int start, int length)
+        {
+            throw new NotImplementedException();
+        }
+        #endregion
+
+        #region Construction
+        public BitSequence2(IEnumerable<byte> bits, int length)
+        {
+            throw new NotImplementedException();
+        }
+
+        public static BitSequence2 Of(IEnumerable<bool> bits)
+        {
+            throw new NotImplementedException();
+        }
+
+        public static BitSequence2 Of(params byte[] bytes)
+        {
+            throw new NotImplementedException();
+        }
+
+        /// <summary>
+        /// converts only the significant bits of the bytes given.
+        /// <para>
+        /// Significant bits are what are left after trimming "0" bits from the right-end of the list of bits.
+        /// 0000-0000 => empty bit sequence
+        /// 0000-0001 => 1 bit sequence
+        /// 0000-0100 => 100 bit sequence
+        /// </para>
+        /// </summary>
+        /// <param name="bytes"></param>
+        /// <returns></returns>
+        public static BitSequence2 OfSignificantBits(params byte[] bytes)
+        {
+            throw new NotImplementedException();
+        }
+
+        public static BitSequence2 Of(byte @byte, bool useSignificantBits = true)
+        {
+            throw new NotImplementedException();
+        }
+
+        public static BitSequence2 Of(sbyte @byte, bool useSignificantBits = true)
+        {
+            throw new NotImplementedException();
+        }
+
+        public static BitSequence2 Of(short value, bool useSignificantBits = true)
+        {
+            throw new NotImplementedException();
+        }
+
+        public static BitSequence2 Of(ushort value, bool useSignificantBits = true)
+        {
+            throw new NotImplementedException();
+        }
+
+        public static BitSequence2 Of(int value, bool useSignificantBits = true)
+        {
+            throw new NotImplementedException();
+        }
+
+        public static BitSequence2 Of(uint value, bool useSignificantBits = true)
+        {
+            throw new NotImplementedException();
+        }
+
+        public static BitSequence2 Of(long value, bool useSignificantBits = true)
+        {
+            throw new NotImplementedException();
+        }
+
+        public static BitSequence2 Of(ulong value, bool useSignificantBits = true)
+        {
+            throw new NotImplementedException();
+        }
+
+        public static BitSequence2 Of(Half value, bool useSignificantBits = true)
+        {
+            throw new NotImplementedException();
+        }
+
+        public static BitSequence2 Of(float value, bool useSignificantBits = true)
+        {
+            throw new NotImplementedException();
+        }
+
+        public static BitSequence2 Of(double value, bool useSignificantBits = true)
+        {
+            throw new NotImplementedException();
+        }
+
+        public static BitSequence2 Of(decimal value, bool useSignificantBits = true)
+        {
+            throw new NotImplementedException();
+        }
+
+        public static BitSequence2 Of(BigInteger value, bool useSignificantBits = true)
+        {
+            throw new NotImplementedException();
+        }
+
+        public static BitSequence2 Of(Guid guid)
+        {
+            throw new NotImplementedException();
+        }
+
+        public static BitSequence2 Of(BitArray bits)
+        {
+            throw new NotImplementedException();
+        }
+
+        public static BitSequence2 Of(params bool[] bits)
+        {
+            throw new NotImplementedException();
+        }
+
+        public static BitSequence2 Of(Span<bool> bits)
+        {
+            throw new NotImplementedException();
+        }
+
+        public static BitSequence2 Of(ArraySegment<bool> bits)
+        {
+            throw new NotImplementedException();
+        }
+        #endregion
+
+        #region Implicits
+        public static implicit operator BitSequence2(byte[] value) => Of(value);
+        public static implicit operator BitSequence2(byte value) => Of(value);
+        public static implicit operator BitSequence2(sbyte value) => Of(value);
+        public static implicit operator BitSequence2(short value) => Of(value);
+        public static implicit operator BitSequence2(ushort value) => Of(value);
+        public static implicit operator BitSequence2(int value) => Of(value);
+        public static implicit operator BitSequence2(uint value) => Of(value);
+        public static implicit operator BitSequence2(long value) => Of(value);
+        public static implicit operator BitSequence2(ulong value) => Of(value);
+        public static implicit operator BitSequence2(Half value) => Of(value);
+        public static implicit operator BitSequence2(float value) => Of(value);
+        public static implicit operator BitSequence2(double value) => Of(value);
+        public static implicit operator BitSequence2(decimal value) => Of(value);
+        public static implicit operator BitSequence2(BigInteger value) => Of(value);
+        public static implicit operator BitSequence2(Guid value) => Of(value);
+        public static implicit operator BitSequence2(BitArray value) => Of(value);
+        public static implicit operator BitSequence2(bool[] value) => Of(value);
+        public static implicit operator BitSequence2(Span<bool> value) => Of(value);
+        public static implicit operator BitSequence2(ArraySegment<bool> value) => Of(value);
+        #endregion
+
+        #region Object overrides
+        public override string ToString()
+        {
+            throw new NotImplementedException();
+        }
+
+        public override int GetHashCode()
+        {
+            throw new NotImplementedException();
+        }
+
+        public override bool Equals([NotNullWhen(true)] object obj)
+        {
+            throw new NotImplementedException();
+        }
+
+        public static bool operator ==(BitSequence2 first, BitSequence2 second) => first.Equals(second);
+        public static bool operator !=(BitSequence2 first, BitSequence2 second) => !first.Equals(second);
+        #endregion
+
+        #region IEnumerable
+        public IEnumerator<bool> GetEnumerator()
+        {
+            throw new NotImplementedException();
+        }
+
+        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+        #endregion
+
+        #region DefaultProvider
+        public bool IsDefault => bits is null;
+
+        public static BitSequence2 Default => default;
+        #endregion
+
+        #region API
+
+        public bool IsEmpty => IsDefault;
+
+        public static BitSequence2 Empty => Default;
+
+        public byte ByteAt(Index index)
+        {
+            throw new NotImplementedException();
+        }
+
+        public byte[] ToByteArray()
+        {
+            throw new NotImplementedException();
+        }
+
+        public byte[] ToByteArray(Range bitRange)
+        {
+            throw new NotImplementedException();
+        }
+
+        public byte[] ToByteArray(int startIndex, int bitLength)
+        {
+            throw new NotImplementedException();
+        }
+
+        public BitArray ToBitArray() => IsDefault
+            ? new BitArray(Array.Empty<bool>())
+            : new BitArray(bits);
+
+        /// <summary>
+        /// Creates a new bit sequence that is the concatenation of one bit sequence to the other
+        /// </summary>
+        /// <param name="sequence"></param>
+        /// <returns></returns>
+        public BitSequence2 Concat(BitSequence2 sequence)
+        {
+            return Of(((IEnumerable<bool>)this).Concat(sequence));
+        }
+
+        /// <summary>
+        /// Creates a new bit sequence that is the result of shifting the bits of this sequence
+        /// <paramref name="count"/> number of times to the left, padding the shifted side with "0"
+        /// </summary>
+        /// <param name="count"></param>
+        /// <returns></returns>
+        public BitSequence2 LeftShift(int count)
+        {
+            return this
+                .ToBitArray()
+                .LeftShift(count);
+        }
+
+        /// <summary>
+        /// Creates a new bit sequence that is the result of shifting the bits of this sequence
+        /// <paramref name="count"/> number of times to the right, padding the shifted side with "0"
+        /// </summary>
+        /// <param name="count"></param>
+        /// <returns></returns>
+        public BitSequence2 RightShift(int count)
+        {
+            return this
+                .ToBitArray()
+                .RightShift(count);
+        }
+
+        /// <summary>
+        /// Same as the left shift, except that the shifted end is padded with the values shifted
+        /// off from the opposite end
+        /// </summary>
+        /// <param name="count"></param>
+        /// <returns></returns>
+        public BitSequence2 CycleLeft(int count)
+        {
+            if (count == Length)
+                return this;
+
+            count %= Length;
+            var (left, right) = Split(Length - count);
+            return right.Concat(left);
+        }
+
+        /// <summary>
+        /// Same as the right shift, except that the shifted end is padded with the values shifted
+        /// off from the opposite end
+        /// </summary>
+        /// <param name="count"></param>
+        /// <returns></returns>
+        public BitSequence2 CycleRight(int count)
+        {
+            if (count == Length)
+                return this;
+
+            count %= Length;
+            var (left, right) = Split(count);
+            return right.Concat(left);
+        }
+
+        public (BitSequence2 Left, BitSequence2 Right) Split(int index)
+        {
+            if (index < 0 || index > Length)
+                throw new IndexOutOfRangeException();
+
+            return (
+                Left: this[..index],
+                Right: this[index..]);
+        }
+        #endregion
+
+        #region Operators
+        public static BitSequence2 operator +(BitSequence2 left, BitSequence2 right) => left.Concat(right);
+
+        public static BitSequence2 operator <<(BitSequence2 sequence, int shiftCount) => sequence.LeftShift(shiftCount);
+
+        public static BitSequence2 operator >>(BitSequence2 sequence, int shiftCount) => sequence.RightShift(shiftCount);
         #endregion
 
         #region Helpers
