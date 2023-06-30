@@ -677,11 +677,40 @@ namespace Axis.Luna.Common.Test
             result = BitSequence2.Chunk(bytes, 7..13);
             result2 = BitSequence2.Chunk2(bytes, 7..13);
             AssertEquals(result, result2);
+
+            result = BitSequence2.Chunk(bytes, 8..13);
+            result2 = BitSequence2.Chunk2(bytes, 8..13);
+            AssertEquals(result, result2);
+
+            result = BitSequence2.Chunk(bytes, 9..13);
+            result2 = BitSequence2.Chunk2(bytes, 9..13);
+            AssertEquals(result, result2);
+
+            result = BitSequence2.Chunk(bytes, 10..13);
+            result2 = BitSequence2.Chunk2(bytes, 10..13);
+            AssertEquals(result, result2);
+
+            result = BitSequence2.Chunk(bytes, 11..13);
+            result2 = BitSequence2.Chunk2(bytes, 11..13);
+            AssertEquals(result, result2);
+
+            result = BitSequence2.Chunk(bytes, 12..13);
+            result2 = BitSequence2.Chunk2(bytes, 12..13);
+            AssertEquals(result, result2);
+
+            result = BitSequence2.Chunk(bytes, 13..13);
+            result2 = BitSequence2.Chunk2(bytes, 13..13);
+            AssertEquals(result, result2);
+
+            Assert.ThrowsException<ArgumentOutOfRangeException>(() => BitSequence2.Chunk(bytes, 14..13));
+            Assert.ThrowsException<ArgumentOutOfRangeException>(() => BitSequence2.Chunk2(bytes, 14..13));
+            AssertEquals(result, result2);
         }
 
         public static void AssertEquals(byte[] b1, byte[] b2)
         {
-            Assert.IsTrue(Enumerable.SequenceEqual(b1, b2));
+            var areEqual = Enumerable.SequenceEqual(b1, b2);
+            Assert.IsTrue(areEqual);
         }
     }
 }
