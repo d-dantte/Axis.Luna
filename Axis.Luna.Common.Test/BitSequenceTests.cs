@@ -1,4 +1,5 @@
 ﻿using Axis.Luna.Common.Utils;
+using Axis.Luna.Extensions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Collections;
@@ -25,6 +26,9 @@ namespace Axis.Luna.Common.Test
             Assert.AreEqual(8, bs.Length);
 
             bs = 3;
+            Assert.AreEqual(8, bs.Length);
+
+            bs = BitConverter.GetBytes(3);
             Assert.AreEqual(32, bs.Length);
         }
 
@@ -34,10 +38,19 @@ namespace Axis.Luna.Common.Test
             Assert.ThrowsException<IndexOutOfRangeException>(
                 () => BitSequence.Of((byte)3)[8]);
 
+            Assert.ThrowsException<IndexOutOfRangeException>(
+                () => BitSequence.Of((byte)3)[-1]);
+            Assert.ThrowsException<IndexOutOfRangeException>(
+                () =>default(BitSequence)[0]);
+
             BitSequence bs = 3;
             var bit = bs[1];
             Assert.IsTrue(bit);
-            bit = bs[^31];
+
+            bit = bs[^1];
+            Assert.IsFalse(bit);
+
+            bit = bs[^8];
             Assert.IsTrue(bit);
         }
 
@@ -151,6 +164,10 @@ namespace Axis.Luna.Common.Test
                 false, false, false, true, true, true, false, true);
             text = bs.ToString();
             Assert.AreEqual("[1010 1111, 0001 1101]", text);
+
+            bs = default;
+            text = bs.ToString();
+            Assert.AreEqual("[]", text);
         }
 
         [TestMethod]
@@ -187,13 +204,13 @@ namespace Axis.Luna.Common.Test
                     false, true, false, true, false, false, false, false),
                 bs));
 
-            bs = BitSequence.Of((byte)10);
+            bs = BitSequence.Of(10);
             Assert.IsTrue(Enumerable.SequenceEqual(
                 ArrayUtil.Of(
                     false, true, false, true, false, false, false, false),
                 bs));
 
-            bs = BitSequence.Of((sbyte)10);
+            bs = BitSequence.Of(new BigInteger((sbyte)10));
             Assert.IsTrue(Enumerable.SequenceEqual(
                 ArrayUtil.Of(
                     false, true, false, true, false, false, false, false),
@@ -202,151 +219,59 @@ namespace Axis.Luna.Common.Test
             bs = BitSequence.Of((short)10);
             Assert.IsTrue(Enumerable.SequenceEqual(
                 ArrayUtil.Of(
-                    false, true, false, true, false, false, false, false,
-                    false, false, false, false, false, false, false, false),
+                    false, true, false, true, false, false, false, false),
                 bs));
 
             bs = BitSequence.Of((ushort)10);
             Assert.IsTrue(Enumerable.SequenceEqual(
                 ArrayUtil.Of(
-                    false, true, false, true, false, false, false, false,
-                    false, false, false, false, false, false, false, false),
+                    false, true, false, true, false, false, false, false),
                 bs));
 
-            bs = BitSequence.Of(10);
-            Assert.IsTrue(Enumerable.SequenceEqual(
-                ArrayUtil.Of(
-                    false, true, false, true, false, false, false, false,
-                    false, false, false, false, false, false, false, false,
-                    false, false, false, false, false, false, false, false,
-                    false, false, false, false, false, false, false, false),
-                bs));
-
-            bs = BitSequence.Of((uint)10);
-            Assert.IsTrue(Enumerable.SequenceEqual(
-                ArrayUtil.Of(
-                    false, true, false, true, false, false, false, false,
-                    false, false, false, false, false, false, false, false,
-                    false, false, false, false, false, false, false, false,
-                    false, false, false, false, false, false, false, false),
-                bs));
-
-            bs = BitSequence.Of((long)10);
-            Assert.IsTrue(Enumerable.SequenceEqual(
-                ArrayUtil.Of(
-                    false, true, false, true, false, false, false, false,
-                    false, false, false, false, false, false, false, false,
-                    false, false, false, false, false, false, false, false,
-                    false, false, false, false, false, false, false, false,
-                    false, false, false, false, false, false, false, false,
-                    false, false, false, false, false, false, false, false,
-                    false, false, false, false, false, false, false, false,
-                    false, false, false, false, false, false, false, false),
-                bs));
-
-            bs = BitSequence.Of((ulong)10);
-            Assert.IsTrue(Enumerable.SequenceEqual(
-                ArrayUtil.Of(
-                    false, true, false, true, false, false, false, false,
-                    false, false, false, false, false, false, false, false,
-                    false, false, false, false, false, false, false, false,
-                    false, false, false, false, false, false, false, false,
-                    false, false, false, false, false, false, false, false,
-                    false, false, false, false, false, false, false, false,
-                    false, false, false, false, false, false, false, false,
-                    false, false, false, false, false, false, false, false),
-                bs));
-
-            bs = BitSequence.Of((Half.Parse("0.3")));
-            Assert.IsTrue(Enumerable.SequenceEqual(
-                ArrayUtil.Of(
-                    true, false, true, true, false, false, true, true,
-                    false, false, true, false, true, true, false, false),
-                bs));
-
-            bs = BitSequence.Of((float.Parse("0.3")));
-            Assert.IsTrue(Enumerable.SequenceEqual(
-                ArrayUtil.Of(
-                    false, true, false, true, true, false, false, true,
-                    true, false, false, true, true, false, false, true,
-                    true, false, false, true, true, false, false, true,
-                    false, true, true, true, true, true, false, false),
-                bs));
-
-            bs = BitSequence.Of((double.Parse("0.3")));
-            Assert.IsTrue(Enumerable.SequenceEqual(
-                ArrayUtil.Of(
-                    true, true, false, false, true, true, false, false,
-                    true, true, false, false, true, true, false, false,
-                    true, true, false, false, true, true, false, false,
-                    true, true, false, false, true, true, false, false,
-                    true, true, false, false, true, true, false, false,
-                    true, true, false, false, true, true, false, false,
-                    true, true, false, false, true, false, true, true,
-                    true, true, true, true, true, true, false, false),
-                bs));
-
-            bs = BitSequence.Of(0.3m);
-            Assert.IsTrue(Enumerable.SequenceEqual(
-                ArrayUtil.Of(
-                    true, true, false, false, false, false, false, false,
-                    false, false, false, false, false, false, false, false,
-                    false, false, false, false, false, false, false, false,
-                    false, false, false, false, false, false, false, false,
-                    false, false, false, false, false, false, false, false,
-                    false, false, false, false, false, false, false, false,
-                    false, false, false, false, false, false, false, false,
-                    false, false, false, false, false, false, false, false,
-                    false, false, false, false, false, false, false, false,
-                    false, false, false, false, false, false, false, false,
-                    false, false, false, false, false, false, false, false,
-                    false, false, false, false, false, false, false, false,
-                    false, false, false, false, false, false, false, false,
-                    false, false, false, false, false, false, false, false,
-                    true, false, false, false, false, false, false, false,
-                    false, false, false, false, false, false, false, false),
-                bs));
-
-            bs = BitSequence.Of(BigInteger.Parse("10"));
+            bs = BitSequence.Of(new BigInteger(10));
             Assert.IsTrue(Enumerable.SequenceEqual(
                 ArrayUtil.Of(
                     false, true, false, true, false, false, false, false),
                 bs));
 
-            bs = BitSequence.Of(Guid.Empty);
+            bs = BitSequence.Of(new BigInteger((uint)10));
             Assert.IsTrue(Enumerable.SequenceEqual(
                 ArrayUtil.Of(
-                    false, false, false, false, false, false, false, false,
-                    false, false, false, false, false, false, false, false,
-                    false, false, false, false, false, false, false, false,
-                    false, false, false, false, false, false, false, false,
-                    false, false, false, false, false, false, false, false,
-                    false, false, false, false, false, false, false, false,
-                    false, false, false, false, false, false, false, false,
-                    false, false, false, false, false, false, false, false,
-                    false, false, false, false, false, false, false, false,
-                    false, false, false, false, false, false, false, false,
-                    false, false, false, false, false, false, false, false,
-                    false, false, false, false, false, false, false, false,
-                    false, false, false, false, false, false, false, false,
-                    false, false, false, false, false, false, false, false,
-                    false, false, false, false, false, false, false, false,
+                    false, true, false, true, false, false, false, false),
+                bs));
+
+            bs = BitSequence.Of(new BigInteger((long)10));
+            Assert.IsTrue(Enumerable.SequenceEqual(
+                ArrayUtil.Of(
+                    false, true, false, true, false, false, false, false),
+                bs));
+
+            bs = BitSequence.Of(new BigInteger((ulong)10));
+            Assert.IsTrue(Enumerable.SequenceEqual(
+                ArrayUtil.Of(
+                    false, true, false, true, false, false, false, false),
+                bs));
+
+            bs = BitSequence.Of(new BigInteger(211));
+            Assert.IsTrue(Enumerable.SequenceEqual(
+                ArrayUtil.Of(
+                    true, true, false, false, true, false, true, true,
                     false, false, false, false, false, false, false, false),
                 bs));
 
-            bs = BitSequence.Of(new BitArray(ArrayUtil.Of(true, false, true)));
+            bs = BitSequence.Of(true, 211);
+            Assert.IsTrue(Enumerable.SequenceEqual(
+                ArrayUtil.Of(
+                    true, true, false, false, true, false, true, true),
+                bs));
+
+            bs = BitSequence.Of(new BitArray(ArrayUtil.Of(true, false, true)).SelectAs<bool>());
             Assert.IsTrue(Enumerable.SequenceEqual(
                 ArrayUtil.Of(
                     true, false, true),
                 bs));
 
             bs = BitSequence.Of(true, false, true);
-            Assert.IsTrue(Enumerable.SequenceEqual(
-                ArrayUtil.Of(
-                    true, false, true),
-                bs));
-
-            bs = BitSequence.Of(new Span<bool>(ArrayUtil.Of(true, false, true)));
             Assert.IsTrue(Enumerable.SequenceEqual(
                 ArrayUtil.Of(
                     true, false, true),
@@ -384,136 +309,43 @@ namespace Axis.Luna.Common.Test
             bs = (short)10;
             Assert.IsTrue(Enumerable.SequenceEqual(
                 ArrayUtil.Of(
-                    false, true, false, true, false, false, false, false,
-                    false, false, false, false, false, false, false, false),
+                    false, true, false, true, false, false, false, false),
                 bs));
 
             bs = ((ushort)10);
             Assert.IsTrue(Enumerable.SequenceEqual(
                 ArrayUtil.Of(
-                    false, true, false, true, false, false, false, false,
-                    false, false, false, false, false, false, false, false),
+                    false, true, false, true, false, false, false, false),
                 bs));
 
             bs = 10;
             Assert.IsTrue(Enumerable.SequenceEqual(
                 ArrayUtil.Of(
-                    false, true, false, true, false, false, false, false,
-                    false, false, false, false, false, false, false, false,
-                    false, false, false, false, false, false, false, false,
-                    false, false, false, false, false, false, false, false),
+                    false, true, false, true, false, false, false, false),
                 bs));
 
             bs = ((uint)10);
             Assert.IsTrue(Enumerable.SequenceEqual(
                 ArrayUtil.Of(
-                    false, true, false, true, false, false, false, false,
-                    false, false, false, false, false, false, false, false,
-                    false, false, false, false, false, false, false, false,
-                    false, false, false, false, false, false, false, false),
+                    false, true, false, true, false, false, false, false),
                 bs));
 
             bs = ((long)10);
             Assert.IsTrue(Enumerable.SequenceEqual(
                 ArrayUtil.Of(
-                    false, true, false, true, false, false, false, false,
-                    false, false, false, false, false, false, false, false,
-                    false, false, false, false, false, false, false, false,
-                    false, false, false, false, false, false, false, false,
-                    false, false, false, false, false, false, false, false,
-                    false, false, false, false, false, false, false, false,
-                    false, false, false, false, false, false, false, false,
-                    false, false, false, false, false, false, false, false),
+                    false, true, false, true, false, false, false, false),
                 bs));
 
             bs = ((ulong)10);
             Assert.IsTrue(Enumerable.SequenceEqual(
                 ArrayUtil.Of(
-                    false, true, false, true, false, false, false, false,
-                    false, false, false, false, false, false, false, false,
-                    false, false, false, false, false, false, false, false,
-                    false, false, false, false, false, false, false, false,
-                    false, false, false, false, false, false, false, false,
-                    false, false, false, false, false, false, false, false,
-                    false, false, false, false, false, false, false, false,
-                    false, false, false, false, false, false, false, false),
-                bs));
-
-            bs = Half.Parse("0.3");
-            Assert.IsTrue(Enumerable.SequenceEqual(
-                ArrayUtil.Of(
-                    true, false, true, true, false, false, true, true,
-                    false, false, true, false, true, true, false, false),
-                bs));
-
-            bs = float.Parse("0.3");
-            Assert.IsTrue(Enumerable.SequenceEqual(
-                ArrayUtil.Of(
-                    false, true, false, true, true, false, false, true,
-                    true, false, false, true, true, false, false, true,
-                    true, false, false, true, true, false, false, true,
-                    false, true, true, true, true, true, false, false),
-                bs));
-
-            bs = double.Parse("0.3");
-            Assert.IsTrue(Enumerable.SequenceEqual(
-                ArrayUtil.Of(
-                    true, true, false, false, true, true, false, false,
-                    true, true, false, false, true, true, false, false,
-                    true, true, false, false, true, true, false, false,
-                    true, true, false, false, true, true, false, false,
-                    true, true, false, false, true, true, false, false,
-                    true, true, false, false, true, true, false, false,
-                    true, true, false, false, true, false, true, true,
-                    true, true, true, true, true, true, false, false),
-                bs));
-
-            bs = 0.3m;
-            Assert.IsTrue(Enumerable.SequenceEqual(
-                ArrayUtil.Of(
-                    true, true, false, false, false, false, false, false,
-                    false, false, false, false, false, false, false, false,
-                    false, false, false, false, false, false, false, false,
-                    false, false, false, false, false, false, false, false,
-                    false, false, false, false, false, false, false, false,
-                    false, false, false, false, false, false, false, false,
-                    false, false, false, false, false, false, false, false,
-                    false, false, false, false, false, false, false, false,
-                    false, false, false, false, false, false, false, false,
-                    false, false, false, false, false, false, false, false,
-                    false, false, false, false, false, false, false, false,
-                    false, false, false, false, false, false, false, false,
-                    false, false, false, false, false, false, false, false,
-                    false, false, false, false, false, false, false, false,
-                    true, false, false, false, false, false, false, false,
-                    false, false, false, false, false, false, false, false),
+                    false, true, false, true, false, false, false, false),
                 bs));
 
             bs = BigInteger.Parse("10");
             Assert.IsTrue(Enumerable.SequenceEqual(
                 ArrayUtil.Of(
                     false, true, false, true, false, false, false, false),
-                bs));
-
-            bs = Guid.Empty;
-            Assert.IsTrue(Enumerable.SequenceEqual(
-                ArrayUtil.Of(
-                    false, false, false, false, false, false, false, false,
-                    false, false, false, false, false, false, false, false,
-                    false, false, false, false, false, false, false, false,
-                    false, false, false, false, false, false, false, false,
-                    false, false, false, false, false, false, false, false,
-                    false, false, false, false, false, false, false, false,
-                    false, false, false, false, false, false, false, false,
-                    false, false, false, false, false, false, false, false,
-                    false, false, false, false, false, false, false, false,
-                    false, false, false, false, false, false, false, false,
-                    false, false, false, false, false, false, false, false,
-                    false, false, false, false, false, false, false, false,
-                    false, false, false, false, false, false, false, false,
-                    false, false, false, false, false, false, false, false,
-                    false, false, false, false, false, false, false, false,
-                    false, false, false, false, false, false, false, false),
                 bs));
 
             bs = new BitArray(ArrayUtil.Of(true, false, true));
@@ -567,8 +399,8 @@ namespace Axis.Luna.Common.Test
            
             Assert.ThrowsException<IndexOutOfRangeException>(() => bs.ByteAt(0));
             Assert.AreEqual(0, bs.ToByteArray().Length);
+            Assert.AreEqual(0, bs.ToByteArray(0..0).Length);
             Assert.AreEqual(0, bs.ToByteArray(..).Length);
-            Assert.AreEqual(0, bs.ToByteArray(0, 0).Length);
             Assert.AreEqual(0, bs.ToBitArray().Length);
             Assert.AreEqual("[]", bs.ToString());
             Assert.AreEqual(0, bs[..].Length);
@@ -583,33 +415,25 @@ namespace Axis.Luna.Common.Test
         }
 
         [TestMethod]
-        public void ToBits_Test()
-        {
-            var bytes = new byte[100];
-            var bits = BitSequence.ToBits(bytes);
-            Assert.AreEqual(bytes.Length * 8, bits.Length);
-        }
-
-        [TestMethod]
-        public void OfSignificantBits_Tests()
+        public void SignificantBits_Tests()
         {
             var bytes = BitConverter.GetBytes(0);
-            var bs = BitSequence.OfSignificantBits(bytes);
-            Assert.AreEqual(0, bs.Length);
+            var bs = BitSequence.Of(bytes).SignificantBits;
+            Assert.AreEqual(32, bs.Length);
 
             bytes = BitConverter.GetBytes(1);
-            bs = BitSequence.OfSignificantBits(bytes);
+            bs = BitSequence.Of(bytes).SignificantBits;
             Assert.AreEqual(1, bs.Length);
             Assert.AreEqual(true, bs[0]);
 
             bytes = BitConverter.GetBytes(3);
-            bs = BitSequence.OfSignificantBits(bytes);
+            bs = BitSequence.Of(bytes).SignificantBits;
             Assert.AreEqual(2, bs.Length);
             Assert.AreEqual(true, bs[0]);
             Assert.AreEqual(true, bs[1]);
 
             bytes = BitConverter.GetBytes(256);
-            bs = BitSequence.OfSignificantBits(bytes);
+            bs = BitSequence.Of(bytes).SignificantBits;
             Assert.AreEqual(9, bs.Length);
             Assert.AreEqual(true, bs[8]);
             Assert.AreEqual(false, bs[7]);
@@ -746,7 +570,7 @@ namespace Axis.Luna.Common.Test
         public void Miscc_Tests()
         {
             var dto = DateTimeOffset.Now;
-            var bs = BitSequence.Of(dto.Year);
+            var bs = BitSequence.Of(new BigInteger(dto.Year));
 
             Console.WriteLine(bs);
             Console.WriteLine(bs.SignificantBits);
@@ -759,82 +583,6 @@ namespace Axis.Luna.Common.Test
             Console.WriteLine(dto.Microsecond);
             Console.WriteLine(dto.Nanosecond);
             Console.WriteLine(dto.Nanosecond/100);
-        }
-    }
-
-    [TestClass]
-    public class BitSequence2Tests
-    {
-        [TestMethod]
-        public void ChunkTests()
-        {
-            var bytes = new byte[] { 219 , 75 };
-
-            var result = BitSequence2.Chunk(bytes, 0..13);
-            var result2 = BitSequence2.Chunk2(bytes, 0..13);
-            AssertEquals(result, result2);
-
-            result = BitSequence2.Chunk(bytes, 1..13);
-            result2 = BitSequence2.Chunk2(bytes, 1..13);
-            AssertEquals(result, result2);
-
-            result = BitSequence2.Chunk(bytes, 2..13);
-            result2 = BitSequence2.Chunk2(bytes, 2..13);
-            AssertEquals(result, result2);
-
-            result = BitSequence2.Chunk(bytes, 3..13);
-            result2 = BitSequence2.Chunk2(bytes, 3..13);
-            AssertEquals(result, result2);
-
-            result = BitSequence2.Chunk(bytes, 4..13);
-            result2 = BitSequence2.Chunk2(bytes, 4..13);
-            AssertEquals(result, result2);
-
-            result = BitSequence2.Chunk(bytes, 5..13);
-            result2 = BitSequence2.Chunk2(bytes, 5..13);
-            AssertEquals(result, result2);
-
-            result = BitSequence2.Chunk(bytes, 6..13);
-            result2 = BitSequence2.Chunk2(bytes, 6..13);
-            AssertEquals(result, result2);
-
-            result = BitSequence2.Chunk(bytes, 7..13);
-            result2 = BitSequence2.Chunk2(bytes, 7..13);
-            AssertEquals(result, result2);
-
-            result = BitSequence2.Chunk(bytes, 8..13);
-            result2 = BitSequence2.Chunk2(bytes, 8..13);
-            AssertEquals(result, result2);
-
-            result = BitSequence2.Chunk(bytes, 9..13);
-            result2 = BitSequence2.Chunk2(bytes, 9..13);
-            AssertEquals(result, result2);
-
-            result = BitSequence2.Chunk(bytes, 10..13);
-            result2 = BitSequence2.Chunk2(bytes, 10..13);
-            AssertEquals(result, result2);
-
-            result = BitSequence2.Chunk(bytes, 11..13);
-            result2 = BitSequence2.Chunk2(bytes, 11..13);
-            AssertEquals(result, result2);
-
-            result = BitSequence2.Chunk(bytes, 12..13);
-            result2 = BitSequence2.Chunk2(bytes, 12..13);
-            AssertEquals(result, result2);
-
-            result = BitSequence2.Chunk(bytes, 13..13);
-            result2 = BitSequence2.Chunk2(bytes, 13..13);
-            AssertEquals(result, result2);
-
-            Assert.ThrowsException<ArgumentOutOfRangeException>(() => BitSequence2.Chunk(bytes, 14..13));
-            Assert.ThrowsException<ArgumentOutOfRangeException>(() => BitSequence2.Chunk2(bytes, 14..13));
-            AssertEquals(result, result2);
-        }
-
-        public static void AssertEquals(byte[] b1, byte[] b2)
-        {
-            var areEqual = Enumerable.SequenceEqual(b1, b2);
-            Assert.IsTrue(areEqual);
         }
     }
 }
