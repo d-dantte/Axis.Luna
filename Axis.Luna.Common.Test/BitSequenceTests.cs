@@ -197,6 +197,10 @@ namespace Axis.Luna.Common.Test
                 ArrayUtil.Of(true, false),
                 bs));
 
+            bs = BitSequence.Of(0..1, 0);
+            Assert.IsTrue(
+                Enumerable.SequenceEqual(ArrayUtil.Of(false), bs));
+
             bs = BitSequence.Of(0, 10);
             Assert.IsTrue(Enumerable.SequenceEqual(
                 ArrayUtil.Of(
@@ -583,6 +587,9 @@ namespace Axis.Luna.Common.Test
             Console.WriteLine(dto.Microsecond);
             Console.WriteLine(dto.Nanosecond);
             Console.WriteLine(dto.Nanosecond/100);
+
+            bs = BitSequence.Of(new BigInteger(33));
+            var bs2 = BitSequence.Of(new BigInteger(-33));
         }
     }
 }

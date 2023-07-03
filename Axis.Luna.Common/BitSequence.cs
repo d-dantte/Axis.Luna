@@ -329,6 +329,16 @@ namespace Axis.Luna.Common
             return Of(((IEnumerable<bool>)this).Concat(sequence));
         }
 
+        public BitSequence Append(bool bit)
+        {
+
+        }
+
+        public BitSequence Insert(bool bit, int index)
+        {
+
+        }
+
         /// <summary>
         /// Creates a new bit sequence that is the result of shifting the bits of this sequence
         /// <paramref name="count"/> number of times to the left, padding the shifted side with "0"
