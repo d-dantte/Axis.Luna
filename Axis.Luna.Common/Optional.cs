@@ -10,7 +10,7 @@ namespace Axis.Luna.Common
     /// Essentially, a <c>Maybe</c> of ref-type values.
     /// </summary>
     /// <typeparam name="T"></typeparam>
-    public struct Optional<T>: IDefaultValueProvider<Optional<T>>
+    public readonly struct Optional<T>: IDefaultValueProvider<Optional<T>>
     where T: class
     {
 
@@ -183,6 +183,9 @@ namespace Axis.Luna.Common
         #endregion
     }
 
+    /// <summary>
+    /// Optional util class
+    /// </summary>
     public static class Optional
     {
         public static Optional<TOut> Empty<TOut>()
@@ -221,7 +224,7 @@ namespace Axis.Luna.Common
             where TValue: class
         {
             return optional.IsEmpty
-                ? Result.Of<TValue>(exception)
+                ? Result.Of<TValue>(exception ?? new Exception("Value is null"))
                 : Result.Of(optional.Value());
         }
     }

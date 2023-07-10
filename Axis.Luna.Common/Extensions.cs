@@ -30,6 +30,17 @@ namespace Axis.Luna.Common
                 [..(int)(integer.GetBitLength())];
         }
 
+        internal static string ReverseString(this string s)
+        {
+            var array = new char[s.Length];
+            int forward = 0;
+            for (int i = s.Length - 1; i >= 0; i--)
+            {
+                array[forward++] = s[i];
+            }
+            return new string(array);
+        }
+
         #region Helpers
         private static readonly Func<Exception, StackTrace, Exception> StackTraceSetter = CreateStackTraceSetter();
         private static Func<Exception, StackTrace, Exception> CreateStackTraceSetter()

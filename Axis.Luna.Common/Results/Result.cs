@@ -13,6 +13,7 @@ namespace Axis.Luna.Common.Results
     {
         private static readonly string ExceptionDataKey = "Axis.Luna.Common.ErrorResult.ExceptionData";
 
+        #region Type Check
         /// <summary>
         /// Checks if the supplied result is an instance of <see cref="IResult{TData}.DataResult"/>
         /// </summary>
@@ -28,7 +29,9 @@ namespace Axis.Luna.Common.Results
         /// <param name="result">The result instance</param>
         /// <returns>True if the instance is a Error result, false otherwise</returns>
         public static bool IsErrorResult<TData>(this IResult<TData> result) => result is IResult<TData>.ErrorResult;
+        #endregion
 
+        #region Of
         /// <summary>
         /// Resolves the result; returning its value, or throwing its error.
         /// </summary>
@@ -82,7 +85,7 @@ namespace Axis.Luna.Common.Results
                 return Of<TData>(e);
             }
         }
-
+        #endregion
 
         #region Exception
         public static IResult<TException> OfError<TException>(Exception exception)
@@ -108,6 +111,7 @@ namespace Axis.Luna.Common.Results
         }
         #endregion
 
+        
         /// <summary>
         /// Resolves the <see cref="Lazy{T}"/> into a result
         /// </summary>
@@ -169,7 +173,7 @@ namespace Axis.Luna.Common.Results
         }
 
         /// <summary>
-        /// Maps the encapsulate error if available, into a result
+        /// Maps the encapsulated error if available, into a result
         /// </summary>
         /// <typeparam name="TResult"></typeparam>
         /// <param name="result"></param>
@@ -194,7 +198,7 @@ namespace Axis.Luna.Common.Results
         }
 
         /// <summary>
-        /// Maps the encapsulate error if available, into a result
+        /// Binds the encapsulated error if available, into a result
         /// </summary>
         /// <typeparam name="TResult"></typeparam>
         /// <param name="result"></param>

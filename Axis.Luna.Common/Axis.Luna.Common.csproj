@@ -28,4 +28,8 @@
     <ProjectReference Include="..\Axis.Luna.Extensions\Axis.Luna.Extensions.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Automata\Async\" />
+  </ItemGroup>
+
 </Project>

@@ -223,8 +223,11 @@ namespace Axis.Luna.Extensions
         private static TOut Convert<TOut>(this object value, MethodInfo method)
         {
             var inType = value.GetType();
-            var funcType = typeof(Func<,>).MakeGenericType(inType, typeof(TOut));
-            var converterDelegate = Converters.GetOrAdd(method, m => Delegate.CreateDelegate(funcType, m));
+            var converterDelegate = Converters.GetOrAdd(method, m =>
+            {
+                var funcType = typeof(Func<,>).MakeGenericType(inType, typeof(TOut));
+                return Delegate.CreateDelegate(funcType, m);
+            });
 
             var converterProxyFunc = (Func<Delegate, object, TOut>)ConverterProxies.GetOrAdd((inType, typeof(TOut)), _ =>
             {

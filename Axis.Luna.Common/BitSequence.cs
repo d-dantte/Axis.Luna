@@ -1,4 +1,5 @@
 ﻿using Axis.Luna.Common.Numerics;
+using Axis.Luna.Common.Results;
 using Axis.Luna.Extensions;
 using System;
 using System.Collections;
@@ -19,7 +20,8 @@ namespace Axis.Luna.Common
     /// </summary>
     public struct BitSequence :
         IEnumerable<bool>,
-        IDefaultValueProvider<BitSequence>
+        IDefaultValueProvider<BitSequence>,
+        IResultParsable<BitSequence>
     {
         internal static byte[] BitMasks = new byte[]
         {
@@ -245,6 +247,45 @@ namespace Axis.Luna.Common
 
         #region API
 
+        /// <summary>
+        /// Returns a representation of the bits where they are arranged like a series of bytes in memory,
+        /// little-endian style.
+        /// </summary>
+        public string ToLittleEndianString()
+        {
+            // 1. converts bools into 1 or 0
+            // 2. group the list into octets (sets of 8)
+            // 3. further group each octet into a quartet (sets of 4)
+            // 4. join the quartets using a space " "
+            // 5. reverse the octet so they are in the format [7,6,5,4,3,2,1,0]
+            // 6. surround the octet with square brackets "[..]"
+            // 7. join the octets using a new-line
+            // 8. if the original data was null, return "[]"
+            return this
+                .Select(bit => bit ? "1" : "0")
+                .GroupBy((bit, index) => index / 8)
+                .Select(group => group
+                    .GroupBy((bit, index) => index / 4)
+                    .Select(group => group.JoinUsing(""))
+                    .JoinUsing(" ")
+                    .ReverseString()
+                    .WrapIn("[", "]"))
+                .JoinUsing(Environment.NewLine)
+                ?? "[]";
+        }
+
+        /// <summary>
+        /// Returns a representation of the bits where they are arranged like a series of bytes in memory,
+        /// big-endian style.
+        /// </summary>
+        public string ToBigEndianString()
+        {
+            return ToLittleEndianString()
+                .Split(new[] { '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries)
+                .Reverse()
+                .JoinUsing(Environment.NewLine);
+        }
+
         public BitSequence Slice(int start, int length)
         {
             if (IsDefault)
@@ -329,14 +370,41 @@ namespace Axis.Luna.Common
             return Of(((IEnumerable<bool>)this).Concat(sequence));
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="bit"></param>
+        /// <returns></returns>
         public BitSequence Append(bool bit)
         {
-
+            return this
+                .As<IEnumerable<bool>>()
+                .Append(bit)
+                .ApplyTo(BitSequence.Of);
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="bits"></param>
+        /// <returns></returns>
+        public BitSequence PrePend(BitSequence bits)
+        {
+            return bits.Concat(this);
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="bit"></param>
+        /// <param name="index"></param>
+        /// <returns></returns>
         public BitSequence Insert(bool bit, int index)
         {
-
+            return this
+                .As<IEnumerable<bool>>()
+                .InsertAt(index, bit)
+                .ApplyTo(BitSequence.Of);
         }
 
         /// <summary>
@@ -542,6 +610,38 @@ namespace Axis.Luna.Common
                 7 => 127,
                 _ => 255
             };
+        }
+        #endregion
+
+        #region IResultParsable
+        public static bool TryParse(
+            string text,
+            out IResult<BitSequence> result)
+            => (result = Parse(text)).IsDataResult();
+
+        /// <summary>
+        /// Parses a sequential arrangement of 1s and 0s into a bit sequence.
+        /// </summary>
+        /// <param name="text"></param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentNullException"></exception>
+        /// <exception cref="FormatException"></exception>
+        public static IResult<BitSequence> Parse(string text)
+        {
+            if (text is null)
+                throw new ArgumentNullException(nameof(text));
+
+            if (string.Empty.Equals(text))
+                return default;
+
+            if (string.IsNullOrWhiteSpace(text))
+                throw new FormatException("Invalid text");
+
+            return text
+                .Where(c => '1'.Equals(c) || '0'.Equals(c))
+                .Select('1'.Equals)
+                .ApplyTo(BitSequence.Of)
+                .ApplyTo(Result.Of);
         }
 
         #endregion

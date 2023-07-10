@@ -314,7 +314,7 @@ namespace Axis.Luna.Extensions
         /// <returns></returns>
         public static IEnumerable<V> InsertAt<V>(this IEnumerable<V> items, int position, V value)
         {
-            position.ThrowIf(p => p < 0, new ArgumentException($"Invalid position: {position}"));
+            position.ThrowIf(p => p < 0, new ArgumentOutOfRangeException(nameof(position)));
 
             int pos = 0;
 

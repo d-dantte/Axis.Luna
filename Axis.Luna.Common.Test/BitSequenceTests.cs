@@ -591,5 +591,15 @@ namespace Axis.Luna.Common.Test
             bs = BitSequence.Of(new BigInteger(33));
             var bs2 = BitSequence.Of(new BigInteger(-33));
         }
+
+        [TestMethod]
+        public void toSTringTests()
+        {
+            var bint = BigInteger.Parse("1234567890987654321234567890");
+            var bs = BitSequence.Of(bint.ToByteArray());
+            Console.WriteLine($"Regular tostring:\n{bs}");
+            Console.WriteLine($"\n\nLittle Endian tostring:\n{bs.ToLittleEndianString()}");
+            Console.WriteLine($"\n\nBig Endian tostring:\n{bs.ToBigEndianString()}");
+        }
     }
 }

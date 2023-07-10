@@ -2,63 +2,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
 
-namespace Axis.Luna.Common
+namespace Axis.Luna.Common.Automata.Sync
 {
-    /// <summary>
-    /// Exception that signifies an error raised while transitioning from one state to another
-    /// </summary>
-    public class StateTransitionException : Exception
-    {
-        public string PreviousState { get; }
-
-        public string NewState { get; }
-
-        public StateTransitionException(
-            string previousState,
-            string newState,
-            Exception cause = null)
-            : base("An error occured while transitioning states", cause)
-        {
-            PreviousState = previousState;
-            NewState = newState;
-        }
-    }
-
-    /// <summary>
-    /// A state within the state machine
-    /// </summary>
-    /// <typeparam name="TData">The state data</typeparam>
-    public interface IState<TData> where TData : class
-    {
-        /// <summary>
-        /// The name of this state
-        /// </summary>
-        string StateName { get; }
-
-        /// <summary>
-        /// Called by the state machine when this state is being entered.
-        /// </summary>
-        /// <param name="previousState">The previous state: null if this is the first state</param>
-        /// <param name="data">The state data</param>
-        void Entering(string previousState, TData data);
-
-        /// <summary>
-        /// Called by the state machine when this state is being exited.
-        /// </summary>
-        /// <param name="nextState">The state to which the machine will transition</param>
-        /// <param name="data">The state data</param>
-        void Leaving(string nextState, TData data);
-
-        /// <summary>
-        /// Called by the state machine for each externally triggered event.
-        /// </summary>
-        /// <param name="data">The state data that may or may not be modified by this method</param>
-        /// <returns>The new state to transition to: null means stop, <see cref="StateName"/> means repeat this state, any other value means transition to that state </returns>
-        string Act(TData data);
-
-    }
 
     /// <summary>
     /// A single-event state machine
@@ -147,13 +93,13 @@ namespace Axis.Luna.Common
         {
             return !IsMachineInEndState && _machineState switch
             {
-                MachineState.Act => !this
-                    .PropagateAction()
+                MachineState.Act => !
+                    PropagateAction()
                     .Transition()
                     .IsMachineInEndState,
 
-                MachineState.Transition => this
-                    .Transition()
+                MachineState.Transition =>
+                    Transition()
                     .TryAct(),
 
                 _ => throw new InvalidOperationException($"Invalid machine processing state: {_machineState}")
@@ -233,34 +179,5 @@ namespace Axis.Luna.Common
 
             return this;
         }
-    }
-
-    public class GenericState<TData> : IState<TData> where TData : class
-    {
-        private readonly Func<TData, string> _act;
-        private readonly Action<string, TData> _entering;
-        private readonly Action<string, TData> _leaving;
-
-        public string StateName { get; }
-
-        public GenericState(
-            string stateName,
-            Func<TData, string> act,
-            Action<string, TData> entering = null,
-            Action<string, TData> leaving = null)
-        {
-            StateName = stateName;
-            _act = act ?? throw new ArgumentNullException(nameof(act));
-            _entering = entering;
-            _leaving = leaving;
-        }
-
-
-
-        public string Act(TData data) => _act.Invoke(data);
-
-        public void Entering(string previousState, TData data) => _entering?.Invoke(previousState, data);
-
-        public void Leaving(string nextState, TData data) => _leaving?.Invoke(nextState, data);
     }
 }
