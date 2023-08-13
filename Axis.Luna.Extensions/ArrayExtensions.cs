@@ -27,5 +27,20 @@ namespace Axis.Luna.Extensions
         {
             return array is null || array.IsEmpty();
         }
+
+        /// <summary>
+        /// Essentially divides an array into to at the given <paramref name="splitIndex"/>. The division works as follows:
+        /// <code>
+        /// return (array[..splitIndex], array[splitIndex..]);
+        /// </code>
+        /// This means the split-index is exclusive for the left array, and inclusive for the right array.
+        /// </summary>
+        /// <typeparam name="TItem"></typeparam>
+        /// <param name="array"></param>
+        /// <param name="index"></param>
+        public static (TItem[] Left, TItem[] Right) SplitAt<TItem>(this TItem[] array, int splitIndex)
+        {
+            return (array[..splitIndex], array[splitIndex..]);
+        }
     }
 }

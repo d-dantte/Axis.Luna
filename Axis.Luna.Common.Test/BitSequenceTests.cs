@@ -1,4 +1,5 @@
-﻿using Axis.Luna.Common.Utils;
+﻿using Axis.Luna.Common.Results;
+using Axis.Luna.Common.Utils;
 using Axis.Luna.Extensions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
@@ -600,6 +601,18 @@ namespace Axis.Luna.Common.Test
             Console.WriteLine($"Regular tostring:\n{bs}");
             Console.WriteLine($"\n\nLittle Endian tostring:\n{bs.ToLittleEndianString()}");
             Console.WriteLine($"\n\nBig Endian tostring:\n{bs.ToBigEndianString()}");
+        }
+
+
+        [TestMethod]
+        public void ParseTest()
+        {
+            var bis = BitSequence.Of(false, false, false, true, false);
+            var str = bis.ToString();
+            var result = BitSequence.Parse(str);
+            Assert.IsTrue(result.IsDataResult());
+            var bis2 = result.Resolve();
+            Assert.AreEqual(bis, bis2);
         }
     }
 }

@@ -2,6 +2,7 @@
 using Axis.Luna.Common.Results;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
+using System.Linq;
 using System.Numerics;
 
 namespace Axis.Luna.Common.Test.Numerics
@@ -597,9 +598,11 @@ namespace Axis.Luna.Common.Test.Numerics
             Console.WriteLine(bd.ToScientificString(10));
             Console.WriteLine();
 
-            bd = new BigDecimal(0.00000002345m);
+            bd = new BigDecimal(0.0000000234566639118m);
             Console.WriteLine(bd.ToScientificString());
-            Console.WriteLine(bd.ToScientificString(10));
+            Console.WriteLine(bd.ToScientificString(20));
+            Console.WriteLine(bd.ToNonScientificString());
+            Console.WriteLine(bd.ToNonScientificString(6));
             Console.WriteLine();
 
             bd = new BigDecimal(23.450m);
@@ -611,6 +614,44 @@ namespace Axis.Luna.Common.Test.Numerics
             Console.WriteLine(bd.ToScientificString());
             Console.WriteLine(bd.ToScientificString(2));
             Console.WriteLine(decimal.Parse(bd.ToScientificString(), System.Globalization.NumberStyles.Float));
+            Console.WriteLine();
+        }
+
+        [TestMethod]
+        public void ToNonScientificString_Tests()
+        {
+            var bd = new BigDecimal(0m);
+            Console.WriteLine(bd.ToNonScientificString());
+            Console.WriteLine(bd.ToNonScientificString(10));
+            Console.WriteLine();
+
+            bd = new BigDecimal(10m);
+            Console.WriteLine(bd.ToNonScientificString());
+            Console.WriteLine(bd.ToNonScientificString(10));
+            Console.WriteLine();
+
+            bd = new BigDecimal(23450m);
+            Console.WriteLine(bd.ToNonScientificString());
+            Console.WriteLine(bd.ToNonScientificString(10));
+            Console.WriteLine();
+
+            bd = new BigDecimal(0.0000000234566639118m);
+            Console.WriteLine(bd.ToNonScientificString());
+            Console.WriteLine(bd.ToNonScientificString(20));
+            Console.WriteLine(bd.ToNonScientificString(6));
+            Console.WriteLine(bd.ToNonScientificString(0));
+            Console.WriteLine();
+
+            bd = new BigDecimal(23.450m);
+            Console.WriteLine(bd.ToNonScientificString());
+            Console.WriteLine(bd.ToNonScientificString(10));
+            Console.WriteLine(bd.ToNonScientificString(0));
+            Console.WriteLine();
+
+            bd = new BigDecimal(-2.3450m);
+            Console.WriteLine(bd.ToNonScientificString());
+            Console.WriteLine(bd.ToNonScientificString(2));
+            Console.WriteLine(decimal.Parse(bd.ToNonScientificString(), System.Globalization.NumberStyles.Float));
             Console.WriteLine();
         }
 
@@ -628,6 +669,10 @@ namespace Axis.Luna.Common.Test.Numerics
             var bd = new BigDecimal(4554.3109m);
             var d = bd.DemoteToDecimal();
             Assert.AreEqual(4554.3109m, d);
+
+            Console.WriteLine(new DateTime)
         }
+
+
     }
 }

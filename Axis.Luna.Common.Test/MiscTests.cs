@@ -103,6 +103,46 @@ namespace Axis.Luna.Common.Test
             for (ulong cnt = 0; cnt < repetitions; cnt++)
                 yield return generator.Invoke(cnt);
         }
+
+        public static bool isTwin(string a, string b)
+        {
+            if (a.Length != b.Length)
+                return false;
+
+            var compositionA = a
+                .GroupBy(c => c)
+                .ToDictionary(
+                    group => group.Key,
+                    group => group.Count());
+
+            var compositionB = b
+                .GroupBy(c => c)
+                .ToDictionary(
+                    group => group.Key,
+                    group => group.Count());
+
+            if (compositionA.Count != compositionB.Count)
+                return false;
+
+            foreach(var kvp in compositionA)
+            {
+                if (!compositionB.ContainsKey(kvp.Key) || compositionB[kvp.Key] != kvp.Value)
+                    return false;
+            }
+
+            return true;
+        }
+
+        public static string Reshape(int n, string str)
+        {
+            var groups = str
+                .Replace(" ", "")
+                .GroupBy((chr, index) => index / n)
+                .Select(group => new string(group.ToArray()))
+                .ToArray();
+
+            return string.Join("\n", groups);
+        }
     }
 
     [TestClass]

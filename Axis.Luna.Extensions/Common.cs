@@ -287,6 +287,96 @@ namespace Axis.Luna.Extensions
             return mapper.Invoke(@in);
         }
 
+        #region ApplyTo
+        public static TOut ApplyTo
+            <TIn1, TIn2, TOut>
+            (this (TIn1 in1, TIn2 in2) input,
+             Func<TIn1, TIn2, TOut> mapper)
+        {
+            if (mapper is null)
+                throw new ArgumentNullException(nameof(mapper));
+
+            return mapper.Invoke(input.in1, input.in2);
+        }
+
+        public static TOut ApplyTo
+            <TIn1, TIn2, TIn3, TOut>
+            (this (TIn1 in1, TIn2 in2, TIn3 in3) input,
+             Func<TIn1, TIn2, TIn3, TOut> mapper)
+        {
+            if (mapper is null)
+                throw new ArgumentNullException(nameof(mapper));
+
+            return mapper.Invoke(input.in1, input.in2, input.in3);
+        }
+
+        public static TOut ApplyTo
+            <TIn1, TIn2, TIn3, TIn4, TOut>
+            (this (TIn1 in1, TIn2 in2, TIn3 in3, TIn4 in4) input,
+             Func<TIn1, TIn2, TIn3, TIn4, TOut> mapper)
+        {
+            if (mapper is null)
+                throw new ArgumentNullException(nameof(mapper));
+
+            return mapper.Invoke(input.in1, input.in2, input.in3, input.in4);
+        }
+
+        public static TOut ApplyTo
+            <TIn1, TIn2, TIn3, TIn4, TIn5, TOut>
+            (this (TIn1 in1, TIn2 in2, TIn3 in3, TIn4 in4, TIn5 in5) input,
+             Func<TIn1, TIn2, TIn3, TIn4, TIn5, TOut> mapper)
+        {
+            if (mapper is null)
+                throw new ArgumentNullException(nameof(mapper));
+
+            return mapper.Invoke(input.in1, input.in2, input.in3, input.in4, input.in5);
+        }
+
+        public static TOut ApplyTo
+            <TIn1, TIn2, TIn3, TIn4, TIn5, TIn6, TOut>
+            (this (TIn1 in1, TIn2 in2, TIn3 in3, TIn4 in4, TIn5 in5, TIn6 in6) input,
+             Func<TIn1, TIn2, TIn3, TIn4, TIn5, TIn6, TOut> mapper)
+        {
+            if (mapper is null)
+                throw new ArgumentNullException(nameof(mapper));
+
+            return mapper.Invoke(input.in1, input.in2, input.in3, input.in4, input.in5, input.in6);
+        }
+
+        public static TOut ApplyTo
+            <TIn1, TIn2, TIn3, TIn4, TIn5, TIn6, TIn7, TOut>
+            (this (TIn1 in1, TIn2 in2, TIn3 in3, TIn4 in4, TIn5 in5, TIn6 in6, TIn7 in7) input,
+             Func<TIn1, TIn2, TIn3, TIn4, TIn5, TIn6, TIn7, TOut> mapper)
+        {
+            if (mapper is null)
+                throw new ArgumentNullException(nameof(mapper));
+
+            return mapper.Invoke(input.in1, input.in2, input.in3, input.in4, input.in5, input.in6, input.in7);
+        }
+
+        public static TOut ApplyTo
+            <TIn1, TIn2, TIn3, TIn4, TIn5, TIn6, TIn7, TIn8, TOut>
+            (this (TIn1 in1, TIn2 in2, TIn3 in3, TIn4 in4, TIn5 in5, TIn6 in6, TIn7 in7, TIn8 in8) input,
+             Func<TIn1, TIn2, TIn3, TIn4, TIn5, TIn6, TIn7, TIn8, TOut> mapper)
+        {
+            if (mapper is null)
+                throw new ArgumentNullException(nameof(mapper));
+
+            return mapper.Invoke(input.in1, input.in2, input.in3, input.in4, input.in5, input.in6, input.in7, input.in8);
+        }
+
+        public static TOut ApplyTo
+            <TIn1, TIn2, TIn3, TIn4, TIn5, TIn6, TIn7, TIn8, TIn9, TOut>
+            (this (TIn1 in1, TIn2 in2, TIn3 in3, TIn4 in4, TIn5 in5, TIn6 in6, TIn7 in7, TIn8 in8, TIn9 in9) input,
+             Func<TIn1, TIn2, TIn3, TIn4, TIn5, TIn6, TIn7, TIn8, TIn9, TOut> mapper)
+        {
+            if (mapper is null)
+                throw new ArgumentNullException(nameof(mapper));
+
+            return mapper.Invoke(input.in1, input.in2, input.in3, input.in4, input.in5, input.in6, input.in7, input.in8, input.in9);
+        }
+        #endregion
+
         /// <summary>
         /// Consumes the given input using the consumer action, and returns the input
         /// </summary>

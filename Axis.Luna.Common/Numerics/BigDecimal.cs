@@ -1002,30 +1002,49 @@ namespace Axis.Luna.Common.Numerics
             };
         }
 
-        public string ToNonScientificString(int precision = -1)
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="decimalPrecision"></param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentOutOfRangeException"></exception>
+        public string ToNonScientificString(int decimalPrecision = -1)
         {
-            if (precision < -1)
-                throw new ArgumentOutOfRangeException(nameof(precision), "Precision cannot be < -1");
+            if (decimalPrecision < -1)
+                throw new ArgumentOutOfRangeException(nameof(decimalPrecision), "Precision cannot be < -1");
 
             if (Zero.Equals(this))
-                return "0";
+                return "0.0";
 
             var sign = IsNegative(this) ? "-" : "";
 
-            var digits = _significand
+            var sigDigits = _significand
                 .ToString()
                 .ApplyTo(text => "".Equals(sign) ? text: text[1..]);
 
-            var text =
-                (int.IsNegative(_scale) && -_scale >= digits.Length) ? $"{sign}0.{new string('0', -_scale - digits.Length)}{digits}" :
-                int.IsNegative(_scale) ? $"{sign}{digits.Split(digits.Length + _scale).JoinUsing(".")}":
-                $"{sign}{digits}{new string('0', _scale)}";
+            if (_scale >= 0)
+                return $"{sign}{sigDigits.PadRight(sigDigits.Length + _scale, '0')}.0";
 
-            var currentPrecision = text.Length -  (text.IndexOf('.') + 1);
-            return
-                precision == -1 ? text :
-                precision > currentPrecision ? text :
-                text[..(currentPrecision - precision)];
+            else if (-_scale < sigDigits.Length)
+            {
+                var split = sigDigits.SplitAt(sigDigits.Length + _scale);
+                decimalPrecision = decimalPrecision < 0 ? split.Right.Length : decimalPrecision;
+
+                if (decimalPrecision == 0)
+                    return $"{sign}{split.Left}.0";
+
+                else return $"{sign}{split.Left}.{split.Right.Take(decimalPrecision).AsString()}";
+            }
+            else
+            {
+                if (decimalPrecision == 0)
+                    return "0.0";
+
+                decimalPrecision = decimalPrecision < 0 ? sigDigits.Length : decimalPrecision;
+                var dsigDigits = sigDigits.Take(decimalPrecision).AsString();
+                var zeros = "".PadLeft(-Scale - sigDigits.Length, '0');
+                return $"{sign}0.{zeros}{dsigDigits}";
+            }
         }
 
         private static string AtMost(string s, int length)
