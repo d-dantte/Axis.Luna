@@ -2,148 +2,198 @@
 using System;
 using System.Collections.Concurrent;
 using System.Reflection;
+using System.Reflection.Emit;
 
 namespace Axis.Luna.FInvoke
 {
-	/// <summary>
-	/// Represents a dynamic invocation of an instance method
-	/// </summary>
-	public class InstanceInvoker
-	{
-		private static readonly string InstanceInvokerNamePrefix = "NInvoker_";
+    public class InstanceInvoker
+    {
 
-		private static readonly ConcurrentDictionary<MethodInfo, InstanceInvoker> _invokerCache = new ConcurrentDictionary<MethodInfo, InstanceInvoker>();
+        private static readonly string InstanceInvoker__NamePrefix = "NInvoker_";
 
-		/// <summary>
-		/// Delegate for invoking the underlying method dynamically
-		/// </summary>
-		public Func<object, object[], object> Func { get; }
+        private static readonly ConcurrentDictionary<MethodInfo, InstanceInvoker> _invokerCache = new ConcurrentDictionary<MethodInfo, InstanceInvoker>();
 
-		/// <summary>
-		/// Invokes the function encapsulated by this invoker
-		/// </summary>
-		/// <param name="this">the instance</param>
-		/// <param name="arguments">the method arguments</param>
-		/// <returns>the return value if any</returns>
-		public object Invoke(object @this, params object[] arguments) => Func.Invoke(@this, arguments);
+        /// <summary>
+        /// Delegate for invoking the underlying method dynamically
+        /// </summary>
+        public Func<object, object[], object> Func { get; }
 
-		/// <summary>
-		/// Invokes the function with no arguments
-		/// </summary>
-		/// <param name="this">The instance</param>
-		/// <returns>the result value if any</returns>
-		public object Invoke(object @this) => Invoke(@this, Array.Empty<object>());
+        /// <summary>
+        /// Invokes the function encapsulated by this invoker.
+        /// <para>
+        /// NOTE: when dynamically calling value-type methods, care should be taken because the value-type is boxed and passed into this API via the <paramref name="this"/> arg.
+        /// The peculiarities of value-types dictate that if the method mutates the state of the value-type, the new state may be lost if the caller doesn't have access to the boxed reference.
+        /// <para/>
+        /// E.g
+        /// <code>
+        ///     SomeStruct @struct = new SomeStruct();
+        ///     object boxed = @struct;
+        ///     
+        ///     invoker.Invoke(@struct, arg1, arg2...); // mutation is lost because boxing happens at the call site
+        ///     invoker.Invoke(boxed, arg1, arg2...); // mutation is not lost because the caller has access to the boxed reference.
+        /// </code>
+        /// </para>
+        /// </summary>
+        /// <param name="this">the instance as a ref, mainly because for <see cref="ValueType"/>s, instances are passed by value, and so any local mutations are lost on the return trip</param>
+        /// <param name="arguments">the method arguments</param>
+        /// <returns>the return value if any</returns>
+        public object Invoke(object @this, params object[] arguments) => Func.Invoke(@this, arguments);
 
-		/// <summary>
-		/// Creates or retrieves a new instance of the invoker. Generic-Definition methods are not accepted.
-		/// </summary>
-		/// <param name="method">Method to be invoked</param>
-		/// <returns>The invoker instance</returns>
-		public static InstanceInvoker InvokerFor(MethodInfo method)
-		{
-			if (method.IsGenericMethodDefinition)
-				throw new ArgumentException("Cannot create an Invoker from a generic method definition");
+        /// <summary>
+        /// Invokes the function with no arguments
+        /// <para>
+        /// NOTE: when dynamically calling value-type methods, care should be taken because the value-type is boxed and passed into this API via the <paramref name="this"/> arg.
+        /// The peculiarities of value-types dictate that if the method mutates the state of the value-type, the new state may be lost if the caller doesn't have access to the boxed reference.
+        /// <para/>
+        /// E.g
+        /// <code>
+        ///     SomeStruct @struct = new SomeStruct();
+        ///     object boxed = @struct;
+        ///     
+        ///     invoker.Invoke(@struct, arg1, arg2...); // mutation is lost because boxing happens at the call site
+        ///     invoker.Invoke(boxed, arg1, arg2...); // mutation is not lost because the caller has access to the boxed reference.
+        /// </code>
+        /// </para>
+        /// </summary>
+        /// <param name="this">The instance</param>
+        /// <returns>the result value if any</returns>
+        public object Invoke(object @this) => Invoke(@this, Array.Empty<object>());
 
-			else if (method.DeclaringType == null)
-				throw new ArgumentException($"Cannot create an Invoker for methods without declaring types");
+        /// <summary>
+        /// Creates or retrieves a new instance of the invoker. Generic-Definition methods are not accepted.
+        /// </summary>
+        /// <param name="method">Method to be invoked</param>
+        /// <returns>The invoker instance</returns>
+        public static InstanceInvoker InvokerFor(MethodInfo method)
+        {
+            if (method.IsGenericMethodDefinition)
+                throw new ArgumentException("Cannot create an Invoker from a generic method definition");
 
-			else if (method.IsStatic)
-				throw new ArgumentException("Cannot create an Invoker for a static method");
+            else if (method.DeclaringType == null)
+                throw new ArgumentException($"Cannot create an Invoker for methods without declaring types");
 
-			else
-				return _invokerCache.GetOrAdd(method, _method => new InstanceInvoker(_method));
-		}
+            else if (method.IsStatic)
+                throw new ArgumentException("Cannot create an Invoker for a static method");
 
-		/// <summary>
-		/// Constructor
-		/// </summary>
-		/// <param name="method">Target method</param>
-		private InstanceInvoker(MethodInfo method)
-		{
-			Func = InitInstance(method);
-		}
+            else
+                return _invokerCache.GetOrAdd(method, _method => new InstanceInvoker(_method));
+        }
 
-		private Func<object, object[], object> InitInstance(MethodInfo method)
-		{
-			var guid = Guid
-				.NewGuid()
-				.ToString()
-				.Replace("-", "_");
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        /// <param name="method">Target method</param>
+        private InstanceInvoker(MethodInfo method)
+        {
+            Func = InitInstance(method);
+        }
 
-			var emitter = Emit<Func<object, object[], object>>.NewDynamicMethod(
-				name: $"{InstanceInvokerNamePrefix}_{guid}",
-				doVerify: false,
-				owner: method.DeclaringType.IsValidDynamicMethodOwner()
-					? method.DeclaringType
-					: null);
+        private static Func<object, object[], object> InitInstance(MethodInfo method)
+        {
+            if (method is null)
+                throw new ArgumentNullException(nameof(method));
 
-			//push 'this' unto the stack
-			emitter.LoadArgument(0);
-			emitter.IsInstance(method.DeclaringType);
+            if (method.IsAbstract)
+                throw new ArgumentException($"Cannot create Invoker for abstract method: {method}");
 
-			//push arguments unto the stack
-			var arguments = method.GetParameters() ?? new ParameterInfo[0];
-			for (ushort cnt = 0; cnt < arguments.Length; cnt++)
-			{
-				//load the meta-arg array into memory
-				emitter.LoadArgument(1);
+            var guid = Guid
+                .NewGuid()
+                .ToString()
+                .Replace("-", "_");
 
-				if (arguments[cnt].ParameterType.IsValueType)
-					LoadBoxedValueType(emitter, arguments[cnt].ParameterType, cnt);
+            var dynamicMethod = new DynamicMethod(
+                name: $"{InstanceInvoker__NamePrefix}_{guid}",
+                returnType: typeof(object),
+                parameterTypes: new[] {typeof(object), typeof(object[]) },
+                m: typeof(InstanceInvoker).Module);
 
-				else //if(!arguments[cnt].IsValueType)
-					LoadCastedRefType(emitter, arguments[cnt].ParameterType, cnt);
-			}
+            var emitter = dynamicMethod.GetILGenerator();
 
-			//call the method
-			emitter.CallVirtual(method);
+            // declare a local variable to store the unboxed 'this' instance
+            if (method.DeclaringType.IsValueType)
+                _ = emitter.DeclareLocal(method.DeclaringType);
 
-			//return value
-			if (method.ReturnType == typeof(void))
-				emitter.LoadNull();
+            // push 'this' unto the stack - for value-types, this is a boxed value
+            emitter.Emit(OpCodes.Ldarg_0);
 
-			else if (method.ReturnType.IsValueType)
-				emitter.Box(method.ReturnType);
+            // cast/unbox 'this' from object to appropariate type.
+            if (method.DeclaringType.IsValueType)
+            {
+                emitter.Emit(OpCodes.Unbox_Any, method.DeclaringType);
+                emitter.Emit(OpCodes.Stloc_0);
+                emitter.Emit(OpCodes.Ldloca, 0);
+            }
+            else
+            {
+                emitter.Emit(OpCodes.Castclass, method.DeclaringType);
+            }
 
-			emitter.Return();
+            // push arguments unto the stack
+            var arguments = method.GetParameters() ?? Array.Empty<ParameterInfo>();
+            for (ushort cnt = 0; cnt < arguments.Length; cnt++)
+            {
+                //load the meta-arg array into memory
+                emitter.Emit(OpCodes.Ldarg_1);
+                emitter.Emit(OpCodes.Ldc_I4, cnt);
 
-			return emitter.CreateDelegate();
-		}
+                if (arguments[cnt].ParameterType.IsValueType)
+                    LoadBoxedValueType(emitter, arguments[cnt].ParameterType);
 
-		/// <summary>
-		/// Loads from the meta-arg array, the specified element, and unboxes it.
-		/// Note that this method assumes that the meta-arg array is already on the stack
-		/// </summary>
-		/// <param name="emitter">The sigil emit type used to construct the method</param>
-		/// <param name="argType">The underlying argument type of the parameter</param>
-		/// <param name="argIndex">The index of the parameter in the array</param>
-		private void LoadBoxedValueType<TDelegate>(
-			Emit<TDelegate> emitter,
-			Type argType,
-			ushort argIndex)
-		{
-			emitter
-				.LoadConstant(argIndex)
-				.LoadElement(typeof(object))
-				.UnboxAny(argType);
-		}
+                else // if(!arguments[cnt].IsValueType)
+                    LoadCastedRefType(emitter, arguments[cnt].ParameterType);
+            }
 
-		/// <summary>
-		/// Loads from the meta-arg array, the specified element, and casts it.
-		/// Note that this method assumes that the meta-arg array is already on the stack
-		/// </summary>
-		/// <param name="emitter">The sigil emit type used to construct the method</param>
-		/// <param name="argType">The underlying argument type of the parameter</param>
-		/// <param name="argIndex">The index of the parameter in the array</param>
-		private void LoadCastedRefType<TDelegate>(
-			Emit<TDelegate> emitter,
-			Type argType,
-			ushort argIndex)
-		{
-			emitter
-				.LoadConstant(argIndex)
-				.LoadElement(typeof(object))
-				.IsInstance(argType);
-		}
-	}
+            // call the method
+            if (method.DeclaringType.IsValueType)
+            {
+                emitter.Emit(OpCodes.Call, method);
+
+                // for value-types, we need to copy the locally made value back into the box-address (yes, this is possible!!!)
+                // see here: https://stackoverflow.com/questions/44724042/how-to-mutate-a-boxed-value-type-primitive-or-struct-in-c-il
+                emitter.Emit(OpCodes.Ldarg_0);
+                emitter.Emit(OpCodes.Unbox, method.DeclaringType);
+                emitter.Emit(OpCodes.Ldloc_0);
+                emitter.Emit(OpCodes.Stobj, method.DeclaringType);
+            }
+            else
+            {
+                emitter.Emit(OpCodes.Callvirt, method);
+            }
+
+            // return value
+            if (method.ReturnType == typeof(void))
+                emitter.Emit(OpCodes.Ldnull);
+
+            else if (method.ReturnType.IsValueType)
+                emitter.Emit(OpCodes.Box, method.ReturnType);
+
+            emitter.Emit(OpCodes.Ret);
+
+            return dynamicMethod.CreateDelegate<Func<object, object[], object>>();
+        }
+
+        /// <summary>
+        /// Loads from the meta-arg array, the specified element, and unboxes it.
+        /// Note that this method assumes that the meta-arg array is already on the stack
+        /// </summary>
+        /// <param name="emitter">The sigil emit type used to construct the method</param>
+        /// <param name="argType">The underlying argument type of the parameter</param>
+        private static void LoadBoxedValueType(ILGenerator emitter, Type argType)
+        {
+            emitter.Emit(OpCodes.Ldelem, typeof(object));
+            emitter.Emit(OpCodes.Unbox_Any, argType);
+        }
+
+        /// <summary>
+        /// Loads from the meta-arg array, the specified element, and casts it.
+        /// Note that this method assumes that the meta-arg array is already on the stack
+        /// </summary>
+        /// <param name="emitter">The sigil emit type used to construct the method</param>
+        /// <param name="argType">The underlying argument type of the parameter</param>
+        private static void LoadCastedRefType(ILGenerator emitter, Type argType)
+        {
+            emitter.Emit(OpCodes.Ldelem, typeof(object));
+            emitter.Emit(OpCodes.Castclass, argType);
+        }
+    }
 }

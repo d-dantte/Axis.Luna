@@ -111,6 +111,18 @@ namespace Axis.Luna.Common.Results
         }
         #endregion
 
+        /// <summary>
+        /// Attempts to convert/cast the result into the given type
+        /// </summary>
+        /// <typeparam name="TIn">The input result type</typeparam>
+        /// <typeparam name="TOut">The output result type</typeparam>
+        /// <param name="result">The input result instance</param>
+        /// <returns>The result of the operation</returns>
+        public static IResult<TOut> MapAs<TIn, TOut>(this IResult<TIn> result)
+        {
+            return result.Map(r => r.As<TOut>());
+        }
+
         
         /// <summary>
         /// Resolves the <see cref="Lazy{T}"/> into a result

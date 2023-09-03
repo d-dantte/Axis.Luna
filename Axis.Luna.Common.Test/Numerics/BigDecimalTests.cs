@@ -670,7 +670,7 @@ namespace Axis.Luna.Common.Test.Numerics
             var d = bd.DemoteToDecimal();
             Assert.AreEqual(4554.3109m, d);
 
-            Console.WriteLine(new DateTime)
+            Console.WriteLine(new DateTime());
         }
 
 

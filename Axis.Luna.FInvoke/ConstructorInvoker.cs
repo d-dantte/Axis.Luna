@@ -80,7 +80,10 @@ namespace Axis.Luna.FInvoke
 			//call the method
 			emitter.NewObject(constructor);
 
-			emitter.Return();
+            if (constructor.DeclaringType.IsValueType)
+                emitter.Box(constructor.DeclaringType);
+
+            emitter.Return();
 
 			return emitter.CreateDelegate();
 		}

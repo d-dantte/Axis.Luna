@@ -153,6 +153,14 @@ namespace Axis.Luna.FInvoke
                 && !type.IsGenericTypeParameter
                 && !type.IsGenericTypeDefinition;
         }
+
+        internal static TOut ApplyTo<TIn, TOut>(this TIn @in, Func<TIn, TOut> mapper)
+        {
+            ArgumentNullException.ThrowIfNull(@in);
+            ArgumentNullException.ThrowIfNull(mapper);
+
+            return mapper(@in);
+        }
     }
 
 }

@@ -139,3 +139,8 @@
 			bool> skipWhen);
 
 -   Include a JoinUsing API that joins any given sequence appropriately
+
+
+2023/09/03 ===================================================================================
+- Remove dependence on Sigil - meaning, refactor `ConstructorInvoker` and `StaticInvoker` to use the 
+  Native ILGenerator instance for emitting IL.

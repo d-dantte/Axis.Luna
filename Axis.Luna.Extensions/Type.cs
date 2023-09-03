@@ -108,6 +108,28 @@ namespace Axis.Luna.Extensions
         }
 
         /// <summary>
+        /// Verifies that the given GENERIC type has the supplied generic type definition defined on it.
+        /// </summary>
+        /// <param name="genericType">The generic interface</param>
+        /// <param name="genericTypeDefinition">The generic interface type definition</param>
+        public static bool HasGenericTypeDefinition(this Type genericType, Type genericTypeDefinition)
+        {
+            if (genericType == null)
+                throw new ArgumentNullException(nameof(genericType));
+
+            if (genericTypeDefinition == null)
+                throw new ArgumentNullException(nameof(genericTypeDefinition));
+
+            if (genericType.IsInterface || !genericType.IsGenericType)
+                return false;
+
+            if (!genericTypeDefinition.IsGenericTypeDefinition)
+                return false;
+
+            return genericType.GetGenericTypeDefinition().Equals(genericTypeDefinition);
+        }
+
+        /// <summary>
         /// NOTE: his will fail if <c>genericDefinitionBaseType</c> is the <c>GenericTypeDefinition</c> of <c>type</c>
         /// </summary>
         /// <param name="type"></param>

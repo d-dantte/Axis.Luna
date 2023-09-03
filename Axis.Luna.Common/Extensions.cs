@@ -43,6 +43,7 @@ namespace Axis.Luna.Common
 
         #region Helpers
         private static readonly Func<Exception, StackTrace, Exception> StackTraceSetter = CreateStackTraceSetter();
+
         private static Func<Exception, StackTrace, Exception> CreateStackTraceSetter()
         {
             var target = Expression.Parameter(typeof(Exception));

@@ -1,3 +1,9 @@
+## Release 6.0.21 - 2023/09/02
+* Added `MapAs<>` method to the `IResult` API. [`Axis.Luna.Common`]
+* Added `HasGenericTypeDefinition` method to the `Type` Extensions. [`Axis.Luna.Extensions`]
+* Fixed a bug in `ConstructorInvoker` that failed when constructing structs. [`Axis.Luna.FInvoke`]
+
+
 ## Release Axis.Luna.Common 6.0.6 - 2023/04/29
 * Removed everything under `.Types.Basic.*`, reason being the `Axis.Ion` Library is a lot more matured than this.
 * Introduced the `BigDecimal` type.

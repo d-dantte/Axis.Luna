@@ -62,8 +62,14 @@ namespace Axis.Luna.FInvoke
 		}
 
 		private Func<object[], object> InitStatic(MethodInfo method)
-		{
-			var guid = Guid
+        {
+            if (method is null)
+                throw new ArgumentNullException(nameof(method));
+
+            if (method.IsAbstract)
+                throw new ArgumentException($"Cannot create Invoker for abstract method: {method}");
+
+            var guid = Guid
 				.NewGuid()
 				.ToString()
 				.Replace("-", "_");
@@ -76,7 +82,7 @@ namespace Axis.Luna.FInvoke
 					: null);
 
 			//push arguments unto the stack
-			var arguments = method.GetParameters() ?? new ParameterInfo[0];
+			var arguments = method.GetParameters() ?? Array.Empty<ParameterInfo>();
 			for (ushort cnt = 0; cnt < arguments.Length; cnt++)
 			{
 				//load the meta-arg array into memory

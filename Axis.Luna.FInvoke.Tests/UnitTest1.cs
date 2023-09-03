@@ -12,16 +12,17 @@ namespace Axis.Luna.FInvoke.Tests
         {
             var type = typeof(SampleClass);
             var instance = new SampleClass();
+            object oinstance = instance;
 
             const int callCount = 1000000;
 
             #region Action1
             var method = type.GetMethod("Action1");
             var iinvoker = InstanceInvoker.InvokerFor(method);
-            iinvoker.Func(instance, null); //warmup
-            iinvoker.Func(instance, null); //warmup
+            iinvoker.Func.Invoke(oinstance, null); //warmup
+            iinvoker.Func(oinstance, null); //warmup
             var timer = Stopwatch.StartNew();
-            for (int cnt = 0; cnt < callCount; cnt++) iinvoker.Func(instance, null);
+            for (int cnt = 0; cnt < callCount; cnt++) iinvoker.Func(oinstance, null);
             var iinvokerTime = timer.With(t => t.Stop()).Elapsed;
 
             var del = method.CreateDelegate(typeof(Action), instance);
@@ -67,10 +68,10 @@ namespace Axis.Luna.FInvoke.Tests
             method = type.GetMethod("Action2");
             iinvoker = InstanceInvoker.InvokerFor(method);
             var @params = new object[] { 654 };
-            iinvoker.Func(instance, @params); //warm up
-            iinvoker.Func(instance, @params); //warm up
+            iinvoker.Func(oinstance, @params); //warm up
+            iinvoker.Func(oinstance, @params); //warm up
             timer = Stopwatch.StartNew();
-            for (int cnt = 0; cnt < callCount; cnt++) iinvoker.Func(instance, @params);
+            for (int cnt = 0; cnt < callCount; cnt++) iinvoker.Func(oinstance, @params);
             iinvokerTime = timer.With(t => t.Stop()).Elapsed;
 
             timer = Stopwatch.StartNew();
@@ -101,10 +102,10 @@ namespace Axis.Luna.FInvoke.Tests
             method = type.GetMethod("Action3");
             iinvoker = InstanceInvoker.InvokerFor(method);
             @params = new object[] { 654, 654L, "me" };
-            iinvoker.Func(instance, @params); //warm up
-            iinvoker.Func(instance, @params); //warm up
+            iinvoker.Func(oinstance, @params); //warm up
+            iinvoker.Func(oinstance, @params); //warm up
             timer = Stopwatch.StartNew();
-            for (int cnt = 0; cnt < callCount; cnt++) iinvoker.Func(instance, @params);
+            for (int cnt = 0; cnt < callCount; cnt++) iinvoker.Func(oinstance, @params);
             iinvokerTime = timer.With(t => t.Stop()).Elapsed;
 
             timer = Stopwatch.StartNew();
@@ -134,7 +135,7 @@ namespace Axis.Luna.FInvoke.Tests
             @params = new object[] { 654 };
             iinvoker = InstanceInvoker.InvokerFor(method);
             timer = Stopwatch.StartNew();
-            for (int cnt = 0; cnt < callCount; cnt++) iinvoker.Func(instance, @params);
+            for (int cnt = 0; cnt < callCount; cnt++) iinvoker.Func(oinstance, @params);
             iinvokerTime = timer.With(t => t.Stop()).Elapsed;
 
             timer = Stopwatch.StartNew();
@@ -163,7 +164,7 @@ namespace Axis.Luna.FInvoke.Tests
             method = type.GetMethod("Func1");
             iinvoker = InstanceInvoker.InvokerFor(method);
             timer = Stopwatch.StartNew();
-            for (int cnt = 0; cnt < callCount; cnt++) iinvoker.Func(instance, null);
+            for (int cnt = 0; cnt < callCount; cnt++) iinvoker.Func(oinstance, null);
             iinvokerTime = timer.With(t => t.Stop()).Elapsed;
 
             timer = Stopwatch.StartNew();
@@ -188,7 +189,7 @@ namespace Axis.Luna.FInvoke.Tests
             iinvoker = InstanceInvoker.InvokerFor(method);
             @params = new object[] { 654 };
             timer = Stopwatch.StartNew();
-            for (int cnt = 0; cnt < callCount; cnt++) iinvoker.Func(instance, @params);
+            for (int cnt = 0; cnt < callCount; cnt++) iinvoker.Func(oinstance, @params);
             iinvokerTime = timer.With(t => t.Stop()).Elapsed;
 
             timer = Stopwatch.StartNew();
@@ -213,7 +214,7 @@ namespace Axis.Luna.FInvoke.Tests
             iinvoker = InstanceInvoker.InvokerFor(method);
             @params = new object[] { 654, 654L, "me" };
             timer = Stopwatch.StartNew();
-            for (int cnt = 0; cnt < callCount; cnt++) iinvoker.Func(instance, @params);
+            for (int cnt = 0; cnt < callCount; cnt++) iinvoker.Func(oinstance, @params);
             iinvokerTime = timer.With(t => t.Stop()).Elapsed;
 
             timer = Stopwatch.StartNew();
@@ -238,7 +239,7 @@ namespace Axis.Luna.FInvoke.Tests
             iinvoker = InstanceInvoker.InvokerFor(method);
             @params = new object[] { 654 };
             timer = Stopwatch.StartNew();
-            for (int cnt = 0; cnt < callCount; cnt++) iinvoker.Func(instance, @params);
+            for (int cnt = 0; cnt < callCount; cnt++) iinvoker.Func(oinstance, @params);
             iinvokerTime = timer.With(t => t.Stop()).Elapsed;
 
             timer = Stopwatch.StartNew();

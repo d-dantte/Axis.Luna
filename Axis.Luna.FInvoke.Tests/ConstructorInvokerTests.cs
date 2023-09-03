@@ -18,7 +18,22 @@
             var ctor = typeof(Sample).GetConstructor(new[] { typeof(int), typeof(Guid), typeof(string) });
             var invoker = ConstructorInvoker.InvokerFor(ctor);
             var obj = invoker.New(5, Guid.NewGuid(), "stuff");
-            Assert.IsNotNull(obj);
+            Assert.IsInstanceOfType(obj, typeof(Sample));
+
+            invoker = ConstructorInvoker.InvokerFor(ctor);
+            var args = new object[] { 5, Guid.NewGuid(), "stuff" };
+            obj = invoker.New(args.ToArray());
+            Assert.IsInstanceOfType(obj, typeof(Sample));
+        }
+
+        [TestMethod]
+        public void InvokerFor_WithSingleArgConstructor()
+        {
+            var ctor = typeof(Obj4).GetConstructor(new[] { typeof(string) });
+            var invoker = ConstructorInvoker.InvokerFor(ctor);
+            var args = new object[] { "stuff" };
+            var obj = invoker.New(args.ToArray());
+            Assert.IsInstanceOfType(obj, typeof(Obj4));
         }
 
         public class Sample
@@ -40,6 +55,18 @@
             public Guid Arg2 { get; set; }
 
             public string Arg3 { get; set; }
+        }
+
+        public struct Obj4
+        {
+            public Obj4(string name)
+            {
+                Name = name;
+            }
+
+            public string? Name { get; set; }
+            public string? Description { get; set; }
+            public DateTimeOffset Dob { get; set; }
         }
     }
 }
