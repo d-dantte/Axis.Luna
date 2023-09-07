@@ -91,11 +91,42 @@ namespace Axis.Luna.Extensions.Test
         }
 
         [TestMethod]
+        public void As_WithBoxedType()
+        {
+            object value = new Abc();
+            Assert.IsNotNull(value.As<ISomething>());
+        }
+
+        [TestMethod]
         public void Trim_Tests()
         {
             var x = "abcdddd";
             var r = x.TrimEnd('d');
             Assert.AreEqual("abc", r);
+        }
+
+        [TestMethod]
+        public void ReboxAs_Tests()
+        {
+            object x = new Point();
+            object r = x.ReboxAs(new Point { X = 43 });
+            Assert.AreEqual(43, ((Point)r).X);
+            Assert.AreEqual(43, ((Point)x).X);
+            Assert.AreEqual(x, r);
+        }
+
+        public interface ISomething { }
+
+        public struct Abc: ISomething
+        {
+
+        }
+
+        public struct Point
+        {
+            public int X { get; set; }
+            public int Y { get; set; }
+            public int Z { get; set; }
         }
     }
 

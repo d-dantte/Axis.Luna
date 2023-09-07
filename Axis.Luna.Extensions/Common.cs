@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Reflection.Emit;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -21,6 +22,50 @@ namespace Axis.Luna.Extensions
             .Where(minfo => minfo.GetGenericArguments().Length == 2)
             .First();
 
+        private static readonly ConcurrentDictionary<Type, Delegate> ReboxerMap = new ConcurrentDictionary<Type, Delegate>();
+
+        public static object ReboxAs<TValueType>(this object boxedValue, TValueType newValue)
+        where TValueType : struct
+        {
+            if (boxedValue is null)
+                throw new ArgumentNullException(nameof(boxedValue));
+
+            if (boxedValue is not TValueType)
+                throw new ArgumentException($"Type mismatch. Expected: '{typeof(TValueType)}', Actual: '{boxedValue.GetType()}'");
+
+            var reboxer = ReboxerMap
+                .GetOrAdd(typeof(TValueType), _ => BuildReboxer<TValueType>())
+                .As<Action<object, TValueType>>();
+
+            reboxer.Invoke(boxedValue, newValue);
+            return boxedValue;
+        }
+
+        private static Delegate BuildReboxer<TValueType>()
+        where TValueType : struct
+        {
+            var valueType = typeof(TValueType);
+            var guid = Guid
+                .NewGuid()
+                .ToString()
+                .Replace("-", "_");
+
+            var dynamicMethod = new DynamicMethod(
+                name: $"Reboxer_For_{valueType.Name}_{guid}",
+                returnType: typeof(void),
+                parameterTypes: new[] { typeof(object), valueType },
+                m: typeof(Common).Module);
+
+            var emitter = dynamicMethod.GetILGenerator();
+
+            emitter.Emit(OpCodes.Ldarg_0);           // object
+            emitter.Emit(OpCodes.Unbox, valueType);  // TValueType&
+            emitter.Emit(OpCodes.Ldarg_1);           // TValueType (argument value)
+            emitter.Emit(OpCodes.Stobj, valueType);  // stobj !!TValueType
+            emitter.Emit(OpCodes.Ret);
+
+            return dynamicMethod.CreateDelegate(typeof(Action<object, TValueType>));
+        }
 
         public static bool Is<T>(this object value) => value is T;
 

@@ -18,6 +18,12 @@ namespace Axis.Luna.Common.Results
         IResult<TOut> Map<TOut>(Func<TData, TOut> mapper);
 
         /// <summary>
+        /// executes <see cref="Luna.Extensions.Common.As{T}(object)"/> on this results data.
+        /// </summary>
+        /// <typeparam name="TOut">the type of the output result</typeparam>
+        IResult<TOut> MapAs<TOut>();
+
+        /// <summary>
         /// Maps the encapsulated value to a new value, or maps the encapsulated error into the <see cref="TData"/> type, then uses the <paramref name="valueMapper"/>
         /// to map the resulting value into the final <typeparamref name="TOut"/> type.
         /// </summary>
@@ -90,6 +96,8 @@ namespace Axis.Luna.Common.Results
 
                 return new IResult<TOut>.ErrorResult(_cause);
             }
+
+            public IResult<TOut> MapAs<TOut>() => new IResult<TOut>.ErrorResult(_cause);
 
             public IResult<TOut> Map<TOut>(
                 Func<TData, TOut> valueMapper,
@@ -208,6 +216,8 @@ namespace Axis.Luna.Common.Results
                 TData data = Data;
                 return Result.Of(() => valueMapper.Invoke(data));
             }
+
+            public IResult<TOut> MapAs<TOut>() => Map(data => data.As<TOut>());
 
             public IResult<TOut> Bind<TOut>(Func<TData, IResult<TOut>> binder)
             {

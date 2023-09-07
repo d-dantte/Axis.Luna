@@ -111,6 +111,18 @@ namespace Axis.Luna.Common.Results
         }
         #endregion
 
+        public static IResult<TOut> Bind<TOut>(Func<IResult<TOut>> resultSupplier)
+        {
+            try
+            {
+                return resultSupplier.Invoke();
+            }
+            catch(Exception e)
+            {
+                return Result.Of<TOut>(e);
+            }
+        }
+
         /// <summary>
         /// Attempts to convert/cast the result into the given type
         /// </summary>
@@ -123,7 +135,7 @@ namespace Axis.Luna.Common.Results
             return result.Map(r => r.As<TOut>());
         }
 
-        
+
         /// <summary>
         /// Resolves the <see cref="Lazy{T}"/> into a result
         /// </summary>
@@ -435,6 +447,22 @@ namespace Axis.Luna.Common.Results
                     return list;
                 })
                 .ApplyTo(values => Of<IEnumerable<TResult>>(values));
+        }
+
+
+        /// <summary>
+        /// Equivalent to <c>Fold().Map(items => aggregator.Invoke(items));</c>
+        /// </summary>
+        /// <typeparam name="TItem"></typeparam>
+        /// <typeparam name="TOut"></typeparam>
+        /// <param name="results"></param>
+        /// <param name="aggregator"></param>
+        /// <returns></returns>
+        internal static IResult<TOut> FoldInto<TItem, TOut>(
+            this IEnumerable<IResult<TItem>> results,
+            Func<IEnumerable<TItem>, TOut> aggregator)
+        {
+            return results.Fold().Map(aggregator);
         }
     }
 }
