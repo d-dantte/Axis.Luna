@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using System.Reflection.Emit;
 using System.Text;
 
 namespace Axis.Luna.Extensions
@@ -15,6 +16,9 @@ namespace Axis.Luna.Extensions
         private static readonly ConcurrentDictionary<Type, Func<object>> TypeDefaultsProducer = new ConcurrentDictionary<Type, Func<object>>();
         private static readonly ConcurrentDictionary<Type, string> MinimalAQNames = new ConcurrentDictionary<Type, string>();
         private static readonly ConcurrentDictionary<string, Delegate> PropertyAccessors = new ConcurrentDictionary<string, Delegate>();
+        private static readonly ConcurrentDictionary<(FieldInfo Field, TypedAccessorMode Mode), Delegate> TypedFieldMap = new();
+        private static readonly ConcurrentDictionary<FieldInfo, Action<object, object>> FieldMutatorMap = new();
+        private static readonly ConcurrentDictionary<FieldInfo, Func<object, object>> FieldAccessorMap = new();
 
         private const string ExplicitOperatorName = "op_Explicit";
         private const string ImplicitOperatorName = "op_Implicit";
@@ -440,7 +444,7 @@ namespace Axis.Luna.Extensions
             {
                 try
                 {
-                    val = (V)GetPropertyAccessorDelegate(obj, propInfo.Name).Invoke(obj);
+                    val = (V)PropertyAccessorFor(obj.GetType(), propInfo.Name).Invoke(obj);
                     return true;
                 }
                 catch
@@ -459,7 +463,7 @@ namespace Axis.Luna.Extensions
             {
                 try
                 {
-                    val = GetPropertyAccessorDelegate(obj, propInfo.Name).Invoke(obj);
+                    val = PropertyAccessorFor(obj.GetType(), propInfo.Name).Invoke(obj);
                     return true;
                 }
                 catch(Exception e)
@@ -473,7 +477,7 @@ namespace Axis.Luna.Extensions
         public static object SetPropertyValue(this object obj, string propertyName, object value)
         {
             var propInfo = obj.Property(propertyName);
-            GetPropertyMutatorDelegate(obj, propertyName).Invoke(obj, value);
+            PropertyMutatorFor(obj.GetType(), propertyName).Invoke(obj, value);
 
             return value;
         }
@@ -483,6 +487,222 @@ namespace Axis.Luna.Extensions
 
         public static V SetPropertyValue<V>(this object obj, string propertyName, V value) 
         => (V)obj.SetPropertyValue(propertyName, (object)value);
+
+        #endregion
+
+        #region Field
+
+        public static Func<object, object> FieldAccessorFor(this FieldInfo fieldInfo)
+        {
+            ArgumentNullException.ThrowIfNull(fieldInfo);
+
+            return FieldAccessorMap.GetOrAdd(fieldInfo, field =>
+            {
+                var guid = Guid
+                    .NewGuid()
+                    .ToString()
+                    .Replace("-", "_");
+
+                var dynamicMethod = new DynamicMethod(
+                    name: $"FieldGetterFor_{field.Name}_{guid}",
+                    returnType: typeof(object),
+                    parameterTypes: new[] { typeof(object) },
+                    m: typeof(TypeExtensions).Module);
+
+                var emitter = dynamicMethod.GetILGenerator();
+
+                // push 'this' unto the stack - for value-types, this is a boxed value
+                emitter.Emit(OpCodes.Ldarg_0);
+
+                // cast/unbox 'this' from object to appropariate type.
+                if (field.DeclaringType.IsValueType)
+                {
+                    emitter.Emit(OpCodes.Unbox_Any, field.DeclaringType);
+                }
+                else
+                {
+                    emitter.Emit(OpCodes.Castclass, field.DeclaringType);
+                }
+
+                // load the field
+                emitter.Emit(OpCodes.Ldfld, field);
+
+                // box the value if it is a value-type
+                if (field.FieldType.IsValueType)
+                    emitter.Emit(OpCodes.Box, field.FieldType);
+
+                // return the value
+                emitter.Emit(OpCodes.Ret);
+
+                return dynamicMethod.CreateDelegate<Func<object, object>>();
+            });
+        }
+
+        public static Func<TType, TFieldType> TypedFieldAccessorFor<TType, TFieldType>(this FieldInfo fieldInfo)
+        {
+            ArgumentNullException.ThrowIfNull(fieldInfo);
+
+            if (!typeof(TType).Equals(fieldInfo.DeclaringType))
+                throw new ArgumentException(
+                    "Type mismatch. "
+                    + $"'{nameof(fieldInfo)}.DeclaringType':{fieldInfo.DeclaringType.FullName}, "
+                    + $"'{nameof(TType)}': {typeof(TType).FullName}");
+
+            if (!typeof(TFieldType).Equals(fieldInfo.FieldType))
+                throw new ArgumentException(
+                    "Type mismatch. "
+                    + $"'{nameof(fieldInfo)}.FieldType':{fieldInfo.FieldType.FullName}, "
+                    + $"'{nameof(TFieldType)}': {typeof(TFieldType).FullName}");
+
+            return TypedFieldMap
+                .GetOrAdd((fieldInfo, TypedAccessorMode.Access), field =>
+                {
+                    var guid = Guid
+                        .NewGuid()
+                        .ToString()
+                        .Replace("-", "_");
+
+                    var dynamicMethod = new DynamicMethod(
+                        name: $"FieldGetterFor_{field.Field.Name}_{guid}",
+                        returnType: typeof(TFieldType),
+                        parameterTypes: new[] { typeof(TType) },
+                        m: typeof(TypeExtensions).Module);
+
+                    var emitter = dynamicMethod.GetILGenerator();
+
+                    // push 'this' unto the stack - for value-types, this is a boxed value
+                    emitter.Emit(OpCodes.Ldarg_0);
+
+                    // load the field
+                    emitter.Emit(OpCodes.Ldfld, field.Field);
+
+                    // return the value
+                    emitter.Emit(OpCodes.Ret);
+
+                    return dynamicMethod.CreateDelegate<Func<TType, TFieldType>>();
+                })
+                .As<Func<TType, TFieldType>>();
+        }
+
+        /// <summary>
+        /// Returns a delegate that when called, assigns the given value to the supplied field of the supplied object/struct.
+        /// <para/>
+        /// Note, if called for a struct, be sure to hold a reference to a boxed version of the struct, and pass that into the delegate, 
+        /// else any changes will be lost as they are only effected on the boxed struct passed into the delegate.
+        /// </summary>
+        /// <param name="fieldInfo">The field for which the delegate is created</param>
+        /// <returns>The mutator delegate</returns>
+        /// <exception cref="InvalidOperationException"></exception>
+        public static Action<object, object> FieldMutatorFor(this FieldInfo fieldInfo)
+        {
+            ArgumentNullException.ThrowIfNull(fieldInfo);
+
+            return FieldMutatorMap.GetOrAdd(fieldInfo, field =>
+            {
+                if (field.DeclaringType.IsClass)
+                {
+                    var guid = Guid
+                        .NewGuid()
+                        .ToString()
+                        .Replace("-", "_");
+
+                    var dynamicMethod = new DynamicMethod(
+                        name: $"FieldSetterFor_{field.Name}_{guid}",
+                        returnType: typeof(void),
+                        parameterTypes: new[] { typeof(object), typeof(object) },
+                        m: typeof(TypeExtensions).Module);
+
+                    var emitter = dynamicMethod.GetILGenerator();
+
+                    // push 'this' unto the stack
+                    emitter.Emit(OpCodes.Ldarg_0);
+
+                    // cast the object to the appropriate value
+                    if (!field.DeclaringType.Equals(typeof(object)))
+                        emitter.Emit(OpCodes.Castclass, field.DeclaringType);
+
+                    // push the value unto the stack
+                    emitter.Emit(OpCodes.Ldarg_1);
+
+                    if (field.FieldType.IsValueType)
+                        emitter.Emit(OpCodes.Unbox_Any, field.FieldType);
+
+                    // assign the field
+                    emitter.Emit(OpCodes.Stfld, field);
+
+                    // return
+                    emitter.Emit(OpCodes.Ret);
+
+                    return dynamicMethod.CreateDelegate<Action<object, object>>();
+                }
+                else if (field.DeclaringType.IsValueType)
+                {
+                    // using raw reflection because it benchmarks faster than the IL generated delegates! 🤯
+                    return (@this, arg) =>
+                    {
+                        field.SetValue(@this, arg);
+                    };
+                }
+
+                else throw new InvalidOperationException($"Supplied field belongs neighter to a Class nor a Struct");
+            });
+        }
+
+        public static Action<TType, TFieldType> TypedFieldMutatorFor<TType, TFieldType>(this FieldInfo fieldInfo)
+        where TType : class
+        {
+            ArgumentNullException.ThrowIfNull(fieldInfo);
+
+            if (!typeof(TType).Equals(fieldInfo.DeclaringType))
+                throw new ArgumentException(
+                    "Type mismatch. "
+                    + $"'{nameof(fieldInfo)}.DeclaringType':{fieldInfo.DeclaringType.FullName}, "
+                    + $"'{nameof(TType)}': {typeof(TType).FullName}");
+
+            if (!typeof(TFieldType).Equals(fieldInfo.FieldType))
+                throw new ArgumentException(
+                    "Type mismatch. "
+                    + $"'{nameof(fieldInfo)}.FieldType':{fieldInfo.FieldType.FullName}, "
+                    + $"'{nameof(TFieldType)}': {typeof(TFieldType).FullName}");
+
+            return TypedFieldMap
+                .GetOrAdd((fieldInfo, TypedAccessorMode.Mutate), field =>
+                {
+                    var guid = Guid
+                        .NewGuid()
+                        .ToString()
+                        .Replace("-", "_");
+
+                    var dynamicMethod = new DynamicMethod(
+                        name: $"TypedFieldSetterFor_{field.Field.Name}_{guid}",
+                        returnType: typeof(void),
+                        parameterTypes: new[] { field.Field.DeclaringType, typeof(TFieldType) },
+                        m: typeof(TypeExtensions).Module);
+
+                    var emitter = dynamicMethod.GetILGenerator();
+
+                    // push 'this' unto the stack
+                    emitter.Emit(OpCodes.Ldarg_0);
+
+                    // push the value unto the stack
+                    emitter.Emit(OpCodes.Ldarg_1);
+
+                    // assign the field
+                    emitter.Emit(OpCodes.Stfld, field.Field);
+
+                    // return
+                    emitter.Emit(OpCodes.Ret);
+
+                    return dynamicMethod.CreateDelegate<Action<TType, TFieldType>>();
+                })
+                .As<Action<TType, TFieldType>>();
+        }
+
+        internal enum TypedAccessorMode
+        {
+            Access,
+            Mutate
+        }
 
         #endregion
 
@@ -690,9 +910,8 @@ namespace Axis.Luna.Extensions
 
         #endregion
 
-        private static Func<object, object> GetPropertyAccessorDelegate(object obj, string propertyName)
+        private static Func<object, object> PropertyAccessorFor(this Type targetType, string propertyName)
         {
-            var targetType = obj.GetType();
             var property = targetType
                 .GetProperty(propertyName)
                 ?? throw new ArgumentException($"Invalid property name: {propertyName}");
@@ -714,9 +933,8 @@ namespace Axis.Luna.Extensions
                 .As<Func<object, object>>();
         }
 
-        private static Action<object, object> GetPropertyMutatorDelegate(object obj, string propertyName)
+        private static Action<object, object> PropertyMutatorFor(this Type targetType, string propertyName)
         {
-            var targetType = obj.GetType();
             var property = targetType
                 .GetProperty(propertyName)
                 ?? throw new ArgumentException($"Invalid property name: {propertyName}");
@@ -744,5 +962,16 @@ namespace Axis.Luna.Extensions
             if (type.IsGenericType)
                 yield return type.GetGenericTypeDefinition();
         }
+    }
+
+
+    public class TestClassWithFields
+    {
+        public string Field1;
+        private string Field2;
+
+        public string Property1 { get; set; }
+
+        public string GetField2() => Field2;
     }
 }

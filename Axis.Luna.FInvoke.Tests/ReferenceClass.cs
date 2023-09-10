@@ -30,6 +30,11 @@
             sref.Description = desc;
         }
 
+        public static void ClassRefAssignment(ref Class2 value, Class2 toCopy)
+        {
+            value = toCopy;
+        }
+
         public static void ValueCall2(object obj, string arg1)
         {
             ValueCallImpl2(ref obj, arg1);
@@ -46,6 +51,12 @@
         {
             var unboxed = (StructRef)boxed;
             unboxed.MutateName(arg1);
+        }
+
+        public static void ClassRefCall()
+        {
+            var c = new Class2();
+            ClassRefAssignment(ref c, new Class2 { Name = "bleh" });
         }
     }
 
@@ -108,5 +119,11 @@
         {
             Name = arg;
         }
+    }
+
+    public class Class2
+    {
+        public string Name { get; set; }
+        public int X { get; set; }
     }
 }

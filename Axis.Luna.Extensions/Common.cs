@@ -22,8 +22,19 @@ namespace Axis.Luna.Extensions
             .Where(minfo => minfo.GetGenericArguments().Length == 2)
             .First();
 
+        #region Reboxing
         private static readonly ConcurrentDictionary<Type, Delegate> ReboxerMap = new ConcurrentDictionary<Type, Delegate>();
 
+        /// <summary>
+        /// Copies the struct from the <paramref name="newValue"/> into the value pointed to by the <paramref name="boxedValue"/> "boxed" reference.
+        /// This means, the boxed value will essentially be identical to the supplied argument after this call returns.
+        /// </summary>
+        /// <typeparam name="TValueType"></typeparam>
+        /// <param name="boxedValue"></param>
+        /// <param name="newValue"></param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentNullException"></exception>
+        /// <exception cref="ArgumentException"></exception>
         public static object ReboxAs<TValueType>(this object boxedValue, TValueType newValue)
         where TValueType : struct
         {
@@ -66,6 +77,64 @@ namespace Axis.Luna.Extensions
 
             return dynamicMethod.CreateDelegate(typeof(Action<object, TValueType>));
         }
+        #endregion
+
+        #region State Relocation
+        private static readonly ConcurrentDictionary<Type, Delegate> RelocateStateMap = new ConcurrentDictionary<Type, Delegate>();
+
+        /// <summary>
+        /// Copies the state (fields) from the <paramref name="sourceValue"/> instance into the <paramref name="destinationValue"/> instance.
+        /// <para/>
+        /// Note that some structures may have complex associations/dependencies beyond their local fields, and so simply copying the fields
+        /// may not be enough to "clone" the object. Only use this method if you understand to a large extent, the internal workings of the
+        /// class you intend to copy it's state.
+        /// </summary>
+        /// <typeparam name="TRefType">The type of the values to copy</typeparam>
+        /// <param name="destinationValue">The destination value</param>
+        /// <param name="sourceValue">The source value</param>
+        /// <returns></returns>
+        public static TRefType CopyStateFrom<TRefType>(this TRefType destinationValue, TRefType sourceValue)
+        where TRefType : class
+        {
+            ArgumentNullException.ThrowIfNull(destinationValue);
+            ArgumentNullException.ThrowIfNull(sourceValue);
+
+            if (!destinationValue.GetType().Equals(sourceValue.GetType()))
+                throw new InvalidOperationException(
+                    $"Type mismatch. "
+                    + $"source type: '{sourceValue.GetType().FullName}', "
+                    + $"destination type: '{destinationValue.GetType().FullName}'");
+
+            var rerefer = RelocateStateMap
+                .GetOrAdd(typeof(TRefType), _ => BuildStateRelocator<TRefType>(destinationValue.GetType()))
+                .As<Action<TRefType, TRefType>>();
+
+            rerefer.Invoke(destinationValue, sourceValue);
+            return destinationValue;
+        }
+
+        private static Delegate BuildStateRelocator<TRefType>(Type instanceType)
+        where TRefType : class
+        {
+            var fields = instanceType.GetFields(
+                BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+
+            return (TRefType destination, TRefType source) =>
+            {
+                fields.ForAll(field =>
+                {
+                    var value = field.FieldAccessorFor().Invoke(source);
+                    var @default = field.FieldType.DefaultValue();
+
+                    if ((@default is null && value is not null)
+                        || (@default is not null && !@default.Equals(value)))
+                        field.FieldMutatorFor().Invoke(destination, value);
+                });
+            };
+        }
+        #endregion
+
+
 
         public static bool Is<T>(this object value) => value is T;
 

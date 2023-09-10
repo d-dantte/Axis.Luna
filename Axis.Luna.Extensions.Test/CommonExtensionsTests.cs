@@ -1,5 +1,4 @@
-﻿using BenchmarkDotNet.Attributes;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -113,6 +112,95 @@ namespace Axis.Luna.Extensions.Test
             Assert.AreEqual(43, ((Point)r).X);
             Assert.AreEqual(43, ((Point)x).X);
             Assert.AreEqual(x, r);
+
+            var arr = new object[] { new Point(), x, 6 };
+            Assert.AreEqual(0, ((Point)arr[0]).X);
+            arr[0].ReboxAs(new Point { X = 91 });
+            Assert.AreEqual(91, ((Point)arr[0]).X);
+        }
+
+        [TestMethod]
+        public void RelocateStateFrom_Tests()
+        {
+            var l1 = new List<int> { 1, 2, 3, 4, 5 };
+            var l2 = new List<int>();
+
+            l2.CopyStateFrom(l1);
+
+            Assert.AreEqual(l1.Count, l2.Count);
+            Assert.IsTrue(Enumerable.SequenceEqual(l1, l2));
+        }
+
+        [TestMethod]
+        public void RegularAssignment_Tests()
+        {
+            var tcwf = new TestClassWithFields();
+            FieldInfo[] fields = typeof(TestClassWithFields).GetFields(
+                BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+
+            fields.ToList().ForEach(field => ReflectionFieldAssignment(tcwf, field, "bleh"));
+
+            Assert.AreEqual("bleh", tcwf.Field1);
+            Assert.AreEqual("bleh", tcwf.GetField2());
+            Assert.AreEqual("bleh", tcwf.Property1);
+        }
+
+        [TestMethod]
+        public void ILGeneratedAssignment_Tests()
+        {
+            var tcwf = new TestClassWithFields();
+            FieldInfo[] fields = typeof(TestClassWithFields).GetFields(
+                BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+
+            fields.ToList().ForEach(field => ILGeneratedFieldAssignment(tcwf, field, "bleh"));
+            fields.ToList().ForEach(field => Assert.AreEqual("bleh", ILGeneratedFieldExtratction(tcwf, field)));
+        }
+
+        [TestMethod]
+        public void TypedILGeneratedAssignment_Tests()
+        {
+            var tcwf = new TestClassWithFields();
+            FieldInfo[] fields = typeof(TestClassWithFields).GetFields(
+                BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+
+            fields.ToList().ForEach(field => TypedILGeneratedFieldAssignment(tcwf, field, "bleh"));
+            fields.ToList().ForEach(field => Assert.AreEqual("bleh", ILGeneratedFieldExtratction(tcwf, field)));
+        }
+
+        [TestMethod]
+        public void ILGeneratedAssignmentStruct_Tests()
+        {
+            object tswf = new TestStructWithFields();
+            FieldInfo[] fields = typeof(TestStructWithFields).GetFields(
+                BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+
+            fields.ToList().ForEach(field => ILGeneratedFieldAssignment(tswf, field, "bleh"));
+            fields.ToList().ForEach(field => Assert.AreEqual("bleh", ILGeneratedFieldExtratction(tswf, field)));
+        }
+
+        public static void RegularFieldAssignment(TestClassWithFields tcwf, string value)
+        {
+            tcwf.Field1 = value;
+        }
+
+        public static void ReflectionFieldAssignment(object tcwf, FieldInfo field, object value)
+        {
+            field.SetValue(tcwf, value);
+        }
+
+        public static void ILGeneratedFieldAssignment(object tcwf, FieldInfo field, object value)
+        {
+            field.FieldMutatorFor().Invoke(tcwf, value);
+        }
+
+        public static void TypedILGeneratedFieldAssignment(TestClassWithFields tcwf, FieldInfo field, string value)
+        {
+            field.TypedFieldMutatorFor<TestClassWithFields, string>().Invoke(tcwf, value);
+        }
+
+        public static object ILGeneratedFieldExtratction(object tcwf, FieldInfo field)
+        {
+            return field.FieldAccessorFor().Invoke(tcwf);
         }
 
         public interface ISomething { }
@@ -128,32 +216,101 @@ namespace Axis.Luna.Extensions.Test
             public int Y { get; set; }
             public int Z { get; set; }
         }
-    }
 
-    [TestClass]
-    public class CommonExtensionsPerfTests
-    {
-        /*
-          System.ArraySegment`1
-    System.DateTimeOffset
-    System.Decimal
-    System.Runtime.InteropServices.GCHandle
-    System.Half
-    System.Runtime.InteropServices.HandleRef
-    System.Index
-    System.IntPtr
-    System.Memory`1
-    System.Runtime.InteropServices.NFloat
-    System.Nullable`1
-    System.ReadOnlyMemory`1
-    System.ReadOnlySpan`1
-    System.Text.Rune
-    System.Span`1
-    System.Buffers.StandardFormat
-    System.String
-    System.UIntPtr
-    System.Numerics.Vector`1
-         */
+        public class TestClass
+        {
+            public string Name { get; set; }
+
+            public TestClass2 Child { get; set; }
+        }
+
+        public class TestClass2
+        {
+            public string Description { get; set; }
+        }
+
+        public class TestClassWithFields
+        {
+            public string Field1;
+            private string Field2;
+
+            public string Property1 { get; set; }
+
+            public string GetField2() => Field2;
+        }
+
+        public class TestClass3
+        {
+            public int ValueField;
+            public string RefField;
+
+            public static void SetValueField(TestClass3 instance, int value)
+            {
+                instance.ValueField = value;
+            }
+            public static void SetRefField(TestClass3 instance, string value)
+            {
+                instance.RefField = value;
+            }
+
+            public static void SetBoxedValueField(object instance, object value)
+            {
+                ((TestClass3)instance).ValueField = (int)value;
+            }
+            public static void SetBoxedRefField(object instance, string value)
+            {
+                ((TestClass3)instance).RefField = value;
+            }
+
+            public static int GetValueField(TestClass3 instance)
+            {
+                return instance.ValueField;
+            }
+            public static object GetBoxedValueField(TestClass3 instance)
+            {
+                return instance.ValueField;
+            }
+            public static string GetRefField(TestClass3 instance)
+            {
+                return instance.RefField;
+            }
+            public static object GetBoxedRefField(TestClass3 instance)
+            {
+                return instance.RefField;
+            }
+        }
+        public struct TestStruct3
+        {
+            public int ValueField;
+            public object RefField;
+
+            public static void SetValueField(TestStruct3 instance, int value)
+            {
+                instance.ValueField = value;
+            }
+            public static void SetRefField(TestStruct3 instance, object value)
+            {
+                instance.RefField = value;
+            }
+            public static int GetValueField(TestStruct3 instance)
+            {
+                return instance.ValueField;
+            }
+            public static object GetRefField(TestStruct3 instance)
+            {
+                return instance.RefField;
+            }
+        }
+
+        public struct TestStructWithFields
+        {
+            public string Field1;
+            private string Field2;
+
+            public string Property1 { get; set; }
+
+            public string GetField2() => Field2;
+        }
     }
 
     public class CustomList<T> : List<T> { }
