@@ -150,6 +150,12 @@ namespace Axis.Luna.Common.Results
             public ResultException Cause() => _cause;
 
             /// <summary>
+            /// 
+            /// </summary>
+            /// <returns></returns>
+            public Exception ActualCause() => TrueCause;
+
+            /// <summary>
             /// Throws the error
             /// </summary>
             public TData ThrowError() => _cause.Throw<TData>();

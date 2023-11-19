@@ -22,6 +22,50 @@ namespace Axis.Luna.Common.Results
         /// <returns>True if the instance is a Data result, false otherwise</returns>
         public static bool IsDataResult<TData>(this IResult<TData> result) => result is IResult<TData>.DataResult;
 
+        public static bool IsDataResult<TData>(
+            this IResult<TData> result,
+            out TData data,
+            Func<TData, bool> predicate = null)
+        {
+            ArgumentNullException.ThrowIfNull(result);
+
+            if (!result.IsDataResult())
+            {
+                data = default;
+                return false;
+            }
+
+            data = result.Resolve();
+
+            if (predicate is not null)
+                return predicate.Invoke(data);
+
+            return true;
+        }
+
+        public static bool IsErrorResult<TData, TError>(
+            this IResult<TData> result,
+            out TError error,
+            Func<TError, bool> predicate = null)
+            where TError : Exception
+        {
+            ArgumentNullException.ThrowIfNull(result);
+
+            if (result.IsErrorResult()
+                && result.AsError().ActualCause() is TError terror)
+            {
+                error = terror;
+
+                if (predicate is not null)
+                    return predicate.Invoke(error);
+
+                return true;
+            }
+
+            error = default;
+            return false;
+        }
+
         /// <summary>
         /// Checks if the supplied result is an instance of <see cref="IResult{TData}.ErrorResult"/>
         /// </summary>
@@ -300,6 +344,48 @@ namespace Axis.Luna.Common.Results
                 error.ConsumeError(errorConsumer);
         }
 
+        /// <summary>
+        /// Maps the encapsulated payload - be it an exception, or data, using the <paramref name="mapper"/> function.
+        /// </summary>
+        /// <typeparam name="TIn">The input result type</typeparam>
+        /// <typeparam name="TOut">The output result type</typeparam>
+        /// <param name="result">The result instance</param>
+        /// <param name="mapper">The mapper function</param>
+        /// <returns>A result instance encapsulating the outcome of the mapping operation</returns>
+        /// <exception cref="InvalidOperationException"></exception>
+        public static IResult<TOut> MapPayload<TIn, TOut>(
+            this IResult<TIn> result,
+            Func<object, TOut> mapper)
+        {
+            ArgumentNullException.ThrowIfNull(result);
+            ArgumentNullException.ThrowIfNull(mapper);
+
+            if (result is IResult<TIn>.DataResult dataResult)
+                return Result.Of(() => mapper.Invoke(dataResult.Data));
+
+            else if (result is IResult<TIn>.ErrorResult error)
+                return Result.Of(() => mapper.Invoke(error.ActualCause()));
+
+            else throw new InvalidOperationException($"Invalid result: '{result?.GetType()}'");
+        }
+
+
+        public static IResult<TOut> BindPayload<TIn, TOut>(
+            this IResult<TIn> result,
+            Func<object, IResult<TOut>> mapper)
+        {
+            ArgumentNullException.ThrowIfNull(result);
+            ArgumentNullException.ThrowIfNull(mapper);
+
+            if (result is IResult<TIn>.DataResult dataResult)
+                return Result.Bind(() => mapper.Invoke(dataResult.Data));
+
+            else if (result is IResult<TIn>.ErrorResult error)
+                return Result.Bind(() => mapper.Invoke(error.ActualCause()));
+
+            else throw new InvalidOperationException($"Invalid result: '{result?.GetType()}'");
+        }
+
 
         public static IResult<TResult>.DataResult AsData<TResult>(this IResult<TResult> result)
         {
@@ -458,7 +544,7 @@ namespace Axis.Luna.Common.Results
         /// <param name="results"></param>
         /// <param name="aggregator"></param>
         /// <returns></returns>
-        internal static IResult<TOut> FoldInto<TItem, TOut>(
+        public static IResult<TOut> FoldInto<TItem, TOut>(
             this IEnumerable<IResult<TItem>> results,
             Func<IEnumerable<TItem>, TOut> aggregator)
         {

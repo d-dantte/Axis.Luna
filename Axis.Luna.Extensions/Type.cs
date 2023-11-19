@@ -868,15 +868,19 @@ namespace Axis.Luna.Extensions
 
         public static object DefaultValue(this Type type)
         {
-            var producer = TypeDefaultsProducer.GetOrAdd(type, _t =>
+            if (type.IsValueType)
             {
-                var @default = Expression.Default(_t);
-                var cast = Expression.Convert(@default, typeof(object));
-                var lambda = Expression.Lambda(typeof(Func<object>), cast);
-                return lambda.Compile().As<Func<object>>();
-            });
+                var producer = TypeDefaultsProducer.GetOrAdd(type, _t =>
+                {
+                    var @default = Expression.Default(_t);
+                    var cast = Expression.Convert(@default, typeof(object));
+                    var lambda = Expression.Lambda(typeof(Func<object>), cast);
+                    return lambda.Compile().As<Func<object>>();
+                });
 
-            return producer.Invoke();
+                return producer.Invoke();
+            }
+            else return null;
         }
 
         public static bool IsPropertyAccessor(this MethodInfo method)
