@@ -76,23 +76,6 @@ namespace Axis.Luna.Common.Results
         #endregion
 
         #region Of
-        /// <summary>
-        /// Resolves the result; returning its value, or throwing its error.
-        /// </summary>
-        /// <typeparam name="TData">The type of the result</typeparam>
-        /// <param name="result">The result instance</param>
-        /// <returns>The encapsulated value</returns>
-        /// <exception cref="InvalidResultTypeException">If the result instance isn't valid</exception>
-        public static TData Resolve<TData>(this IResult<TData> result)
-        {
-            return result switch
-            {
-                IResult<TData>.DataResult data => data.Data,
-                IResult<TData>.ErrorResult error => error.ThrowError(),
-                null => throw new ArgumentNullException(nameof(result)),
-                _ => throw new InvalidResultTypeException(result.GetType())
-            };
-        }
 
         /// <summary>
         /// Creates an instance of <see cref="IResult{TData}.ErrorResult"/>
@@ -129,6 +112,25 @@ namespace Axis.Luna.Common.Results
                 return Of<TData>(e);
             }
         }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <typeparam name="TOut"></typeparam>
+        /// <param name="resultSupplier"></param>
+        /// <returns></returns>
+        public static IResult<TOut> Of<TOut>(Func<IResult<TOut>> resultSupplier)
+        {
+            try
+            {
+                return resultSupplier.Invoke();
+            }
+            catch (Exception e)
+            {
+                return Result.Of<TOut>(e);
+            }
+        }
+
         #endregion
 
         #region Exception
@@ -155,30 +157,25 @@ namespace Axis.Luna.Common.Results
         }
         #endregion
 
-        public static IResult<TOut> Bind<TOut>(Func<IResult<TOut>> resultSupplier)
-        {
-            try
-            {
-                return resultSupplier.Invoke();
-            }
-            catch(Exception e)
-            {
-                return Result.Of<TOut>(e);
-            }
-        }
+        #region Data/Task/Lazy Resolvers
 
         /// <summary>
-        /// Attempts to convert/cast the result into the given type
+        /// Resolves the result; returning its value, or throwing its error.
         /// </summary>
-        /// <typeparam name="TIn">The input result type</typeparam>
-        /// <typeparam name="TOut">The output result type</typeparam>
-        /// <param name="result">The input result instance</param>
-        /// <returns>The result of the operation</returns>
-        public static IResult<TOut> MapAs<TIn, TOut>(this IResult<TIn> result)
+        /// <typeparam name="TData">The type of the result</typeparam>
+        /// <param name="result">The result instance</param>
+        /// <returns>The encapsulated value</returns>
+        /// <exception cref="InvalidResultTypeException">If the result instance isn't valid</exception>
+        public static TData Resolve<TData>(this IResult<TData> result)
         {
-            return result.Map(r => r.As<TOut>());
+            return result switch
+            {
+                IResult<TData>.DataResult data => data.Data,
+                IResult<TData>.ErrorResult error => error.ThrowError(),
+                null => throw new ArgumentNullException(nameof(result)),
+                _ => throw new InvalidResultTypeException(result.GetType())
+            };
         }
-
 
         /// <summary>
         /// Resolves the <see cref="Lazy{T}"/> into a result
@@ -219,6 +216,10 @@ namespace Axis.Luna.Common.Results
                 });
         }
 
+        #endregion
+
+        #region Consume
+
         /// <summary>
         /// Consumes the value of the result, if available
         /// </summary>
@@ -241,60 +242,7 @@ namespace Axis.Luna.Common.Results
         }
 
         /// <summary>
-        /// Maps the encapsulated error if available, into a result
-        /// </summary>
-        /// <typeparam name="TResult"></typeparam>
-        /// <param name="result"></param>
-        /// <param name="errorMapper"></param>
-        /// <returns></returns>
-        /// <exception cref="ArgumentNullException"></exception>
-        /// <exception cref="InvalidResultTypeException"></exception>
-        public static IResult<TResult> MapError<TResult>(this
-            IResult<TResult> result,
-            Func<ResultException, TResult> errorMapper)
-        {
-            if (errorMapper == null)
-                throw new ArgumentNullException(nameof(errorMapper));
-
-            return result switch
-            {
-                IResult<TResult>.DataResult data => data,
-                IResult<TResult>.ErrorResult error => Of(() => errorMapper.Invoke(error.Cause())),
-                null => throw new ArgumentNullException(nameof(result)),
-                _ => throw new InvalidResultTypeException(result.GetType())
-            };
-        }
-
-        /// <summary>
-        /// Binds the encapsulated error if available, into a result
-        /// </summary>
-        /// <typeparam name="TResult"></typeparam>
-        /// <param name="result"></param>
-        /// <param name="errorMapper"></param>
-        /// <returns></returns>
-        /// <exception cref="ArgumentNullException"></exception>
-        /// <exception cref="InvalidResultTypeException"></exception>
-        public static IResult<TResult> BindError<TResult>(this
-            IResult<TResult> result,
-            Func<ResultException, IResult<TResult>> errorBinder)
-        {
-            if (errorBinder == null)
-                throw new ArgumentNullException(nameof(errorBinder));
-
-            return result switch
-            {
-                IResult<TResult>.DataResult data => data,
-                IResult<TResult>.ErrorResult error => Of(() => errorBinder
-                    .Invoke(error.Cause())
-                    .Resolve()),
-
-                null => throw new ArgumentNullException(nameof(result)),
-                _ => throw new InvalidResultTypeException(result.GetType())
-            };
-        }
-
-        /// <summary>
-        /// Consumes the error of the result, if available
+        /// Consumes the ResultError if available.
         /// </summary>
         /// <typeparam name="TResult">the encapsulated type</typeparam>
         /// <param name="result">the result instance</param>
@@ -302,7 +250,7 @@ namespace Axis.Luna.Common.Results
         /// <exception cref="ArgumentNullException"></exception>
         public static void ConsumeError<TResult>(this
             IResult<TResult> result,
-            Action<Exception> errorConsumer)
+            Action<ResultException> errorConsumer)
         {
             if (result is null)
                 throw new ArgumentNullException(nameof(result));
@@ -315,34 +263,254 @@ namespace Axis.Luna.Common.Results
         }
 
         /// <summary>
-        /// Consumes either the encapsulated value or error
+        /// Consumes the cause of the result error, if available.
         /// </summary>
-        /// <typeparam name="TIn">the results type</typeparam>
+        /// <typeparam name="TResult">the encapsulated type</typeparam>
+        /// <typeparam name="TCause">the type of error to consume, if available</typeparam>
         /// <param name="result">the result instance</param>
-        /// <param name="valueConsumer">the value consumer function</param>
-        /// <param name="errorConsumer">the error consumer function</param>
+        /// <param name="errorConsumer">the consumer function</param>
         /// <exception cref="ArgumentNullException"></exception>
-        public static void Consume<TIn>(this
-            IResult<TIn> result,
-            Action<TIn> valueConsumer,
-            Action<Exception> errorConsumer = null)
+        public static void ConsumeCause<TResult, TCause>(this
+            IResult<TResult> result,
+            Action<TCause> errorConsumer)
+            where TCause : Exception
         {
-            if (result == null)
+            if (result is null)
                 throw new ArgumentNullException(nameof(result));
 
-            if (valueConsumer == null)
-                throw new ArgumentNullException(nameof(valueConsumer));
-
-            if (errorConsumer == null)
+            if (errorConsumer is null)
                 throw new ArgumentNullException(nameof(errorConsumer));
 
-
-            if (result is IResult<TIn>.DataResult data)
-                data.Consume(valueConsumer);
-
-            else if (result is IResult<TIn>.ErrorResult error)
-                error.ConsumeError(errorConsumer);
+            if (result.IsErrorResult(out TCause cause))
+                errorConsumer.Invoke(cause);
         }
+        #endregion
+
+        #region With
+
+        /// <summary>
+        /// Consumes the value of the result, if available
+        /// </summary>
+        /// <typeparam name="TResult">the encapsulated type</typeparam>
+        /// <param name="result">the result instance</param>
+        /// <param name="valueConsumer">the consumer function</param>
+        /// <exception cref="ArgumentNullException"></exception>
+        public static IResult<TResult> WithValue<TResult>(this
+            IResult<TResult> result,
+            Action<TResult> valueConsumer)
+        {
+            if (result is null)
+                throw new ArgumentNullException(nameof(result));
+
+            if (valueConsumer is null)
+                throw new ArgumentNullException(nameof(valueConsumer));
+
+            if (result.IsDataResult(out TResult data))
+                valueConsumer.Invoke(data);
+
+            return result;
+        }
+
+        /// <summary>
+        /// Consumes the ResultError if available.
+        /// </summary>
+        /// <typeparam name="TResult">the encapsulated type</typeparam>
+        /// <param name="result">the result instance</param>
+        /// <param name="errorConsumer">the consumer function</param>
+        /// <exception cref="ArgumentNullException"></exception>
+        public static IResult<TResult> WithError<TResult>(this
+            IResult<TResult> result,
+            Action<ResultException> errorConsumer)
+        {
+            if (result is null)
+                throw new ArgumentNullException(nameof(result));
+
+            if (errorConsumer is null)
+                throw new ArgumentNullException(nameof(errorConsumer));
+
+            if (result is IResult<TResult>.ErrorResult error)
+                errorConsumer.Invoke(error.Cause());
+
+            return result;
+        }
+
+        /// <summary>
+        /// Consumes the cause of the result error, if available.
+        /// </summary>
+        /// <typeparam name="TResult">the encapsulated type</typeparam>
+        /// <typeparam name="TCause">the type of error to consume, if available</typeparam>
+        /// <param name="result">the result instance</param>
+        /// <param name="errorConsumer">the consumer function</param>
+        /// <exception cref="ArgumentNullException"></exception>
+        public static IResult<TResult> WithCause<TResult, TCause>(this
+            IResult<TResult> result,
+            Action<TCause> errorConsumer)
+            where TCause : Exception
+        {
+            if (result is null)
+                throw new ArgumentNullException(nameof(result));
+
+            if (errorConsumer is null)
+                throw new ArgumentNullException(nameof(errorConsumer));
+
+            if (result.IsErrorResult(out TCause cause))
+                errorConsumer.Invoke(cause);
+
+            return result;
+        }
+
+        #endregion
+
+        #region Map Error
+
+        /// <summary>
+        /// Maps the encapsulated error if available, into a result
+        /// </summary>
+        /// <typeparam name="TResult"></typeparam>
+        /// <param name="result"></param>
+        /// <param name="errorMapper"></param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentNullException"></exception>
+        /// <exception cref="InvalidResultTypeException"></exception>
+        public static IResult<TResult> MapError<TResult>(this
+            IResult<TResult> result,
+            Func<ResultException, TResult> errorMapper)
+        {
+            ArgumentNullException.ThrowIfNull(result);
+            ArgumentNullException.ThrowIfNull(errorMapper);
+
+            if (result is IResult<TResult>.ErrorResult errorResult)
+                return Result.Of(() => errorMapper.Invoke(errorResult.Cause()));
+
+            return result;
+        }
+
+        /// <summary>
+        /// Maps the encapsulated cause if available, into a result
+        /// </summary>
+        /// <typeparam name="TResult"></typeparam>
+        /// <typeparam name="TCause"></typeparam>
+        /// <param name="result"></param>
+        /// <param name="errorMapper"></param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentNullException"></exception>
+        /// <exception cref="InvalidResultTypeException"></exception>
+        public static IResult<TResult> MapCause<TResult, TCause>(this
+            IResult<TResult> result,
+            Func<TCause, TResult> errorMapper)
+            where TCause : Exception
+        {
+            ArgumentNullException.ThrowIfNull(result);
+            ArgumentNullException.ThrowIfNull(errorMapper);
+
+            if (result.IsErrorResult(out TCause cause))
+                return Result.Of(() => errorMapper.Invoke(cause));
+
+            return result;
+        }
+
+        #endregion
+
+        #region Bind Error
+
+        /// <summary>
+        /// Binds the encapsulated error if available, into a result
+        /// </summary>
+        /// <typeparam name="TResult"></typeparam>
+        /// <param name="result"></param>
+        /// <param name="errorMapper"></param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentNullException"></exception>
+        /// <exception cref="InvalidResultTypeException"></exception>
+        public static IResult<TResult> BindError<TResult>(this
+            IResult<TResult> result,
+            Func<ResultException, IResult<TResult>> errorMapper)
+        {
+            ArgumentNullException.ThrowIfNull(result);
+            ArgumentNullException.ThrowIfNull(errorMapper);
+
+            if (result is IResult<TResult>.ErrorResult errorResult)
+                return Result.Of(() => errorMapper.Invoke(errorResult.Cause()));
+
+            return result;
+        }
+
+        /// <summary>
+        /// Binds the encapsulated cause if available, into a result
+        /// </summary>
+        /// <typeparam name="TResult"></typeparam>
+        /// <typeparam name="TCause"></typeparam>
+        /// <param name="result"></param>
+        /// <param name="errorMapper"></param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentNullException"></exception>
+        /// <exception cref="InvalidResultTypeException"></exception>
+        public static IResult<TResult> BindCause<TResult, TCause>(this
+            IResult<TResult> result,
+            Func<TCause, IResult<TResult>> errorMapper)
+            where TCause : Exception
+        {
+            ArgumentNullException.ThrowIfNull(result);
+            ArgumentNullException.ThrowIfNull(errorMapper);
+
+            if (result.IsErrorResult(out TCause cause))
+                return Result.Of(() => errorMapper.Invoke(cause));
+
+            return result;
+        }
+
+        #endregion
+
+        #region Transform Error
+
+        /// <summary>
+        /// Transforms the cause if available.
+        /// </summary>
+        /// <typeparam name="TResult">the encapsulated type</typeparam>
+        /// <param name="result">the result instance</param>
+        /// <param name="errorConsumer">the consumer function</param>
+        /// <exception cref="ArgumentNullException"></exception>
+        public static IResult<TResult> TransformCause<TResult>(this
+            IResult<TResult> result,
+            Func<Exception, Exception> errorMapper)
+        {
+            ArgumentNullException.ThrowIfNull(result);
+            ArgumentNullException.ThrowIfNull(errorMapper);
+
+            if (result is IResult<TResult>.ErrorResult error)
+                Result.Of<TResult>
+
+            return result;
+        }
+
+        /// <summary>
+        /// Consumes the cause of the result error, if available.
+        /// </summary>
+        /// <typeparam name="TResult">the encapsulated type</typeparam>
+        /// <typeparam name="TCause">the type of error to consume, if available</typeparam>
+        /// <param name="result">the result instance</param>
+        /// <param name="errorConsumer">the consumer function</param>
+        /// <exception cref="ArgumentNullException"></exception>
+        public static IResult<TResult> WithCause<TResult, TCause>(this
+            IResult<TResult> result,
+            Action<TCause> errorConsumer)
+            where TCause : Exception
+        {
+            if (result is null)
+                throw new ArgumentNullException(nameof(result));
+
+            if (errorConsumer is null)
+                throw new ArgumentNullException(nameof(errorConsumer));
+
+            if (result.IsErrorResult(out TCause cause))
+                errorConsumer.Invoke(cause);
+
+            return result;
+        }
+
+        #endregion
+
+        #region Continue
 
         /// <summary>
         /// Maps the encapsulated payload - be it an exception, or data, using the <paramref name="mapper"/> function.
@@ -378,13 +546,15 @@ namespace Axis.Luna.Common.Results
             ArgumentNullException.ThrowIfNull(mapper);
 
             if (result is IResult<TIn>.DataResult dataResult)
-                return Result.Bind(() => mapper.Invoke(dataResult.Data));
+                return Result.Of(() => mapper.Invoke(dataResult.Data));
 
             else if (result is IResult<TIn>.ErrorResult error)
-                return Result.Bind(() => mapper.Invoke(error.ActualCause()));
+                return Result.Of(() => mapper.Invoke(error.ActualCause()));
 
             else throw new InvalidOperationException($"Invalid result: '{result?.GetType()}'");
         }
+
+        #endregion
 
 
         public static IResult<TResult>.DataResult AsData<TResult>(this IResult<TResult> result)
@@ -421,6 +591,8 @@ namespace Axis.Luna.Common.Results
         {
             return exception.Data.TryGetValue(ExceptionDataKey, out var data) ? data : null;
         }
+
+        #region Fold
 
         /// <summary>
         /// Folds the list of results into a result of list of values. All erros encountered are grouped into
@@ -550,5 +722,7 @@ namespace Axis.Luna.Common.Results
         {
             return results.Fold().Map(aggregator);
         }
+
+        #endregion
     }
 }

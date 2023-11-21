@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Diagnostics;
-using System.Runtime.ExceptionServices;
 
 namespace Axis.Luna.Common.Results
 {
@@ -12,13 +11,39 @@ namespace Axis.Luna.Common.Results
     /// </summary>
     public class ResultException : Exception
     {
+        private readonly StackTrace _trace;
+        private readonly Lazy<string> _traceString;
+
+        public override string StackTrace => _traceString.Value;
+
         internal ResultException(Exception cause)
-        : base("See Inner Exception", cause)
+        : this(cause, new StackTrace(1))
         {
-            if (cause is null)
-                throw new ArgumentNullException(nameof(cause));
-            this.OverwriteStackTrace(new StackTrace(1));
         }
+
+        private ResultException(Exception cause, StackTrace trace)
+        : base("See Inner, Exception", cause)
+        {
+            ArgumentNullException.ThrowIfNull(cause);
+            ArgumentNullException.ThrowIfNull(trace);
+
+            _trace = trace;
+            _traceString = new(_trace.ToString);
+            //this.OverwriteStackTrace(_trace);
+        }
+
+        private ResultException(Exception cause, StackTrace trace, Lazy<string> traceString)
+        : base("See Inner, Exception", cause)
+        {
+            ArgumentNullException.ThrowIfNull(cause);
+            ArgumentNullException.ThrowIfNull(trace);
+            ArgumentNullException.ThrowIfNull(traceString);
+
+            _trace = trace;
+            _traceString = traceString;
+        }
+
+        public ResultException Copy(Exception cause) => new(cause, _trace, _traceString);
 
         public override int GetHashCode()
         {
