@@ -252,7 +252,7 @@ namespace Axis.Luna.Common.Test.Numerics
             Assert.AreEqual(new BigDecimal(12345678000000m), bigDecimal);
 
             var result = BigDecimal.Parse("errorneous value");
-            Assert.IsTrue(result is IResult<BigDecimal>.ErrorResult);
+            Assert.IsTrue(result.IsErrorResult());
         }
 
         [TestMethod]

@@ -1,4 +1,4 @@
-﻿namespace Axis.Luna.Common.Utils
+﻿namespace Axis.Luna.Common
 {
     public interface ICountable
     {

@@ -504,14 +504,14 @@ namespace Axis.Luna.Common.Numerics
         public static bool TryParse(
             string text,
             out IResult<BigDecimal> result)
-            => (result = Parse(text)) is IResult<BigDecimal>.DataResult;
+            => (result = Parse(text)).IsDataResult();
 
         public static IResult<BigDecimal> Parse(string text)
         {
-            if (ParseScientificNotation(text) is IResult<(BigInteger, int)>.DataResult data)
-                return data.Map(components => new BigDecimal(components));
-
-            return ParseDecimalNotation(text).Map(components => new BigDecimal(components));
+            return BigDecimal
+                .ParseScientificNotation(text)
+                .BindError(err => ParseDecimalNotation(text))
+                .Map(components => new BigDecimal(components));
         }
         #endregion
 
