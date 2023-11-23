@@ -1,4 +1,5 @@
 ﻿using System;
+using Axis.Luna.Extensions;
 
 namespace Axis.Luna.Common.Results
 {
@@ -51,5 +52,7 @@ namespace Axis.Luna.Common.Results
                 return new ErrorResult<TOut>(e);
             }
         }
+
+        public IResult<TOut> MapAs<TOut>() => Result.Of(_data.As<TOut>);
     }
 }

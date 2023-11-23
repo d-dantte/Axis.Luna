@@ -33,5 +33,7 @@ namespace Axis.Luna.Common.Results
 
             return new ErrorResult<TOut>(_error);
         }
+
+        public IResult<TOut> MapAs<TOut>() => new ErrorResult<TOut>(_error);
     }
 }
