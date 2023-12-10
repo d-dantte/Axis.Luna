@@ -51,7 +51,7 @@ namespace Axis.Luna.Common.Test.Results
             Assert.ThrowsException<AggregateException>(() => result.Resolve());
 
             result = new UnknownResult<int>();
-            Assert.ThrowsException<InvalidOperationException>(() => result.Resolve());
+            Assert.ThrowsException<ArgumentException>(() => result.Resolve());
         }
         #endregion
 
@@ -446,6 +446,11 @@ namespace Axis.Luna.Common.Test.Results
             }
 
             public IResult<TOut> Map<TOut>(Func<T, TOut> mapper)
+            {
+                throw new NotImplementedException();
+            }
+
+            public IResult<TOut> MapAs<TOut>()
             {
                 throw new NotImplementedException();
             }

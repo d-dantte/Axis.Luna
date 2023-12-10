@@ -29,14 +29,13 @@ namespace Axis.Luna.Common.Test.Results
             Assert.IsInstanceOfType<ErrorResult<int>>(iresult2);
             Assert.IsInstanceOfType<ErrorResult<int>>(iresult2);
 
-            var eresult2 = iresult2 as ErrorResult<int>;
-            Assert.IsNotNull(eresult2);
-            Assert.AreEqual(ex, eresult2.Error);
+            Assert.IsTrue(iresult2.IsErrorResult(out var r2));
+            Assert.AreEqual(ex, r2);
 
             iresult2 = result.Bind(s => new EndOfStreamException().Throw<IResult<int>>());
             Assert.IsInstanceOfType<ErrorResult<int>>(iresult2);
-            eresult2 = iresult2 as ErrorResult<int>;
-            Assert.AreEqual(ex, eresult2.Error);
+            Assert.IsTrue(iresult2.IsErrorResult(out r2));
+            Assert.AreEqual(ex, r2);
         }
 
         [TestMethod]
@@ -51,14 +50,14 @@ namespace Axis.Luna.Common.Test.Results
             Assert.IsInstanceOfType<ErrorResult<int>>(iresult2);
             Assert.IsInstanceOfType<ErrorResult<int>>(iresult2);
 
-            var eresult2 = iresult2 as ErrorResult<int>;
-            Assert.IsNotNull(eresult2);
-            Assert.AreEqual(ex, eresult2.Error);
+            Assert.IsTrue(iresult2.IsErrorResult(out var r2));
+            Assert.IsNotNull(r2);
+            Assert.AreEqual(ex, r2);
 
             iresult2 = result.Map(s => new EndOfStreamException().Throw<int>());
             Assert.IsInstanceOfType<ErrorResult<int>>(iresult2);
-            eresult2 = iresult2 as ErrorResult<int>;
-            Assert.AreEqual(ex, eresult2.Error);
+            Assert.IsTrue(iresult2.IsErrorResult(out r2));
+            Assert.AreEqual(ex, r2);
         }
 
         [TestMethod]

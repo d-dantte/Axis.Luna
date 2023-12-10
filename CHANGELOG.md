@@ -1,3 +1,10 @@
+## Release 6.0.28 - 2023/12/10
+* Refactors `Axis.Luna.Extension` and `Axis.Luna.Common` to remove the `.Throws(..., *Exception)` methods. There is a performance penalty
+  for creating the exceptions on the hot-path.
+* Added a few minor readability changes.
+* Added `RollingHash` type for calculating rolling hashes (using polynomial hashing) of sequences.
+
+
 ## Release 6.0.21 - 2023/09/02
 * Added `MapAs<>` method to the `IResult` API. [`Axis.Luna.Common`]
 * Added `HasGenericTypeDefinition` method to the `Type` Extensions. [`Axis.Luna.Extensions`]

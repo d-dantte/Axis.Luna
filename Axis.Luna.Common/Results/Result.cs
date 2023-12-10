@@ -91,7 +91,7 @@ namespace Axis.Luna.Common.Results
             {
                 DataResult<TData> d => d.Data,
                 ErrorResult<TData> e => e.Error.Throw<TData>(),
-                _ => throw new InvalidOperationException(
+                _ => throw new ArgumentException(
                     $"Invalid result type: '{result?.GetType()}'")
             };
         }
