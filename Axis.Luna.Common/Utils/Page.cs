@@ -9,7 +9,9 @@ namespace Axis.Luna.Common.Utils
     /// Represents an indexed chunk of continguous data from a stream of data
     /// </summary>
     /// <typeparam name="TData">The type of data</typeparam>
-    public struct Page<TData>: IDefaultValueProvider<Page<TData>>
+    public readonly struct Page<TData>:
+        IDefaultValueProvider<Page<TData>>,
+        IEquatable<Page<TData>>
     {
         private readonly TData[] _data;
         private readonly int _dataHash;
@@ -74,11 +76,16 @@ namespace Axis.Luna.Common.Utils
 
         public static Page<TData> Default => default;
 
-        public override bool Equals(object obj)
-            => obj is Page<TData> other
-                && Index == other.Index
+        public override bool Equals(
+            object obj)
+            => obj is Page<TData> other && Equals(other);
+        
+        public bool Equals(Page<TData> other)
+        {
+            return Index == other.Index
                 && MaxCount == other.MaxCount
-                && _data.NullOrTrue(other._data, Enumerable.SequenceEqual);                
+                && _data.NullOrTrue(other._data, Enumerable.SequenceEqual);
+        }
 
         public override int GetHashCode() => HashCode.Combine(_dataHash, Index, MaxCount);
 
@@ -90,7 +97,9 @@ namespace Axis.Luna.Common.Utils
     /// <summary>
     /// This struct is used to generate pagination references - i.e, given some parameters, it creates an array of consecutive page indexes.
     /// </summary>
-    public readonly struct PageAdjacencySet: IDefaultValueProvider<PageAdjacencySet>
+    public readonly struct PageAdjacencySet:
+        IDefaultValueProvider<PageAdjacencySet>,
+        IEquatable<PageAdjacencySet>
     {
         private readonly int[] _adjacencySet;
         private readonly int _adjacencyHash;
@@ -174,12 +183,17 @@ namespace Axis.Luna.Common.Utils
         }
 
 
-        public override bool Equals(object obj)
-            => obj is PageAdjacencySet other
-                && PageIndex == other.PageIndex
+        public override bool Equals(
+            object obj)
+            => obj is PageAdjacencySet other && Equals(other);
+
+        public bool Equals(PageAdjacencySet other)
+        {
+            return PageIndex == other.PageIndex
                 && PageLength == other.PageLength
                 && SequenceLength == other.SequenceLength
                 && _adjacencySet.NullOrTrue(other._adjacencySet, Enumerable.SequenceEqual);
+        }
 
         public override int GetHashCode() 
             => HashCode.Combine(

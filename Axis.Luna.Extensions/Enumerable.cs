@@ -239,7 +239,7 @@ namespace Axis.Luna.Extensions
         /// <param name="offset">The offset at which the slice is made, i.e, how many elements to skip</param>
         /// <param name="length"> The length of the slice/chunk. <c>null</c> indicates using whatever length remains after the offset </param>
         /// <returns></returns>
-        public static ArraySegment<T> Slice<T>(this T[] array, int offset, int? length = null)
+        public static ArraySegment<T> ArraySegmentSlice<T>(this T[] array, int offset, int? length = null)
         {
             return new ArraySegment<T>(array, offset, length ?? array.Length - offset);
         }
@@ -252,7 +252,7 @@ namespace Axis.Luna.Extensions
         /// <param name="array"></param>
         /// <param name="pivotIndex"></param>
         /// <returns></returns>
-        public static (ArraySegment<T>, ArraySegment<T>) Split<T>(this T[] array, int pivotIndex)
+        public static (ArraySegment<T>, ArraySegment<T>) ArraySegmentSplit<T>(this T[] array, int pivotIndex)
         {
             ArraySegment<T> segment = array;
             return segment.Split(pivotIndex);
@@ -270,7 +270,6 @@ namespace Axis.Luna.Extensions
         {
             return (segment.Slice(0, pivotIndex), segment.Slice(pivotIndex));
         }
-        public static T[] ArrayOf<T>(params T[] values) => values;
 
         public static bool ContainsAll<V>(this IEnumerable<V> superSet, IEnumerable<V> subSet)
         {
@@ -314,7 +313,9 @@ namespace Axis.Luna.Extensions
         /// <returns></returns>
         public static IEnumerable<V> InsertAt<V>(this IEnumerable<V> items, int position, V value)
         {
-            position.ThrowIf(p => p < 0, new ArgumentOutOfRangeException(nameof(position)));
+            position.ThrowIf(
+                p => p < 0,
+                _ => new ArgumentOutOfRangeException(nameof(position)));
 
             int pos = 0;
 
@@ -526,6 +527,27 @@ namespace Axis.Luna.Extensions
             return collection;
         }
 
+        public static TItems AddItem<TItems, TItem>(this TItems items, TItem item)
+        where TItems : ICollection<TItem>
+        {
+            ArgumentNullException.ThrowIfNull(items);
+
+            items.Add(item);
+            return items;
+        }
+
+        public static TItems AddItems<TItems, TItem>(this TItems items, IEnumerable<TItem> addendum)
+        where TItems : ICollection<TItem>
+        {
+            ArgumentNullException.ThrowIfNull(items);
+            ArgumentNullException.ThrowIfNull(addendum);
+
+            foreach (var item in addendum)
+                items.Add(item);
+
+            return items;
+        }
+
         public static TValue GetOrAdd<TKey, TValue>(this IDictionary<TKey, TValue> @this, TKey key, Func<TKey, TValue> valueFactory)
         {
             if (valueFactory == null)
@@ -537,7 +559,10 @@ namespace Axis.Luna.Extensions
             return value;
         }
 
-        public static async Task<TValue> GetOrAddAsync<TKey, TValue>(this IDictionary<TKey, TValue> @this, TKey key, Func<TKey, Task<TValue>> valueFactory)
+        public static async Task<TValue> GetOrAddAsync<TKey, TValue>(this
+            IDictionary<TKey, TValue> @this,
+            TKey key,
+            Func<TKey, Task<TValue>> valueFactory)
         {
             if (!@this.TryGetValue(key, out TValue value))
                 @this.Add(key, value = await valueFactory(key));

@@ -11,8 +11,8 @@ namespace Axis.Luna.Extensions
 
             var combinedArray = new TItem[first.Length + second.Length];
 
-            Buffer.BlockCopy(first, 0, combinedArray, 0, first.Length);
-            Buffer.BlockCopy(second, 0, combinedArray, first.Length, second.Length);
+            Array.Copy(first, 0, combinedArray, 0, first.Length);
+            Array.Copy(second, 0, combinedArray, first.Length, second.Length);
 
             return combinedArray;
         }
@@ -29,7 +29,7 @@ namespace Axis.Luna.Extensions
         }
 
         /// <summary>
-        /// Essentially divides an array into to at the given <paramref name="splitIndex"/>. The division works as follows:
+        /// Essentially divides an array into two at the given <paramref name="splitIndex"/>. The division works as follows:
         /// <code>
         /// return (array[..splitIndex], array[splitIndex..]);
         /// </code>

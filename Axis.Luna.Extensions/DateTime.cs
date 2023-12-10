@@ -14,11 +14,11 @@ namespace Axis.Luna.Extensions
             Calendar cal = dfi.Calendar;
 
             if (now.Year != date.Year) return date.ToString("MMM, yyyy");
-            else if (now.Month != date.Month) return $"{date.Day.AsOrdinal()}{date.ToString(" MMM")}";
+            else if (now.Month != date.Month) return $"{date.Day.AsOrdinal()}{date: MMM}";
             else if (cal.GetWeekOfYear(now, CalendarWeekRule.FirstDay, DayOfWeek.Sunday) !=
                     cal.GetWeekOfYear(date, CalendarWeekRule.FirstDay, DayOfWeek.Sunday))
             {
-                return $"{date.Day.AsOrdinal()}{date.ToString(" MMM")}";
+                return $"{date.Day.AsOrdinal()}{date: MMM}";
             }
             else if (now.Day != date.Day) return date.ToString("dddd");
             else return date.ToString("HH:mm");

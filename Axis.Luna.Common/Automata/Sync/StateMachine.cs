@@ -62,15 +62,15 @@ namespace Axis.Luna.Common.Automata.Sync
 
             StartState = startState.ThrowIf(
                 string.IsNullOrWhiteSpace,
-                new ArgumentException($"Invalid {nameof(startState)}"));
+                _ => new ArgumentException($"Invalid {nameof(startState)}"));
 
             _nextState = StartState;
 
             states
-                .ThrowIfNull(new ArgumentNullException(nameof(states)))
+                .ThrowIfNull(() => new ArgumentNullException(nameof(states)))
                 .ThrowIf(
                     ArrayExtensions.IsEmpty,
-                    new ArgumentException("Empty states not allowed"))
+                    _ => new ArgumentException("Empty states not allowed"))
                 .ForAll(state =>
                 {
                     if (string.IsNullOrWhiteSpace(state.StateName))
@@ -78,7 +78,9 @@ namespace Axis.Luna.Common.Automata.Sync
 
                     _states
                         .TryAdd(state.StateName, state)
-                        .ThrowIf(false, new InvalidOperationException($"Duplicate state name: {state.StateName}"));
+                        .ThrowIf(
+                            false,
+                            _ => new InvalidOperationException($"Duplicate state name: {state.StateName}"));
                 });
 
             if (!_states.ContainsKey(startState))

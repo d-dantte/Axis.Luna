@@ -41,6 +41,12 @@ namespace Axis.Luna.Common
             return new string(array);
         }
 
+        public static bool IsEmpty(this ICountable countable)
+        {
+            ArgumentNullException.ThrowIfNull(countable);
+            return countable.Count == 0;
+        }
+
         #region Helpers
         private static readonly Func<Exception, StackTrace, Exception> StackTraceSetter = CreateStackTraceSetter();
 

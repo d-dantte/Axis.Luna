@@ -1,10 +1,9 @@
-﻿using Axis.Luna.Extensions;
-using System;
+﻿using System;
 using System.Diagnostics.CodeAnalysis;
 
 namespace Axis.Luna.Common.Segments
 {
-    public struct Segment :
+    public readonly struct Segment :
         ICountable,
         IOffsetable,
         IEquatable<Segment>,
@@ -40,10 +39,11 @@ namespace Axis.Luna.Common.Segments
         #region Construction
         public Segment(int offset, int length)
         {
+            if (length < 0)
+                throw new ArgumentOutOfRangeException(nameof(length));
+
             Offset = offset;
-            Count = length.ThrowIf(
-                i => i < 0,
-                new ArgumentOutOfRangeException(nameof(length)));
+            Count = length;
         }
 
         public static Segment Of(

@@ -1089,7 +1089,7 @@ namespace Axis.Luna.Common.Numerics
             {
                 _maxSignificantFractionalDigits = maxSignificantFractionalDigits.ThrowIf(
                     i => i < 1,
-                    new ArgumentException($"'{nameof(maxSignificantFractionalDigits)}' must be > 0"));
+                    _ => new ArgumentException($"'{nameof(maxSignificantFractionalDigits)}' must be > 0"));
             }
         }
         #endregion

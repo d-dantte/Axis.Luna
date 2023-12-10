@@ -41,18 +41,19 @@ namespace Axis.Luna.Extensions
         #endregion
 
         #region Type Names and Signatures
-        public static string MinimalAQName(this Type type)
-        => MinimalAQNames.GetOrAdd(type, t =>
-        {
-            var sb = new StringBuilder($"{t.Namespace}.{t.Name}");
-            if (t.IsGenericType && !t.IsGenericTypeDefinition)
-                sb.Append("[")
-                  .Append(t.GetGenericArguments()
-                           .Aggregate("", (ssb, n) => ssb += $"{(ssb.Length > 0 ? ", " : "")}[{n.MinimalAQName()}]"))
-                  .Append("]");
+        public static string MinimalAQName(this
+            Type type)
+            => MinimalAQNames.GetOrAdd(type, t =>
+            {
+                var sb = new StringBuilder($"{t.Namespace}.{t.Name}");
+                if (t.IsGenericType && !t.IsGenericTypeDefinition)
+                    sb.Append('[')
+                      .Append(t.GetGenericArguments()
+                               .Aggregate("", (ssb, n) => ssb += $"{(ssb.Length > 0 ? ", " : "")}[{n.MinimalAQName()}]"))
+                      .Append(']');
 
-            return sb.Append($", {t.Assembly.GetName().Name}").ToString();
-        });
+                return sb.Append($", {t.Assembly.GetName().Name}").ToString();
+            });
 
         public static string MinimalAQSignature(this Delegate d) => d.Method.MinimalAQSignature();
 
@@ -60,19 +61,19 @@ namespace Axis.Luna.Extensions
         {
             var builder = new StringBuilder();
             builder
-                .Append("[")
+                .Append('[')
                 .Append(m.DeclaringType.MinimalAQName())
-                .Append("]")
-                .Append(".")
+                .Append(']')
+                .Append('.')
                 .Append(m.Name)
                 .Append(!m.IsGenericMethod ? "" :
                         "<" + m.GetGenericArguments().Aggregate("", (@params, param) => @params += (@params == "" ? "" : ", ") + "[" + param.MinimalAQName() + "]") + ">")
-                .Append("(")
+                .Append('(')
                 .Append(m.GetParameters()
                          .Aggregate("", (@params, param) => @params += (@params == "" ? "" : ", ") + "[" + param.ParameterType.MinimalAQName() + "] "))
-                .Append(")")
+                .Append(')')
                 .Append("::")
-                .Append("[").Append(m.ReturnType.MinimalAQName()).Append("]");
+                .Append('[').Append(m.ReturnType.MinimalAQName()).Append("]");
 
             return builder.ToString();
         }
@@ -161,8 +162,12 @@ namespace Axis.Luna.Extensions
         public static Type GetGenericBase(this Type type, Type genericBaseDefinition)
         {
             genericBaseDefinition
-                .ThrowIf(t => !t.IsGenericTypeDefinition, new ArgumentException("base type is not a generic type definition"))
-                .ThrowIf(t => !t.IsClass, new ArgumentException($"supplied {nameof(genericBaseDefinition)} type is not a class"));
+                .ThrowIf(
+                    t => !t.IsGenericTypeDefinition,
+                    _ => new ArgumentException("base type is not a generic type definition"))
+                .ThrowIf(
+                    t => !t.IsClass,
+                    _ => new ArgumentException($"supplied {nameof(genericBaseDefinition)} type is not a class"));
 
             return type
                 .BaseTypes()
@@ -193,8 +198,12 @@ namespace Axis.Luna.Extensions
         public static Type GetGenericInterface(this Type type, Type genericDefinitionInterface)
         {
             genericDefinitionInterface
-                .ThrowIf(t => !t.IsGenericTypeDefinition, new ArgumentException("interface is not a generic type definition"))
-                .ThrowIf(t => !t.IsInterface, new ArgumentException($"supplied {nameof(genericDefinitionInterface)} type is not an interface"));
+                .ThrowIf(
+                    t => !t.IsGenericTypeDefinition,
+                    _ => new ArgumentException("interface is not a generic type definition"))
+                .ThrowIf(
+                    t => !t.IsInterface,
+                    _ => new ArgumentException($"supplied {nameof(genericDefinitionInterface)} type is not an interface"));
 
             return type
                 .GetInterfaces()
@@ -466,7 +475,7 @@ namespace Axis.Luna.Extensions
                     val = PropertyAccessorFor(obj.GetType(), propInfo.Name).Invoke(obj);
                     return true;
                 }
-                catch(Exception e)
+                catch
                 {
                     return false;
                 }
@@ -966,16 +975,5 @@ namespace Axis.Luna.Extensions
             if (type.IsGenericType)
                 yield return type.GetGenericTypeDefinition();
         }
-    }
-
-
-    public class TestClassWithFields
-    {
-        public string Field1;
-        private string Field2;
-
-        public string Property1 { get; set; }
-
-        public string GetField2() => Field2;
     }
 }

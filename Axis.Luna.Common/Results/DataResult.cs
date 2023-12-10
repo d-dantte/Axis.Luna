@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using Axis.Luna.Extensions;
 
 namespace Axis.Luna.Common.Results
@@ -7,11 +8,19 @@ namespace Axis.Luna.Common.Results
     /// Should this be as struct?
     /// </summary>
     /// <typeparam name="TData"></typeparam>
-    internal class DataResult<TData> : IResult<TData>
+    internal readonly struct DataResult<TData> :
+        IResult<TData>,
+        IDefaultValueProvider<DataResult<TData>>
     {
         private readonly TData _data;
 
         internal TData Data => _data;
+
+        #region DefaultValueProvider
+        public bool IsDefault => EqualityComparer<TData>.Default.Equals(_data, default);
+
+        public static DataResult<TData> Default => default;
+        #endregion
 
         internal DataResult(TData data)
         {

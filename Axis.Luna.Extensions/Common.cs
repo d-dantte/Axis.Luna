@@ -42,7 +42,8 @@ namespace Axis.Luna.Extensions
                 throw new ArgumentNullException(nameof(boxedValue));
 
             if (boxedValue is not TValueType)
-                throw new ArgumentException($"Type mismatch. Expected: '{typeof(TValueType)}', Actual: '{boxedValue.GetType()}'");
+                throw new ArgumentException(
+                    $"Type mismatch. Expected: '{typeof(TValueType)}', Actual: '{boxedValue.GetType()}'");
 
             var reboxer = ReboxerMap
                 .GetOrAdd(typeof(TValueType), _ => BuildReboxer<TValueType>())
@@ -135,7 +136,6 @@ namespace Axis.Luna.Extensions
         #endregion
 
 
-
         public static bool Is<T>(this object value) => value is T;
 
         public static bool Is<TIn, TOut>(this TIn @in, out TOut @out)
@@ -182,7 +182,9 @@ namespace Axis.Luna.Extensions
 
         public static TOut Default<TIn, TOut>(TIn @in) => default;
 
-        public static bool NullOrEquals<T>(this T operand1, T operand2)
+        public static bool NullOrEquals<T>(this
+            T operand1,
+            T operand2)
             => EqualityComparer<T>.Default.Equals(operand1, operand2);
 
         public static bool NullOrTrue<T>(this T operand1, T operand2, Func<T, T, bool> predicate)
@@ -368,19 +370,33 @@ namespace Axis.Luna.Extensions
         public static bool IsNotNull(this object value) => value != null;
 
         public static int PropertyHash(this object @this)
-        => ValueHash(@this.GetType().GetProperties().OrderBy(p => p.Name).Select(p => p.GetValue(@this)));
+            => ValueHash(@this
+            .GetType()
+            .GetProperties()
+            .OrderBy(p => p.Name)
+            .Select(p => p.GetValue(@this)));
 
-        public static int ValueHash(IEnumerable<object> values, int prime1 = 19, int prime2 = 181)
-        => ValueHashInternal(prime1, prime2, values.ToArray());
+        public static int ValueHash(
+            IEnumerable<object> values,
+            int prime1 = 19,
+            int prime2 = 181)
+            => ValueHashInternal(prime1, prime2, values.ToArray());
 
-        public static int ValueHash(int prime1, int prime2, params object[] values)
-        => ValueHashInternal(prime1, prime2, values);
+        public static int ValueHash(
+            int prime1,
+            int prime2,
+            params object[] values)
+            => ValueHashInternal(prime1, prime2, values);
 
-        public static int ValueHash(params object[] values) 
-        => ValueHashInternal(19, 181, values);
+        public static int ValueHash(params
+            object[] values) 
+            => ValueHashInternal(19, 181, values);
 
-        private static int ValueHashInternal(int prime1, int prime2, object[] values)
-        => values.Aggregate(prime1, (hash, next) => hash * prime2 + (next?.GetHashCode() ?? 0));
+        private static int ValueHashInternal(
+            int prime1,
+            int prime2,
+            object[] values)
+            => values.Aggregate(prime1, (hash, next) => hash * prime2 + (next?.GetHashCode() ?? 0));
 
 
         #region Apply/Consume/Use
@@ -501,7 +517,7 @@ namespace Axis.Luna.Extensions
         public static TIn With<TIn>(this TIn @in, Action<TIn> consumer)
         {
             if (consumer == null)
-                throw new ArgumentNullException(nameof(Consume));
+                throw new ArgumentNullException(nameof(consumer));
 
             else consumer.Invoke(@in);
 
@@ -541,48 +557,57 @@ namespace Axis.Luna.Extensions
         #endregion
 
         #region String extensions
-        public static IEnumerable<string> Split(this string @string, int splitIndex)
-        {
-            if (splitIndex < 0)
-                throw new ArgumentOutOfRangeException(
-                    nameof(splitIndex),
-                    $"value cannot be < 0");
 
-            if (splitIndex >= @string.Length)
-                yield return @string;
+        public static string Trim(this
+            string @string,
+            string trimChars)
+            => @string.TrimStart(trimChars).TrimEnd(trimChars);
 
-            else
-            {
-                yield return @string[..splitIndex];
-                yield return @string[splitIndex..];
-            }
-        }
+        public static string TrimStart(this
+            string original,
+            string searchString)
+            => original.StartsWith(searchString)
+               ? original[searchString.Length..]
+               : original;
 
-        public static string Trim(this string @string, string trimChars) => @string.TrimStart(trimChars).TrimEnd(trimChars);
+        public static string TrimEnd(this
+            string original,
+            string searchString)
+            => original.EndsWith(searchString)
+               ? original[..^searchString.Length]
+               : original;
 
-        public static string TrimStart(this string original, string searchString)
-        => original.StartsWith(searchString)
-           ? original.Substring(searchString.Length)
-           : original;
+        public static string JoinUsing(this
+            IEnumerable<string> strings,
+            string separator)
+            => string.Join(separator, strings);
 
-        public static string TrimEnd(this string original, string searchString)
-        => original.EndsWith(searchString)
-           ? original.Substring(0, original.Length - searchString.Length)
-           : original;
+        public static string JoinUsing(this
+            IEnumerable<char> subStrings,
+            string separator)
+            => string.Join(separator, subStrings.ToArray());
 
-        public static string JoinUsing(this IEnumerable<string> strings, string separator) => string.Join(separator, strings);
+        public static string WrapIn(this
+            string @string,
+            string left,
+            string right = null)
+            => $"{left}{@string}{right ?? left}";
 
-        public static string JoinUsing(this IEnumerable<char> subStrings, string separator) => string.Join(separator, subStrings.ToArray());
-
-        public static string WrapIn(this string @string, string left, string right = null) => $"{left}{@string}{right ?? left}";
-        public static string WrapIf(this string @string, Func<string, bool> predicate, string left, string right = null)
+        public static string WrapIf(this
+            string @string, Func<string, bool> predicate,
+            string left,
+            string right = null)
         {
             if (predicate.Invoke(@string))
                 return @string.WrapIn(left, right);
 
             else return @string;
         }
-        public static string UnwrapFrom(this string @string, string left, string right = null)
+
+        public static string UnwrapFrom(this
+            string @string,
+            string left,
+            string right = null)
         {
             if (@string.IsWrappedIn(left, right))
                 return @string
@@ -590,14 +615,23 @@ namespace Axis.Luna.Extensions
 
             else return @string;
         }
-        public static string UnwrapIf(this string @string, Func<string, bool> predicate, string left, string right = null)
+
+        public static string UnwrapIf(this
+            string @string,
+            Func<string, bool> predicate,
+            string left,
+            string right = null)
         {
             if (predicate.Invoke(@string))
                 return @string.UnwrapFrom(left, right);
 
             else return @string;
         }
-        public static bool IsWrappedIn(this string @string, string left, string right = null)
+
+        public static bool IsWrappedIn(this
+            string @string,
+            string left,
+            string right = null)
         {
             return @string.StartsWith(left) && @string.EndsWith(right ?? left);
         }
@@ -608,11 +642,10 @@ namespace Axis.Luna.Extensions
             else if (subString.Length > source.Length) return 0;
 
             int lindex = 0;
-            string sub = null;
             int count = 0;
             do
             {
-                sub = source.Substring(lindex, subString.Length);
+                var sub = source.Substring(lindex, subString.Length);
 
                 if (sub.Equals(subString))
                 {
@@ -625,11 +658,24 @@ namespace Axis.Luna.Extensions
 
             return count;
         }
-        public static bool ContainsAny(this string source, params string[] substrings) => substrings.Any(source.Contains);
-        public static bool ContainsAll(this string source, params string[] substrings) => substrings.All(source.Contains);
 
-        public static string SplitCamelCase(this string source, string separator = " ")
-        => source.Aggregate(new StringBuilder(), (acc, ch) => acc.Append(char.IsUpper(ch) ? separator : "").Append(ch)).ToString().Trim();
+        public static bool ContainsAny(this
+            string source,
+            params string[] substrings)
+            => substrings.Any(source.Contains);
+
+        public static bool ContainsAll(this
+            string source,
+            params string[] substrings)
+            => substrings.All(source.Contains);
+
+        public static string SplitCamelCase(this
+            string source,
+            string separator = " ")
+            => source
+            .Aggregate(new StringBuilder(), (acc, ch) => acc.Append(char.IsUpper(ch) ? separator : "").Append(ch))
+            .ToString()
+            .Trim();
         #endregion
     }
 

@@ -2,4 +2,4 @@
 using BenchmarkDotNet.Running;
 
 
-_ = BenchmarkRunner.Run<Axis.Luna.Common.Benchmarks.BitSequence>();
+_ = BenchmarkRunner.Run<Axis.Luna.Common.Benchmarks.SegmentBenchmarks>();

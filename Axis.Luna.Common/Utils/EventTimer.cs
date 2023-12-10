@@ -49,12 +49,12 @@ namespace Axis.Luna.Common.Utils
 
         public class TimerException: Exception
         {
-            public TimeSpan TimeSpan { get; }
+            public TimeSpan ElapsedTime { get; }
 
             public TimerException(TimeSpan timeSpan, Exception sourceException)
                 :base("An exception occured while timing the event", sourceException)
             {
-                TimeSpan = timeSpan;
+                ElapsedTime = timeSpan;
             }
         }
     }

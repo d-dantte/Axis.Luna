@@ -18,7 +18,7 @@ namespace Axis.Luna.Common
     /// i.e, it's internal list of bits is either empty, or contains elements, it is (externally) never null;
     /// </para>
     /// </summary>
-    public struct BitSequence :
+    public readonly struct BitSequence :
         IEnumerable<bool>,
         IDefaultValueProvider<BitSequence>,
         IResultParsable<BitSequence>

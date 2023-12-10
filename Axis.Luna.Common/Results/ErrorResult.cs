@@ -2,11 +2,19 @@
 
 namespace Axis.Luna.Common.Results
 {
-    internal class ErrorResult<TData> : IResult<TData>
+    internal readonly struct ErrorResult<TData> :
+        IResult<TData>,
+        IDefaultValueProvider<ErrorResult<TData>>
     {
         private readonly Exception _error;
 
         internal Exception Error => _error;
+
+        #region IDefaultValueProvider
+        public bool IsDefault => _error is null;
+
+        public static ErrorResult<TData> Default => default;
+        #endregion
 
         internal ErrorResult(Exception error)
         {
