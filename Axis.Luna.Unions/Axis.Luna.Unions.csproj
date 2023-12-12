@@ -1,35 +1,42 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
     <TargetFrameworks>net7.0</TargetFrameworks>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <!-- 
+      We will not need this, since we expose the attribute that marks code as a union implementation
+      <IncludeBuildOutput>false</IncludeBuildOutput>
+    -->
     <AssemblyVersion>6.0.0.0</AssemblyVersion>
     <FileVersion>6.0.0.0</FileVersion>
-    <Version>6.0.28</Version>
+    <Version>6.1.0</Version>
     <LangVersion>latest</LangVersion>
-    <Description>Common Data types and functions that operate on them</Description>
+    <Description>Exposes the Union type source generator</Description>
     <PackageReleaseNotes></PackageReleaseNotes>
     <RepositoryUrl>https://github.com/d-dantte/Axis.Luna</RepositoryUrl>
     <PackageProjectUrl>https://github.com/d-dantte/Axis.Luna</PackageProjectUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <Company>Axiis</Company>
     <Authors>Dantte</Authors>
-    <PackageReadmeFile>axis.luna.common.readme.md</PackageReadmeFile>
+    <PackageReadmeFile>Axis.Luna.Unions.readme.md</PackageReadmeFile>
   </PropertyGroup>
 
   <ItemGroup>
-    <None Include="axis.luna.common.readme.md">
+    <None Include="Axis.Luna.Unions.readme.md">
       <Pack>True</Pack>
       <PackagePath>\</PackagePath>
     </None>
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Axis.Luna.Extensions\Axis.Luna.Extensions.csproj" />
+    <None Include="$(OutputPath)\net7.0\$(AssemblyName).dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Automata\Async\" />
+    <PackageReference Include="Microsoft.CodeAnalysis.Common" Version="4.8.0" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.8.0" />
   </ItemGroup>
 
 </Project>
