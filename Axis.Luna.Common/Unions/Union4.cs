@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 
 namespace Axis.Luna.Common.Unions
 {
@@ -15,6 +16,8 @@ namespace Axis.Luna.Common.Unions
 
         bool Is(out T4 value);
 
+        bool IsNull();
+
         public TOut MapMatch<TOut>(
             Func<T1, TOut> t1Mapper,
             Func<T2, TOut> t2Mapper,
@@ -26,13 +29,15 @@ namespace Axis.Luna.Common.Unions
             Action<T1> t1Consumer,
             Action<T2> t2Consumer,
             Action<T3> t3Consumer,
-            Action<T4> t4Consumer);
+            Action<T4> t4Consumer,
+            Action nullConsumer = null);
 
         public TSelf WithMatch(
             Action<T1> t1Consumer,
             Action<T2> t2Consumer,
             Action<T3> t3Consumer,
-            Action<T4> t4Consumer);
+            Action<T4> t4Consumer,
+            Action nullConsumer = null);
     }
 
     public interface IUnionOf<T1, T2, T3, T4, TSelf> :
@@ -48,12 +53,6 @@ namespace Axis.Luna.Common.Unions
         abstract static TSelf Of(T4 value);
     }
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <typeparam name="T1"></typeparam>
-    /// <typeparam name="T2"></typeparam>
-    /// <typeparam name="TSelf"></typeparam>
     public abstract class RefUnion<T1, T2, T3, T4, TSelf> :
         IUnion<T1, T2, T3, T4, TSelf>
         where TSelf : RefUnion<T1, T2, T3, T4, TSelf>
@@ -63,58 +62,49 @@ namespace Axis.Luna.Common.Unions
         object IUnion<T1, T2, T3, T4, TSelf>.Value => _value;
 
         #region Construction
-        protected RefUnion(T1 value) => _value = value;
 
-        protected RefUnion(T2 value) => _value = value;
+        // Remove this if a compile-time check for distinct generic types is available
+        static RefUnion()
+        {
+            var types = new HashSet<Type>
+            {
+                typeof(T1), typeof(T2), typeof(T3), typeof(T4)
+            };
 
-        protected RefUnion(T3 value) => _value = value;
+            if (types.Count != 4)
+                throw new InvalidOperationException("Invalid generic types: duplicate types found");
+        }
 
-        protected RefUnion(T4 value) => _value = value;
+        protected RefUnion(object value)
+        {
+            _value = value switch
+            {
+                null => null,
+                T1 or T2 or T3 or T4 => value,
+                _ => throw new ArgumentOutOfRangeException(
+                    nameof(value),
+                    $"Invalid {nameof(value)} type: '{value.GetType()}'")
+            };
+        }
         #endregion
 
         #region Is
 
-        public bool Is(out T1 value)
+        public bool Is(out T1 value) => Is(_value, out value);
+
+        public bool Is(out T2 value) => Is(_value, out value);
+
+        public bool Is(out T3 value) => Is(_value, out value);
+
+        public bool Is(out T4 value) => Is(_value, out value);
+
+        public bool IsNull() => _value is null;
+
+        private static bool Is<T>(object unionValue, out T value)
         {
-            if (_value is T1 _v)
+            if (unionValue is T t1)
             {
-                value = _v;
-                return true;
-            }
-
-            value = default;
-            return false;
-        }
-
-        public bool Is(out T2 value)
-        {
-            if (_value is T2 _v)
-            {
-                value = _v;
-                return true;
-            }
-
-            value = default;
-            return false;
-        }
-
-        public bool Is(out T3 value)
-        {
-            if (_value is T3 _v)
-            {
-                value = _v;
-                return true;
-            }
-
-            value = default;
-            return false;
-        }
-
-        public bool Is(out T4 value)
-        {
-            if (_value is T4 _v)
-            {
-                value = _v;
+                value = t1;
                 return true;
             }
 
@@ -166,7 +156,8 @@ namespace Axis.Luna.Common.Unions
             Action<T1> t1Consumer,
             Action<T2> t2Consumer,
             Action<T3> t3Consumer,
-            Action<T4> t4Consumer)
+            Action<T4> t4Consumer,
+            Action nullConsumer = null)
         {
             ArgumentNullException.ThrowIfNull(t1Consumer);
             ArgumentNullException.ThrowIfNull(t2Consumer);
@@ -184,6 +175,9 @@ namespace Axis.Luna.Common.Unions
 
             else if (_value is T4 t4)
                 t4Consumer.Invoke(t4);
+
+            else if (_value is null && nullConsumer is not null)
+                nullConsumer.Invoke();
         }
 
         #endregion
@@ -194,9 +188,10 @@ namespace Axis.Luna.Common.Unions
             Action<T1> t1Consumer,
             Action<T2> t2Consumer,
             Action<T3> t3Consumer,
-            Action<T4> t4Consumer)
+            Action<T4> t4Consumer,
+            Action nullConsumer = null)
         {
-            ConsumeMatch(t1Consumer, t2Consumer, t3Consumer, t4Consumer);
+            ConsumeMatch(t1Consumer, t2Consumer, t3Consumer, t4Consumer, nullConsumer);
             return (TSelf)this;
         }
 
