@@ -74,6 +74,19 @@ namespace Axis.Luna.Common.Unions
         abstract static TSelf Of(T7 value);
     }
 
+    public interface IUnionImplicits<T1, T2, T3, T4, T5, T6, T7, TSelf> :
+        IUnion<T1, T2, T3, T4, T5, T6, T7, TSelf>
+        where TSelf : IUnionImplicits<T1, T2, T3, T4, T5, T6, T7, TSelf>
+    {
+        static abstract implicit operator TSelf(T1 value);
+        static abstract implicit operator TSelf(T2 value);
+        static abstract implicit operator TSelf(T3 value);
+        static abstract implicit operator TSelf(T4 value);
+        static abstract implicit operator TSelf(T5 value);
+        static abstract implicit operator TSelf(T6 value);
+        static abstract implicit operator TSelf(T7 value);
+    }
+
     public abstract class RefUnion<T1, T2, T3, T4, T5, T6, T7, TSelf> :
         IUnion<T1, T2, T3, T4, T5, T6, T7, TSelf>
         where TSelf : RefUnion<T1, T2, T3, T4, T5, T6, T7, TSelf>

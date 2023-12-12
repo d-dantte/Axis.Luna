@@ -5,7 +5,7 @@ using System;
 namespace Axis.Luna.Common.Test.Unions
 {
     [TestClass]
-    public class Union2Tests
+    public class Union3Tests
     {
         [TestMethod]
         public void Construction_Tests()
@@ -15,6 +15,7 @@ namespace Axis.Luna.Common.Test.Unions
 
             Assert.ThrowsException<TypeInitializationException>(() => new DuplicateTypeUnion(4));
             Assert.ThrowsException<TypeInitializationException>(() => new DuplicateTypeUnion("stuff"));
+            Assert.ThrowsException<TypeInitializationException>(() => new DuplicateTypeUnion(5m));
         }
 
         [TestMethod]
@@ -39,14 +40,32 @@ namespace Axis.Luna.Common.Test.Unions
         [TestMethod]
         public void MapMatch_Tests()
         {
-            Assert.ThrowsException<ArgumentNullException>(() => new MyRefUnion(5).MapMatch(null, s => s));
-            Assert.ThrowsException<ArgumentNullException>(() => new MyRefUnion(5).MapMatch(i => i, null));
+            Assert.ThrowsException<ArgumentNullException>(() => new MyRefUnion(5).MapMatch(
+                null,
+                m => m.ToString(),
+                s => s));
+            Assert.ThrowsException<ArgumentNullException>(() => new MyRefUnion(5).MapMatch(
+                i => i.ToString(),
+                null,
+                s => s));
+            Assert.ThrowsException<ArgumentNullException>(() => new MyRefUnion(5).MapMatch(
+                i => i.ToString(),
+                m => m.ToString(),
+                null));
 
             var iunion = new MyRefUnion(5);
             var result = iunion.MapMatch(
-                i => i > 8,
+                i => i == 5,
+                m => m > 8m,
                 s => string.IsNullOrEmpty(s));
-            Assert.IsFalse(result);
+            Assert.IsTrue(result);
+
+            iunion = new MyRefUnion(5m∏);
+            result = iunion.MapMatch(
+                i => i == 5,
+                m => m > 8m,
+                s => string.IsNullOrEmpty(s));
+            Assert.IsTrue(result);
 
             iunion = new MyRefUnion("5");
             result = iunion.MapMatch(
@@ -141,83 +160,41 @@ namespace Axis.Luna.Common.Test.Unions
             Assert.IsTrue(all.Is(out string _));
             Assert.IsFalse(all.IsNull());
         }
-    }
 
-    internal class MyRefUnion(object value)
-    : RefUnion<int, string, MyRefUnion>(value)
-    {
-    }
-
-    internal class All(object value) :
-        RefUnion<int, string, All>(value),
-        IUnionImplicits<int, string, All>,
-        IUnionOf<int, string, All>
-    {
-        public static All Of(int value) => new(value);
-
-        public static All Of(string value) => new(value);
-
-        public static implicit operator All(int value) => new(value);
-
-        public static implicit operator All(string value) => new(value);
-    }
-
-    internal struct MyValueUnion :
-        IUnion<int, string, MyValueUnion>,
-        IUnionOf<int, string, MyValueUnion>
-    {
-        object IUnion<int, string, MyValueUnion>.Value { get; }
-
-        public static MyValueUnion Of(int value)
+        internal class MyRefUnion(object value)
+        : RefUnion<int, decimal, string, MyRefUnion>(value)
         {
-            throw new NotImplementedException();
         }
 
-        public static MyValueUnion Of(string value)
+        internal class All(object value) :
+            RefUnion<int, decimal, string, All>(value),
+            IUnionImplicits<int, decimal, string, All>,
+            IUnionOf<int, decimal, string, All>
         {
-            throw new NotImplementedException();
+            public static All Of(int value) => new(value);
+
+            public static All Of(decimal value) => new(value);
+
+            public static All Of(string value) => new(value);
+
+            public static implicit operator All(int value) => new(value);
+
+            public static implicit operator All(decimal value) => new(value);
+
+            public static implicit operator All(string value) => new(value);
         }
 
-        public void ConsumeMatch(Action<int> t1Consumer, Action<string> t2Consumer, Action nullConsumer = null)
-        {
-            throw new NotImplementedException();
-        }
-
-        public bool Is(out int value)
-        {
-            throw new NotImplementedException();
-        }
-
-        public bool Is(out string value)
-        {
-            throw new NotImplementedException();
-        }
-
-        public bool IsNull()
-        {
-            throw new NotImplementedException();
-        }
-
-        public TOut MapMatch<TOut>(Func<int, TOut> t1Mapper, Func<string, TOut> t2Mapper, Func<TOut> nullMap = null)
-        {
-            throw new NotImplementedException();
-        }
-
-        public MyValueUnion WithMatch(Action<int> t1Consumer, Action<string> t2Consumer, Action nullConsumer = null)
-        {
-            throw new NotImplementedException();
-        }
-    }
-
-    internal class DuplicateTypeUnion(object value) :
-        RefUnion<int, int, DuplicateTypeUnion>(value),
+        internal class DuplicateTypeUnion(object value) :
+            RefUnion<int, int, int, DuplicateTypeUnion>(value),
 #pragma warning disable CS1956 // Member implements interface member with multiple matches at run-time
-        IUnionImplicits<int, int, DuplicateTypeUnion>
+            IUnionImplicits<int, int, int, DuplicateTypeUnion>
 #pragma warning restore CS1956 // Member implements interface member with multiple matches at run-time
-    {
-        public static implicit operator DuplicateTypeUnion(int value)
         {
-            throw new NotImplementedException();
+            public static implicit operator DuplicateTypeUnion(int value)
+            {
+                throw new NotImplementedException();
+            }
         }
+
     }
 }
