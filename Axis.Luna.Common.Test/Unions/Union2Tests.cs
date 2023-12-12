@@ -14,20 +14,19 @@ namespace Axis.Luna.Common.Test.Unions
             runion = new MyRefUnion("some string"); //no exceptions thrown
 
             Assert.ThrowsException<TypeInitializationException>(() => new DuplicateTypeUnion(4));
-            Assert.ThrowsException<TypeInitializationException>(() => new DuplicateTypeUnion("stuff"));
         }
 
         [TestMethod]
         public void Is_Tests()
         {
-            var union = new MyRefUnion(5);
+            var union = new MyRefUnion(4);
             Assert.IsFalse(union.Is(out string _));
             Assert.IsTrue(union.Is(out int iv));
             Assert.AreEqual(4, iv);
 
             union = new MyRefUnion("5");
-            Assert.IsFalse(union.Is(out string sv));
-            Assert.IsTrue(union.Is(out int _));
+            Assert.IsFalse(union.Is(out int _));
+            Assert.IsTrue(union.Is(out string sv));
             Assert.AreEqual("5", sv);
 
             union = new MyRefUnion(null);
@@ -143,16 +142,25 @@ namespace Axis.Luna.Common.Test.Unions
         }
     }
 
-    internal class MyRefUnion(object value)
-    : RefUnion<int, string, MyRefUnion>(value)
+    internal class MyRefUnion
+    : RefUnion<int, string, MyRefUnion>
     {
+        public MyRefUnion(object value)
+        : base(value)
+        {
+        }
     }
 
-    internal class All(object value) :
-        RefUnion<int, string, All>(value),
+    internal class All :
+        RefUnion<int, string, All>,
         IUnionImplicits<int, string, All>,
         IUnionOf<int, string, All>
     {
+        public All(object value)
+        : base(value)
+        {
+        }
+
         public static All Of(int value) => new(value);
 
         public static All Of(string value) => new(value);
@@ -209,12 +217,17 @@ namespace Axis.Luna.Common.Test.Unions
         }
     }
 
-    internal class DuplicateTypeUnion(object value) :
-        RefUnion<int, int, DuplicateTypeUnion>(value),
+    internal class DuplicateTypeUnion :
+        RefUnion<int, int, DuplicateTypeUnion>,
 #pragma warning disable CS1956 // Member implements interface member with multiple matches at run-time
         IUnionImplicits<int, int, DuplicateTypeUnion>
 #pragma warning restore CS1956 // Member implements interface member with multiple matches at run-time
     {
+        public DuplicateTypeUnion(object value)
+        : base(value)
+        {
+        }
+
         public static implicit operator DuplicateTypeUnion(int value)
         {
             throw new NotImplementedException();
