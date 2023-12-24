@@ -21,6 +21,7 @@
     <Company>Axiis</Company>
     <Authors>Dantte</Authors>
     <PackageReadmeFile>Axis.Luna.Unions.readme.md</PackageReadmeFile>
+    <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
   </PropertyGroup>
 
   <ItemGroup>
