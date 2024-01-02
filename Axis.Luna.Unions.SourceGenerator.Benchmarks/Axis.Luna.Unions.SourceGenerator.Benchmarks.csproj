@@ -12,7 +12,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Axis.Luna.Unions\Axis.Luna.Unions.csproj" />
+    <ProjectReference Include="..\Axis.Luna.Unions.SourceGenerator\Axis.Luna.Unions.SourceGenerator.csproj" />
   </ItemGroup>
 
 </Project>

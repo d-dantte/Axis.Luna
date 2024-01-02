@@ -1,74 +1,34 @@
-﻿using System.Collections.Immutable;
-using System.Linq;
+﻿using Axis.Luna.Unions.Attributes.Metadata;
+using System.Collections.Immutable;
 using System.Text;
 
-namespace Axis.Luna.Unions
+namespace Axis.Luna.Unions.SourceGenerator
 {
-    /// <summary>
-    /// Holds information needed to build a union type
-    /// </summary>
-    internal readonly struct UnionTypeMetadata
+    internal static class UnionMetadataSourceGenerator
     {
-        public ImmutableArray<TypeArg> UnionTypeArgs { get; }
-        public ImmutableArray<TypeArg> TypeGenericArgs { get; }
 
-        public string TypeNamespace { get; }
-
-        public string TypeName { get; }
-
-        public int TypeArity => TypeGenericArgs.Length;
-
-        internal TypeForm Form { get; }
-
-
-        internal UnionTypeMetadata(
-            string typeNamespace,
-            string typeName,
-            TypeForm form,
-            ImmutableArray<TypeArg> typeGenericArgs,
-            ImmutableArray<TypeArg> unionTypeArgs)
-        {
-            TypeNamespace = typeNamespace;
-            TypeName = typeName;
-            Form = form;
-            TypeGenericArgs = typeGenericArgs;
-            UnionTypeArgs = unionTypeArgs;
-
-            // validate types: make sure any generic type in the "typeGenericArgs" list
-            // is present as a generic type in the "unionTypeArgs" list
-            var unionTypeArgSet = UnionTypeArgs
-                .Where(arg => arg.IsGeneric)
-                .ToHashSet();
-
-            // Confirm if throwing exceptions is the proper way to abort operations
-            // for analysers
-            if (!unionTypeArgSet.IsSubsetOf(TypeGenericArgs))
-                throw new InvalidOperationException(
-                    $"Invalid metadata: all generic args must appear among the union attributes");
-        }
-
-        public string GenerateImplementation()
+        public static string GenerateImplementation(UnionMetadata unionMetadata)
         {
             return TypeTemplate(
-                TypeNamespace,
-                TypeShape(),
-                TypeGenericArgs.Length > 0 ? TypeDeclaration() : TypeName,
-                TypeName,
-                GenerateUnionMethods(),
-                GenerateMapMatchMethod(),
-                GenerateConsumeMatchMethod(),
-                GenerateWithMatchMethod());
+                unionMetadata.TargetType.Namespace,
+                TypeShape(unionMetadata.TargetType),
+                unionMetadata.TargetType.SimpleName(),
+                unionMetadata.TargetType.Name,
+                GenerateUnionAPIMethods(unionMetadata),
+                GenerateMapMatchMethod(unionMetadata.UnionTypes),
+                GenerateConsumeMatchMethod(unionMetadata.UnionTypes),
+                GenerateWithMatchMethod(unionMetadata));
         }
 
         #region Generators
 
-        private string GenerateUnionMethods()
+        private static string GenerateUnionAPIMethods(UnionMetadata unionMetadata)
         {
             var sbuilder = new StringBuilder();
 
-            for (int cnt = 0; cnt < UnionTypeArgs.Length; cnt++)
+            for (int cnt = 0; cnt < unionMetadata.UnionTypes.Length; cnt++)
             {
-                var unionType = UnionTypeArgs[cnt];
+                var unionType = unionMetadata.UnionTypes[cnt];
 
                 //region
                 sbuilder
@@ -76,18 +36,18 @@ namespace Axis.Luna.Unions
                     .AppendLine()
                     .Append(Indent(2))
                     .Append("#region ")
-                    .Append(unionType);
+                    .Append(unionType.FullName());
 
                 // Of
-                var template = GenerateOfMethod(unionType);
+                var template = GenerateOfMethod(unionMetadata.TargetType, unionType);
                 sbuilder
                     .Append(Indent(2))
                     .Append(template);
 
                 // implicit
-                if (!(unionType.Is(out Type? t) && t!.IsInterface))
+                if (unionType is not InterfaceMetadata)
                 {
-                    template = GenerateImplicitOperator(unionType);
+                    template = GenerateImplicitOperator(unionMetadata.TargetType, unionType);
                     sbuilder
                         .Append(Indent(2))
                         .Append(template);
@@ -108,16 +68,16 @@ namespace Axis.Luna.Unions
             return sbuilder.ToString();
         }
 
-        private string GenerateMapMatchMethod()
+        private static string GenerateMapMatchMethod(ImmutableArray<ITypeMetadata> unionTypes)
         {
-            var outputGenericType = OutputGenericType();
+            var outputGenericType = OutputGenericType(unionTypes);
             var unionMapperDelegateArgs = new StringBuilder();
             var argumentNullInvocations = new StringBuilder();
             var mapperInvocations = new StringBuilder();
 
-            for (int cnt = 0; cnt < UnionTypeArgs.Length; cnt++)
+            for (int cnt = 0; cnt < unionTypes.Length; cnt++)
             {
-                var typeArg = UnionTypeArgs[cnt].TypeDeclaration();
+                var typeArg = unionTypes[cnt].FullName();
                 var argName = $"mapper{cnt}";
                 unionMapperDelegateArgs.Append(MapperDelegateTemplate(
                     typeArg,
@@ -140,15 +100,15 @@ namespace Axis.Luna.Unions
                 mapperInvocations.ToString());
         }
 
-        private string GenerateConsumeMatchMethod()
+        private static string GenerateConsumeMatchMethod(ImmutableArray<ITypeMetadata> unionTypes)
         {
             var unionConsumerDelegateArgs = new StringBuilder();
             var argumentNullInvocations = new StringBuilder();
             var consumerInvocations = new StringBuilder();
 
-            for (int cnt = 0; cnt < UnionTypeArgs.Length; cnt++)
+            for (int cnt = 0; cnt < unionTypes.Length; cnt++)
             {
-                var typeArg = UnionTypeArgs[cnt].TypeDeclaration();
+                var typeArg = unionTypes[cnt].FullName();
                 var argName = $"consumer{cnt}";
                 unionConsumerDelegateArgs.Append(ConsumerDelegateTemplate(
                     typeArg,
@@ -169,15 +129,15 @@ namespace Axis.Luna.Unions
                 consumerInvocations.ToString());
         }
 
-        private string GenerateWithMatchMethod()
+        private static string GenerateWithMatchMethod(UnionMetadata unionMetadata)
         {
             var unionConsumerDelegateArgs = new StringBuilder();
             var argumentNullInvocations = new StringBuilder();
             var consumerInvocations = new StringBuilder();
 
-            for (int cnt = 0; cnt < UnionTypeArgs.Length; cnt++)
+            for (int cnt = 0; cnt < unionMetadata.UnionTypes.Length; cnt++)
             {
-                var typeArg = UnionTypeArgs[cnt].TypeDeclaration();
+                var typeArg = unionMetadata.UnionTypes[cnt].FullName();
                 var argName = $"consumer{cnt}";
                 unionConsumerDelegateArgs.Append(ConsumerDelegateTemplate(
                     typeArg,
@@ -193,29 +153,31 @@ namespace Axis.Luna.Unions
             }
 
             return WithMatchTemplate(
-                TypeDeclaration(),
+                unionMetadata.TargetType.FullName(),
                 unionConsumerDelegateArgs.ToString(),
                 argumentNullInvocations.ToString(),
                 consumerInvocations.ToString());
         }
 
-        private string GenerateOfMethod(
-            TypeArg arg)
-            => OfTemplate(TypeDeclaration(), arg.TypeDeclaration());
+        private static string GenerateOfMethod(
+            IProperTypeMetadata targetType,
+            ITypeMetadata unionType)
+            => OfTemplate(targetType.FullName(), unionType.FullName());
 
-        private string GenerateImplicitOperator(
-            TypeArg arg)
-            => ImplicitTemplate(TypeDeclaration(), arg.TypeDeclaration());
+        private static string GenerateImplicitOperator(
+            IProperTypeMetadata targetType,
+            ITypeMetadata unionType)
+            => ImplicitTemplate(targetType.FullName(), unionType.FullName());
 
         private static string GenerateIsMethod(
-            TypeArg arg)
-            => IsTemplate(arg.TypeDeclaration());
+            ITypeMetadata unionType)
+            => IsTemplate(unionType.FullName());
         #endregion
 
         #region Code Templates
 
         public static string TypeTemplate(
-            string @namespace,
+            string? @namespace,
             string shape,
             string typeDeclaration,
             string constructorName,
@@ -253,29 +215,29 @@ namespace {@namespace}
 
         public static string OfTemplate(
             string fullTypeName,
-            string unionTypeArgName)
+            string unionITypeMetadataName)
         {
             return $@"
 
-        public static {fullTypeName} Of({unionTypeArgName} value) => new(value);";
+        public static {fullTypeName} Of({unionITypeMetadataName} value) => new(value);";
         }
 
         public static string ImplicitTemplate(
             string fullTypeName,
-            string unionTypeArgName)
+            string unionITypeMetadataName)
         {
             return $@"
 
-        public static implicit operator {fullTypeName}({unionTypeArgName} value) => new(value);";
+        public static implicit operator {fullTypeName}({unionITypeMetadataName} value) => new(value);";
         }
 
-        public static string IsTemplate(string unionTypeArgName)
+        public static string IsTemplate(string unionITypeMetadataName)
         {
             return $@"
 
-        public bool Is(out {unionTypeArgName} value)
+        public bool Is(out {unionITypeMetadataName} value)
         {{
-            if (Value is {unionTypeArgName} unionValue)
+            if (Value is {unionITypeMetadataName} unionValue)
             {{
                 value = unionValue;
                 return true;
@@ -373,7 +335,7 @@ namespace {@namespace}
         {
             return $@"
 
-            {(unionTypeIndex > 0 ? "else ": "")}if (Value is {unionTypeName} v{unionTypeIndex})
+            {(unionTypeIndex > 0 ? "else " : "")}if (Value is {unionTypeName} v{unionTypeIndex})
                 return {unionMapper}.Invoke(v{unionTypeIndex});";
         }
 
@@ -394,54 +356,30 @@ namespace {@namespace}
 
         private static string Indent(int count) => "".PadLeft(count, '\t');
 
-        private string TypeShape() => Form switch
+        private static string TypeShape(IProperTypeMetadata metadata) => metadata switch
         {
-            TypeForm.Struct => "readonly partial struct",
-            TypeForm.Class
-            or _ => "partial class"
+            StructMetadata => "readonly partial struct",
+            ClassMetadata => "partial class",
+            _ => throw new InvalidOperationException(
+                $"Invalid target type: {metadata?.GetType()}")
         };
 
-        private string TypeDeclaration()
+        private static string OutputGenericType(ImmutableArray<ITypeMetadata> genericArgs)
         {
-            var sb = new StringBuilder(TypeName);
-            if (TypeGenericArgs.Length > 0)
+            var genericTypes = new HashSet<ITypeMetadata>();
+            for (int cnt = 0; cnt < genericArgs.Length; cnt++)
             {
-                sb.Append('<');
-                for (int cnt = 0; cnt < TypeGenericArgs.Length; cnt++)
-                {
-                    if (cnt > 0)
-                        sb = sb.Append(", ");
-                    sb = sb.Append(TypeGenericArgs[cnt]);
-                }
-                sb.Append('>');
-            }
-            return sb.ToString();
-        }
-
-        private string OutputGenericType()
-        {
-            var genericTypes = new HashSet<TypeArg>();
-            for (int cnt = 0; cnt < TypeGenericArgs.Length; cnt++)
-            {
-                if (TypeGenericArgs[cnt].IsGeneric)
-                    genericTypes.Add(TypeGenericArgs[cnt]);
+                if (genericArgs[cnt] is TypeParameterMetadata)
+                    genericTypes.Add(genericArgs[cnt]);
             }
 
-            string outputType = null!;
             var index = 0;
+            string outputType;
 
             do outputType = $"TOut_{index:x}";
-            while (genericTypes.Contains(new TypeArg(outputType)));
+            while (genericTypes.Contains(new TypeParameterMetadata(outputType)));
 
             return outputType;
-        }
-        #endregion
-
-        #region Nested types
-        internal enum TypeForm
-        {
-            Struct,
-            Class
         }
         #endregion
     }

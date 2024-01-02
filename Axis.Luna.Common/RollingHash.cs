@@ -116,7 +116,7 @@ namespace Axis.Luna.Common
 
             public override int GetHashCode() => HashCode.Combine(_hash1, _hash2);
 
-            public override bool Equals([NotNullWhen(true)] object? obj)
+            public override bool Equals([NotNullWhen(true)] object obj)
             {
                 return obj is Hash other && Equals(other);
             }

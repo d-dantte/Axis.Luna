@@ -1,4 +1,7 @@
-﻿using Microsoft.CodeAnalysis;
+﻿using Axis.Luna.Unions.Attributes;
+using Axis.Luna.Unions.Attributes.Metadata;
+using Axis.Luna.Unions.SourceGenerator;
+using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
@@ -10,17 +13,10 @@ namespace Axis.Luna.Unions
     [Generator(LanguageNames.CSharp)]
     public class UnionSourceGenerator : IIncrementalGenerator
     {
-        private static readonly string UnionAttributeFullName =
-            $"{UnionOfAttributeGenerator.Namespace}"
-            + $".{UnionOfAttributeGenerator.AttributeName}";
+        private static readonly string UnionAttributeFullName = typeof(UnionOfAttribute).FullName!;
 
         public void Initialize(IncrementalGeneratorInitializationContext context)
         {
-            // First, generate the UnionOf attribute that will be used to decorate classes
-            context.RegisterPostInitializationOutput(ctx => ctx.AddSource(
-                "UnionOfAttribute.g.cs",
-                SourceText.From(UnionOfAttributeGenerator.GenerateAttributeClass(), Encoding.UTF8)));
-
             // Create the pipeline for generating Unions
             var unionTypeDeclarations = context.SyntaxProvider
                 .CreateSyntaxProvider(
@@ -73,6 +69,7 @@ namespace Axis.Luna.Unions
             return
                 HasUnionAttributes(typeSyntax, context, token)
                 && IsPartial(typeSyntax)
+                && IsNotAbstract(typeSyntax)
                 ? typeSyntax : null;
         }
 
@@ -133,6 +130,24 @@ namespace Axis.Luna.Unions
             return false;
         }
 
+        /// <summary>
+        /// Checks that this type is not abstract
+        /// </summary>
+        /// <param name="typeSyntax"></param>
+        /// <param name="context"></param>
+        /// <param name="token"></param>
+        /// <returns></returns>
+        private static bool IsNotAbstract(TypeDeclarationSyntax typeSyntax)
+        {
+            foreach (var modifier in typeSyntax.Modifiers)
+            {
+                if ("abstract".Equals(modifier.ToString()))
+                    return false;
+            }
+
+            return true;
+        }
+
         private static void Execute(
             Compilation compilation,
             ImmutableArray<TypeDeclarationSyntax> types,
@@ -153,57 +168,86 @@ namespace Axis.Luna.Unions
 
             foreach (var metadata in unionMetadataList)
             {
-                string result = metadata.GenerateImplementation();
+                string result = UnionMetadataSourceGenerator.GenerateImplementation(metadata);
                 context.AddSource(
-                    $"{metadata.TypeName}_{metadata.TypeArity}_Union.g.cs",
+                    $"{metadata.TargetType.Name}_{metadata.TargetType.Arity}_Union.g.cs",
                     SourceText.From(result, Encoding.UTF8));
             }
         }
 
-        private static List<UnionTypeMetadata> CreateUnionMetadata(
+        private static List<UnionMetadata> CreateUnionMetadata(
             Compilation compilation,
             IEnumerable<TypeDeclarationSyntax> typeDeclarations,
             CancellationToken token)
         {
-            var metadataList = new List<UnionTypeMetadata>();
+            var metadataList = new List<UnionMetadata>();
 
-            // extract type args
-            foreach (var typeDeclaration in typeDeclarations)
+            foreach (var typeSyntax in typeDeclarations)
             {
-                var typeArgs = ExtractUnionTypeArg(
+                var semmodel = compilation.GetSemanticModel(typeSyntax.SyntaxTree);
+                var typeSymbol = semmodel.GetDeclaredSymbol(typeSyntax, token)!;
+
+                // extract type args
+                var typeArgs = ExtractUnionITypeMetadata(
                     compilation,
-                    typeDeclaration,
+                    typeSymbol,
                     token);
+
+                if (!typeSymbol.TryConvertToTypeMetadata(out var tmeta)
+                    || tmeta is not IProperTypeMetadata targetMetadata)
+                {
+                    // report error or abandon process, etc
+                    continue;
+                }
+
+                // create union metadata
+                var unionMetadata = new UnionMetadata(targetMetadata, typeArgs.ToImmutableArray());
+                metadataList.Add(unionMetadata);
             }
 
-
+            return metadataList;
         }
 
-        private static List<TypeArg> ExtractUnionTypeArg(
+        private static List<ITypeMetadata> ExtractUnionITypeMetadata(
             Compilation compilation,
-            TypeDeclarationSyntax typeSyntax,
+            INamedTypeSymbol typeSymbol,
             CancellationToken token)
         {
-            var argList = new List<TypeArg>();
-            var semmodel = compilation.GetSemanticModel(typeSyntax.SyntaxTree);
+            var argList = new List<ITypeMetadata>();
 
-            foreach (var attributeListSyntax in typeSyntax.AttributeLists)
+            // Extract the type symbol
+            var typeAttributes = typeSymbol.GetAttributes();
+            var unionAttribute = compilation.GetTypeByMetadataName(UnionAttributeFullName)!;
+
+            for (int cnt = 0; cnt < typeAttributes.Length; cnt++)
             {
-                foreach (var attributeSyntax in attributeListSyntax.Attributes)
+                // do something with the CancellationToken
+
+                var attributeData = typeAttributes[cnt];
+
+                if (!unionAttribute.Equals(attributeData.AttributeClass, SymbolEqualityComparer.Default))
+                    continue;
+
+                // check the constructor arg
+                var typedConstant = attributeData.ConstructorArguments[0];
+
+                // generic
+                if (TypedConstantKind.Primitive.Equals(typedConstant.Kind))
+                    argList.Add(TypeParameterMetadata.Of(typedConstant.Value!.ToString()!)); // expect a string
+
+                // concrete
+                if (TypedConstantKind.Type.Equals(typedConstant.Kind)
+                    && typedConstant.Value is INamedTypeSymbol argTypeSymbol)
                 {
-                    var aas = attributeSyntax.ArgumentList!.Arguments[0];
-                    argList.Add((aas.Expression.Kind(), aas.Expression) switch
+                    if (!argTypeSymbol.TryConvertToTypeMetadata(out var metadata))
                     {
-                        (SyntaxKind.StringLiteralExpression, _) => aas.Expression.ToString(),
-                        SyntaxKind.TypeOfExpression => semmodel
-                            .GetTypeInfo(
-                                ((TypeOfExpressionSyntax)aas.Expression).Type)
-                            .Type
-                            .
-                    });
+                        // report some sort of error, or abort the entire process.
+                    }
+                    else argList.Add(metadata);
                 }
             }
 
+            return argList;
         }
     }
 }

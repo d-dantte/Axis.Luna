@@ -3,7 +3,7 @@
   <PropertyGroup>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <TargetFrameworks>net7.0</TargetFrameworks>
+    <TargetFrameworks>netstandard2.1</TargetFrameworks>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <!-- 
       We will not need this, since we expose the attribute that marks code as a union implementation
@@ -20,16 +20,8 @@
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <Company>Axiis</Company>
     <Authors>Dantte</Authors>
-    <PackageReadmeFile>Axis.Luna.Unions.readme.md</PackageReadmeFile>
     <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
   </PropertyGroup>
-
-  <ItemGroup>
-    <None Include="Axis.Luna.Unions.readme.md">
-      <Pack>True</Pack>
-      <PackagePath>\</PackagePath>
-    </None>
-  </ItemGroup>
 
   <ItemGroup>
     <None Include="$(OutputPath)\net7.0\$(AssemblyName).dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
@@ -38,6 +30,10 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.CodeAnalysis.Common" Version="4.8.0" />
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.8.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Axis.Luna.Unions.Attributes\Axis.Luna.Unions.Attributes.csproj" />
   </ItemGroup>
 
 </Project>
