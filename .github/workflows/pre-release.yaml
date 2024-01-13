@@ -21,3 +21,15 @@ jobs:
       run: dotnet pack ./Axis.Luna.Extensions/Axis.Luna.Extensions.csproj --configuration Release /p:Version=${VERSION} --output .
     - name: Push
       run: dotnet nuget push Axis.Luna.Extensions.${VERSION}.nupkg --source https://api.nuget.org/v3/index.json --api-key ${{ secrets.NUGET_API_TOKEN }}
+
+    # Axis.Luna.Common
+    - name: Pack
+      run: dotnet pack ./Axis.Luna.Common/Axis.Luna.Common.csproj --configuration Release /p:Version=${VERSION} --output .
+    - name: Push
+      run: dotnet nuget push Axis.Luna.Common.${VERSION}.nupkg --source https://api.nuget.org/v3/index.json --api-key ${{ secrets.NUGET_API_TOKEN }}
+
+    # Axis.Luna.FInvoke
+    - name: Pack
+      run: dotnet pack ./Axis.Luna.FInvoke/Axis.Luna.FInvoke.csproj --configuration Release /p:Version=${VERSION} --output .
+    - name: Push
+      run: dotnet nuget push Axis.Luna.FInvoke.${VERSION}.nupkg --source https://api.nuget.org/v3/index.json --api-key ${{ secrets.NUGET_API_TOKEN }}
