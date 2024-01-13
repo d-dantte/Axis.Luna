@@ -1,0 +1,27 @@
+on:
+  push:
+    tags:
+    - "v[0-9]+.[0-9]+.[0-9]+-*"
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+    - name: Set VERSION variable from tag
+      run: echo "VERSION=${GITHUB_REF/refs\/tags\/v/}" >> $GITHUB_ENV
+    - name: Pack
+      run: dotnet pack --configuration Release /p:Version=${VERSION} --output .
+
+    # Axis.Luna.Extensions
+    - name: Push
+      run: dotnet nuget push Axis.Luna.Extensions.${VERSION}.nupkg --source https://api.nuget.org/v3/index.json --api-key ${{ secrets.NUGET_API_TOKEN }}
+
+    # Axis.Luna.Common
+    - name: Push
+      run: dotnet nuget push Axis.Luna.Common.${VERSION}.nupkg --source https://api.nuget.org/v3/index.json --api-key ${{ secrets.NUGET_API_TOKEN }}
+
+    # Axis.Luna.FInvoke
+    - name: Push
+      run: dotnet nuget push Axis.Luna.FInvoke.${VERSION}.nupkg --source https://api.nuget.org/v3/index.json --api-key ${{ secrets.NUGET_API_TOKEN }}
