@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Threading.Tasks;
@@ -9,6 +10,80 @@ namespace Axis.Luna.Extensions
 {
     public static class EnumerableExtensions
     {
+        #region Concatenations
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <typeparam name="TItem"></typeparam>
+        /// <param name="item"></param>
+        /// <returns></returns>
+        public static IEnumerable<TItem> Enumerate<TItem>(this TItem item) => new[] { item };
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="value"></param>
+        /// <param name="otherValue"></param>
+        /// <returns></returns>
+        public static IEnumerable<T> EnumerateWith<T>(this
+            T value,
+            T otherValue)
+            => new[] { value, otherValue };
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="item"></param>
+        /// <param name="items"></param>
+        /// <returns></returns>
+        public static IEnumerable<T> EnumerateWith<T>(this T item, params T[] items)
+        {
+            yield return item;
+            foreach (var t in items)
+            {
+                yield return t;
+            }
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="item"></param>
+        /// <param name="items"></param>
+        /// <returns></returns>
+        public static IEnumerable<T> PrependTo<T>(this T item, IEnumerable<T> items)
+        {
+            yield return item;
+            foreach (var t in items)
+            {
+                yield return t;
+            }
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="initialValues"></param>
+        /// <param name="otherValue"></param>
+        /// <returns></returns>
+        public static IEnumerable<T> Concat<T>(
+            this IEnumerable<T> initialValues,
+            params T[] otherValue)
+            => Enumerable.Concat(initialValues, otherValue);
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <typeparam name="TKey"></typeparam>
+        /// <typeparam name="TItem"></typeparam>
+        /// <param name="items"></param>
+        /// <param name="grouper"></param>
+        /// <returns></returns>
         public static IEnumerable<IGrouping<TKey, TItem>> GroupBy<TKey, TItem>(
             this IEnumerable<TItem> items,
             Func<TItem, int, TKey> grouper)
@@ -57,24 +132,6 @@ namespace Axis.Luna.Extensions
         }
 
         /// <summary>
-        /// Casts the given <see cref="IEnumerable"/> items into the supplied type
-        /// </summary>
-        /// <typeparam name="TOut">The type to be casted into</typeparam>
-        /// <param name="items">the items</param>
-        /// <returns>An enumerable with items casted to the supplied <typeparamref name="TOut"/></returns>
-        /// <exception cref="ArgumentNullException"></exception>
-        public static IEnumerable<TOut> SelectAs<TOut>(this IEnumerable items)
-        {
-            if (items is null)
-                throw new ArgumentNullException(nameof(items));
-
-            foreach (var item in items)
-            {
-                yield return (TOut)item;
-            }
-        }
-
-        /// <summary>
         /// Stuffs the given enumerable with the given value
         /// </summary>
         /// <typeparam name="TItem"></typeparam>
@@ -93,7 +150,9 @@ namespace Axis.Luna.Extensions
                 started = true;
             }
         }
+        #endregion
 
+        #region First/Last
         /// <summary>
         /// 
         /// </summary>
@@ -193,6 +252,9 @@ namespace Axis.Luna.Extensions
                 .Where(predicate)
                 .LastOrNull();
         }
+        #endregion
+
+        #region Operate over each item
 
         /// <summary>
         /// Uses hard-casting on the individual values of the enumerable. This means it may throw <see cref="InvalidCastException"/>.
@@ -203,7 +265,7 @@ namespace Axis.Luna.Extensions
         /// <param name="enumerable">The enumerable</param>
         /// <returns>The casted enumerable</returns>
         /// <exception cref="ArgumentNullException">If the enumerable is null</exception>
-        public static IEnumerable<TOut> HardCast<TOut>(this System.Collections.IEnumerable enumerable)
+        public static IEnumerable<TOut> HardCast<TOut>(this IEnumerable enumerable)
         {
             if (enumerable == null)
                 throw new ArgumentNullException(nameof(enumerable));
@@ -232,74 +294,173 @@ namespace Axis.Luna.Extensions
         }
 
         /// <summary>
-        /// Get a slice/chunk of an array
+        /// Casts the given <see cref="IEnumerable"/> items into the supplied type
         /// </summary>
-        /// <typeparam name="T">The type of the array</typeparam>
-        /// <param name="array">The array</param>
-        /// <param name="offset">The offset at which the slice is made, i.e, how many elements to skip</param>
-        /// <param name="length"> The length of the slice/chunk. <c>null</c> indicates using whatever length remains after the offset </param>
-        /// <returns></returns>
-        public static ArraySegment<T> ArraySegmentSlice<T>(this T[] array, int offset, int? length = null)
+        /// <typeparam name="TOut">The type to be casted into</typeparam>
+        /// <param name="items">the items</param>
+        /// <returns>An enumerable with items casted to the supplied <typeparamref name="TOut"/></returns>
+        /// <exception cref="ArgumentNullException"></exception>
+        public static IEnumerable<TOut> SelectAs<TOut>(this IEnumerable items)
         {
-            return new ArraySegment<T>(array, offset, length ?? array.Length - offset);
+            if (items is null)
+                throw new ArgumentNullException(nameof(items));
+
+            foreach (var item in items)
+            {
+                yield return (TOut)item;
+            }
         }
 
         /// <summary>
-        /// Splits an array into 2 <see cref="ArraySegment{T}"/> instances, using the given index as a pivot. Note that the element at the pivot index will always
-        /// become the first element in the "right" <see cref="ArraySegment{T}"/>.
+        /// 
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="array"></param>
-        /// <param name="pivotIndex"></param>
+        /// <typeparam name="TOut"></typeparam>
+        /// <param name="enumerable"></param>
         /// <returns></returns>
-        public static (ArraySegment<T>, ArraySegment<T>) ArraySegmentSplit<T>(this T[] array, int pivotIndex)
-        {
-            ArraySegment<T> segment = array;
-            return segment.Split(pivotIndex);
-        }
-
-        /// <summary>
-        /// Splits an input into 2 <see cref="ArraySegment{T}"/> instances, using the given index as a pivot. Note that the element at the pivot index will always
-        /// become the first element in the "right" <see cref="ArraySegment{T}"/>.
-        /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="array"></param>
-        /// <param name="pivotIndex"></param>
-        /// <returns></returns>
-        public static (ArraySegment<T>, ArraySegment<T>) Split<T>(this ArraySegment<T> segment, int pivotIndex)
-        {
-            return (segment.Slice(0, pivotIndex), segment.Slice(pivotIndex));
-        }
-
-        public static bool ContainsAll<V>(this IEnumerable<V> superSet, IEnumerable<V> subSet)
-        {
-            return subSet.IsSubsetOf(superSet);
-        }
-
-        public static bool IsSubsetOf<V>(this IEnumerable<V> subset, IEnumerable<V> superSet)
-        {
-            return !subset.Except(superSet).Any();
-        }
-
         public static IEnumerable<TOut> SelectMany<TOut>(this IEnumerable<IEnumerable<TOut>> enumerable) 
         => enumerable.SelectMany(enm => enm);
 
-
         /// <summary>
-        /// Snips the enumerable at the specified POSITIVE index, making it the head of the enumerable, splicing the old head at the tail
-        /// e.g
-        /// <para>
-        ///  {1,2,3,4,5,6,7,8,9,0}, spliced at index 4, becomes {5,6,7,8,9,0,1,2,3,4}
-        /// </para>
+        /// 
         /// </summary>
         /// <typeparam name="V"></typeparam>
         /// <param name="enumerable"></param>
-        /// <param name="spliceIndex"></param>
+        /// <param name="action"></param>
         /// <returns></returns>
-        public static IEnumerable<V> SnipSplice<V>(this IEnumerable<V> enumerable, int spliceIndex)
+        public static IEnumerable<V> WithEvery<V>(this IEnumerable<V> enumerable, Action<V> action)
         {
-            var array = enumerable.ToArray();
-            return array.Skip(Math.Abs(spliceIndex)).Concat(array.Take(Math.Abs(spliceIndex)));
+            foreach (var v in enumerable)
+            {
+                action(v);
+                yield return v;
+            }
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="enumerable"></param>
+        /// <param name="loopAction"></param>
+        public static void ForEvery<T>(this IEnumerable<T> enumerable, Action<long, T> loopAction)
+        {
+            var cnt = 0L;
+            foreach (var t in enumerable)
+                loopAction(cnt++, t);
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="enumerable"></param>
+        /// <param name="loopAction"></param>
+        public static void ForEvery<T>(this
+            IEnumerable<T> enumerable,
+            Action<T> loopAction)
+            => enumerable.ForEvery((_cnt, _v) => loopAction(_v));
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="enumerable"></param>
+        /// <param name="loopAction"></param>
+        /// <returns></returns>
+        public static async Task ForEveryAsync<T>(this
+            IEnumerable<T> enumerable,
+            Func<long, T, Task> loopAction)
+        {
+            var cnt = 0L;
+            foreach (var t in enumerable) await loopAction(cnt++, t);
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="enumerable"></param>
+        /// <param name="loopAction"></param>
+        /// <returns></returns>
+        public static async Task ForAllAsync<T>(this
+            IEnumerable<T> enumerable,
+            Func<T, Task> loopAction)
+            => await enumerable.ForEveryAsync(async (_cnt, _v) => await loopAction(_v));
+
+
+        /// <summary>
+        /// "Zips" the two sequences into a single sequence of a tuple of corresponding items.
+        /// The zipping operation stops when one of the sequences ends.
+        /// </summary>
+        /// <typeparam name="K">The item type for the first sequence</typeparam>
+        /// <typeparam name="V">The item type for the second sequence</typeparam>
+        /// <param name="first">The first sequence</param>
+        /// <param name="second">The second sequence</param>
+        /// <returns>A new sequence containing a tuple of corresponding items</returns>
+        public static IEnumerable<(K, V)> Zip<K, V>(this IEnumerable<K> first, IEnumerable<V> second)
+        {
+            using var ktor = first.GetEnumerator();
+            using var vtor = second.GetEnumerator();
+            while (ktor.MoveNext() && vtor.MoveNext())
+                yield return (ktor.Current, vtor.Current);
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <typeparam name="K"></typeparam>
+        /// <typeparam name="V"></typeparam>
+        /// <param name="keys"></param>
+        /// <param name="values"></param>
+        /// <param name="padWithDefault"></param>
+        /// <returns></returns>
+        public static IEnumerable<(K, V)> Zip<K, V>(this
+            IEnumerable<K> keys,
+            IEnumerable<V> values,
+            bool padWithDefault)
+        {
+            return !padWithDefault ? keys.Zip(values) : keys.ZipWithDefaultPadding(values);
+        }
+
+        private static IEnumerable<(K, V)> ZipWithDefaultPadding<K, V>(this IEnumerable<K> keys, IEnumerable<V> values)
+        {
+            using var ktor = keys.GetEnumerator();
+            using var vtor = values.GetEnumerator();
+            while (ktor.TryGetNext(out K kvalue) | vtor.TryGetNext(out V vvalue))
+            {
+                yield return (kvalue, vvalue);
+            }
+        }
+
+        #endregion
+
+        #region Add/Remove items
+
+        public static ICollection<Value> AddRange<Value>(this ICollection<Value> collection, IEnumerable<Value> values)
+        {
+            values.ForEvery(collection.Add);
+            return collection;
+        }
+
+        public static TItems AddItem<TItems, TItem>(this TItems items, TItem item)
+        where TItems : ICollection<TItem>
+        {
+            ArgumentNullException.ThrowIfNull(items);
+
+            items.Add(item);
+            return items;
+        }
+
+        public static TItems AddItems<TItems, TItem>(this TItems items, IEnumerable<TItem> addendum)
+        where TItems : ICollection<TItem>
+        {
+            ArgumentNullException.ThrowIfNull(items);
+            ArgumentNullException.ThrowIfNull(addendum);
+
+            foreach (var item in addendum)
+                items.Add(item);
+
+            return items;
         }
 
         /// <summary>
@@ -336,182 +497,32 @@ namespace Axis.Luna.Extensions
             if (pos == position)
                 yield return value;
         }
-        
-        public static IEnumerable<V> WithEach<V>(this IEnumerable<V> enumerable, Action<V> action)
-        {
-            foreach (var v in enumerable)
-            {
-                action(v);
-                yield return v;
-            }
-        }
 
-        /// <summary>
-        /// Does the same thing as <c>Enumerable.All(...)</c>, with the exception that if the sequence is empty, it returns false.
-        /// </summary>
-        /// <typeparam name="V"></typeparam>
-        /// <param name="enumerable"></param>
-        /// <param name="predicate"></param>
-        /// <returns></returns>
-        public static bool ExactlyAll<V>(this IEnumerable<V> enumerable, Func<V, bool> predicate)
-        {
-            long count = 0;
-            Func<V, bool> xpredicate = _v =>
-            {
-                count++;
-                return predicate(_v);
-            };
+        public static void RemoveAll<V>(this ICollection<V> collection, params V[] values)
+        => values.ForEvery(v => collection.Remove(v));
 
-            if (enumerable == null) return false;
-            else return enumerable.All(xpredicate) && count > 0;
-        }
-
-        public static IEnumerable<(K, V)> PairWith<K, V>(this IEnumerable<K> keys, IEnumerable<V> values)
-        {
-            using var ktor = keys.GetEnumerator();
-            using var vtor = values.GetEnumerator();
-            while (ktor.MoveNext() && vtor.MoveNext())
-                yield return (ktor.Current, vtor.Current);
-        }
-
-        public static IEnumerable<(K, V)> PairWith<K, V>(this IEnumerable<K> keys, IEnumerable<V> values, bool padWithDefault)
-        {
-            return !padWithDefault ? keys.PairWith(values) : keys.PairWithPad(values);
-        }
-
-        private static IEnumerable<(K, V)> PairWithPad<K, V>(this IEnumerable<K> keys, IEnumerable<V> values)
-        {
-            using var ktor = keys.GetEnumerator();
-            using var vtor = values.GetEnumerator();
-            while(ktor.TryGetNext(out K kvalue) | vtor.TryGetNext(out V vvalue))
-            {
-                yield return (kvalue, vvalue);
-            }
-        }
-
-        public static void ForAll<T>(this IEnumerable<T> enumerable, Action<long, T> loopAction)
-        {
-            var cnt = 0L;
-            foreach (var t in enumerable) loopAction(cnt++, t);
-        }
-
-        public static void ForAll<T>(this IEnumerable<T> enumerable, Action<T> loopAction) => enumerable.ForAll((_cnt, _v) => loopAction(_v));
-
-        public static async Task ForAllAsync<T>(this IEnumerable<T> enumerable, Func<long, T, Task> loopAction)
-        {
-            var cnt = 0L;
-            foreach (var t in enumerable) await loopAction(cnt++, t);
-        }
-
-        public static async Task ForAllAsync<T>(this IEnumerable<T> enumerable, Func<T, Task> loopAction) => await enumerable.ForAllAsync(async (_cnt, _v) => await loopAction(_v));
-
-        public static void Repeat(this long repetitions, Action<long> repeatAction)
-        {
-            for (long cnt = 0, limit = Math.Abs(repetitions); cnt < limit; cnt++)
-                repeatAction(cnt);
-        }
-
-        public static async Task RepeatAsync(this long repetitions, Func<long, Task> repeatAction)
-        {
-            for (long cnt = 0, limit = Math.Abs(repetitions); cnt < limit; cnt++)
-                await repeatAction(cnt);
-        }
-
-        public static T GetOrAdd<T>(this ICollection<T> collection, Func<T, bool> predicate, Func<T> generator)
-        {
-            if (predicate == null)
-                throw new ArgumentNullException(nameof(predicate));
-
-            if (generator == null)
-                throw new ArgumentNullException(nameof(generator));
-
-            foreach(var t in collection)
-            {
-                if (predicate.Invoke(t))
-                    return t;
-            }
-
-            var newValue = generator.Invoke();
-            collection.Add(newValue);
-
-            return newValue;
-        }
-
-        public static async Task<T> GetOrAddAsync<T>(this ICollection<T> collection, Func<T, bool> predicate, Func<Task<T>> generator)
-        {
-            if (predicate == null)
-                throw new ArgumentNullException(nameof(predicate));
-
-            if (generator == null)
-                throw new ArgumentNullException(nameof(generator));
-
-            foreach (var t in collection)
-            {
-                if (predicate.Invoke(t))
-                    return t;
-            }
-
-            var newValue = await generator.Invoke();
-            collection.Add(newValue);
-
-            return newValue;
-        }
-
-        #region Concatenations
-        public static IEnumerable<TItem> Enumerate<TItem>(this TItem item) => new[] { item };
-
-        public static IEnumerable<T> EnumerateWith<T>(this T value, T otherValue)
-        {
-            yield return value;
-            yield return otherValue;
-        }
-
-        public static IEnumerable<T> PrependTo<T>(this T item, IEnumerable<T> items)
-        {
-            yield return item;
-            foreach (var t in items)
-            {
-                yield return t;
-            }
-        }
-
-        public static IEnumerable<T> EnumerateWith<T>(this T item, params T[] items)
-        {
-            yield return item;
-            foreach (var t in items)
-            {
-                yield return t;
-            }
-        }
-
-        public static IEnumerable<T> Concat<T>(
-            this IEnumerable<T> initialValues,
-            params T[] otherValue)
-            => Enumerable.Concat(initialValues, otherValue);
+        public static void RemoveAll<V>(this ICollection<V> collection, Func<V, bool> predicate)
+        => collection.RemoveAll(collection.Where(predicate).ToArray());
         #endregion
 
-        public static int PositionOf<T>(this IEnumerable<T> enumerable, T item, IEqualityComparer<T> equalityComparer = null)
-        {
-            var eqc = equalityComparer ?? EqualityComparer<T>.Default;
-
-            int pos = 0;
-            foreach (var x in enumerable)
-            {
-                if (eqc.Equals(x, item)) return pos;
-                else ++pos;
-            }
-            return -1;
-        }
-
+        #region Get/Find Items
         public static T ItemAt<T>(this IEnumerable<T> enumerable, int index)
         {
-            if (index < 0) throw new IndexOutOfRangeException();
-            else if (enumerable is IList<T>) return (enumerable as IList<T>)[index];
-            else if (enumerable is Array) return (T)((enumerable as Array).GetValue(index));
+            ArgumentNullException.ThrowIfNull(enumerable);
+
+            if (index < 0)
+                throw new IndexOutOfRangeException();
+
+            else if (enumerable is IList<T> l)
+                return l[index];
+
+            else if (enumerable is T[] tarr)
+                return tarr[index];
+
             else
             {
                 int _index = 0;
-                foreach(var item in enumerable)
+                foreach (var item in enumerable)
                 {
                     if (_index == index)
                         return item;
@@ -521,34 +532,10 @@ namespace Axis.Luna.Extensions
             }
         }
 
-        public static ICollection<Value> AddRange<Value>(this ICollection<Value> collection, IEnumerable<Value> values)
-        {
-            values.ForAll(collection.Add);
-            return collection;
-        }
-
-        public static TItems AddItem<TItems, TItem>(this TItems items, TItem item)
-        where TItems : ICollection<TItem>
-        {
-            ArgumentNullException.ThrowIfNull(items);
-
-            items.Add(item);
-            return items;
-        }
-
-        public static TItems AddItems<TItems, TItem>(this TItems items, IEnumerable<TItem> addendum)
-        where TItems : ICollection<TItem>
-        {
-            ArgumentNullException.ThrowIfNull(items);
-            ArgumentNullException.ThrowIfNull(addendum);
-
-            foreach (var item in addendum)
-                items.Add(item);
-
-            return items;
-        }
-
-        public static TValue GetOrAdd<TKey, TValue>(this IDictionary<TKey, TValue> @this, TKey key, Func<TKey, TValue> valueFactory)
+        public static TValue GetOrAdd<TKey, TValue>(this
+            IDictionary<TKey, TValue> @this,
+            TKey key,
+            Func<TKey, TValue> valueFactory)
         {
             if (valueFactory == null)
                 throw new ArgumentNullException(nameof(valueFactory));
@@ -582,7 +569,7 @@ namespace Axis.Luna.Extensions
         }
 
         public static bool TryGetValue(this
-            System.Collections.IDictionary dictionary,
+            IDictionary dictionary,
             object key,
             out object value)
         {
@@ -598,23 +585,9 @@ namespace Axis.Luna.Extensions
             value = null;
             return false;
         }
+        #endregion
 
-        public static void RemoveAll<V>(this ICollection<V> collection, params V[] values)
-        => values.ForAll(v => collection.Remove(v));
-
-        public static void RemoveAll<V>(this ICollection<V> collection, Func<V, bool> predicate)
-        => collection.RemoveAll(collection.Where(predicate).ToArray());
-
-        public static Dictionary<K, V> AddAll<K, V>(this Dictionary<K, V> dict, IEnumerable<KeyValuePair<K, V>> values)
-        {
-            foreach (var v in values) 
-                dict.Add(v.Key, v.Value);
-
-            return dict;
-        }
-
-        public static Dictionary<K, V> ToDictionary<K, V>(this IEnumerable<KeyValuePair<K, V>> values) => new Dictionary<K, V>().AddAll(values);
-
+        #region Misc
         /// <summary>
         /// https://stackoverflow.com/a/33336576
         /// </summary>
@@ -662,7 +635,7 @@ namespace Axis.Luna.Extensions
             }
         }
 
-        static private T[] Splice<T>(IEnumerable<T> list, int index)
+        private static T[] Splice<T>(IEnumerable<T> list, int index)
         {
             return list
                 .Take(index)
@@ -670,6 +643,22 @@ namespace Axis.Luna.Extensions
                 .ToArray();
         }
 
+        /// <summary>
+        /// Snips the enumerable at the specified POSITIVE index, making it the head of the enumerable, splicing the old head at the tail
+        /// e.g
+        /// <para>
+        ///  {1,2,3,4,5,6,7,8,9,0}, spliced at index 4, becomes {5,6,7,8,9,0,1,2,3,4}
+        /// </para>
+        /// </summary>
+        /// <typeparam name="V"></typeparam>
+        /// <param name="enumerable"></param>
+        /// <param name="spliceIndex"></param>
+        /// <returns></returns>
+        public static IEnumerable<V> SnipSplice<V>(this IEnumerable<V> enumerable, int spliceIndex)
+        {
+            var array = enumerable.ToArray();
+            return array.Skip(Math.Abs(spliceIndex)).Concat(array.Take(Math.Abs(spliceIndex)));
+        }
 
         /// <summary>
         ///  Fisher-Yates-Durstenfeld shuffle http://en.wikipedia.org/wiki/Fisher%E2%80%93Yates_shuffle#The_modern_algorithm
@@ -694,7 +683,6 @@ namespace Axis.Luna.Extensions
             }
         }
 
-
         /// <summary>
         /// Skips every <c>skipCount</c> number of elements and takes one element after skipping. The process starts by skipping
         /// </summary>
@@ -703,7 +691,10 @@ namespace Axis.Luna.Extensions
         /// <param name="skipCount"></param>
         /// <param name="whilenot">a condition that must be false for the skip process to happen</param>
         /// <returns></returns>
-        public static IEnumerable<T> SkipEvery<T>(this IEnumerable<T> sequence, int skipCount, Func<long, T, bool> whilenot = null)
+        public static IEnumerable<T> SkipEvery<T>(this
+            IEnumerable<T> sequence,
+            int skipCount,
+            Func<long, T, bool> whilenot = null)
         {
             var count = -1L;
             var mod = skipCount + 1;
@@ -714,7 +705,6 @@ namespace Axis.Luna.Extensions
                 else if ((count + 1) % mod == 0) yield return t;
             }
         }
-
 
         /// <summary>
         /// Skips the last <c>count</c> elements of a sequence
@@ -767,81 +757,16 @@ namespace Axis.Luna.Extensions
             }
         }
 
-
-        #region Batch
-        public static IEnumerable<IEnumerable<T>> Batch<T>(this IEnumerable<T> source, int batchSize, int skipBatches = 0)
-            => BatchGroup(source, batchSize, skipBatches).Select(g => g.Value);
-
-        public static IEnumerable<KeyValuePair<long, IEnumerable<T>>> BatchGroup<T>(this IEnumerable<T> source, int batchSize, int skipBatches = 0)
-        {
-            long count = 0;
-            long index = 0;
-            var batch = new List<T>();
-
-            foreach (var value in source.Skip(skipBatches * batchSize))
-            {
-                batch.Add(value);
-
-                if (++count % batchSize == 0)
-                {
-                    yield return index++.ValuePair(batch.AsEnumerable());
-
-                    batch = new List<T>();
-                }
-            }
-
-            if (batch.Count > 0)
-                yield return index++.ValuePair(batch.AsEnumerable());
-        }
-
         /// <summary>
-        /// TODO: unit test this
+        /// 
         /// </summary>
-        /// <typeparam name="TItem"></typeparam>
-        /// <param name="source"></param>
-        /// <param name="batchSize"></param>
-        /// <param name="skipBatches"></param>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="enumerator"></param>
+        /// <param name="value"></param>
         /// <returns></returns>
-        public static IEnumerable<KeyValuePair<long, IEnumerable<TItem>>> BatchGroup_<TItem>(this IEnumerable<TItem> source, int batchSize, int skipBatches = 0)
-        {
-            return source
-                .Select((item, index) => (item, index))
-                .GroupBy(tuple => tuple.index / batchSize)
-                .Select(group => group.Select(tuple => tuple.item))
-                .Select((batch, index) => KeyValuePair.Create((long)index, batch));
-        }
-
-        // This should be deprecated
-        public static IEnumerable<IQueryable<T>> Batch<T>(this IOrderedQueryable<T> source, int batchSize, int skipBatches = 0)
-        => BatchGroup(source, batchSize, skipBatches).Select(g => g.Value);
-
-        // This should be deprecated
-        public static IEnumerable<KeyValuePair<long, IQueryable<T>>> BatchGroup<T>(this IOrderedQueryable<T> source, int batchSize, int skipBatches = 0)
-        {
-            long count = 0;
-            long index = 0;
-            var batch = new List<T>();
-
-            foreach (var value in source.Skip(skipBatches * batchSize))
-            {
-                batch.Add(value);
-
-                if (++count % batchSize == 0)
-                {
-                    yield return index++.ValuePair(batch.AsQueryable());
-
-                    batch = new List<T>();
-                }
-            }
-
-            if (batch.Count > 0)
-                yield return index++.ValuePair(batch.AsQueryable());
-        }
-        #endregion
-
         public static bool TryGetNext<T>(this IEnumerator<T> enumerator, out T value)
         {
-            if(enumerator.MoveNext())
+            if (enumerator.MoveNext())
             {
                 value = enumerator.Current;
                 return true;
@@ -852,6 +777,97 @@ namespace Axis.Luna.Extensions
                 return false;
             }
         }
+
+        /// <summary>
+        /// Verifies that the given sequence is empty
+        /// </summary>
+        /// <typeparam name="T">The type of the sequence</typeparam>
+        /// <param name="items">The sequence instance</param>
+        /// <returns></returns>
+        public static bool IsEmpty<T>(this IEnumerable<T> items)
+        {
+            ArgumentNullException.ThrowIfNull(items);
+
+            return items switch
+            {
+                ICollection<T> v => v.Count == 0,
+                _ => !items.Any()
+            };
+        }
+        #endregion
+
+        #region Batch
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="source"></param>
+        /// <param name="batchSize"></param>
+        /// <param name="skipBatches"></param>
+        /// <returns></returns>
+        public static IEnumerable<IEnumerable<T>> Batch<T>(this
+            IEnumerable<T> source,
+            int batchSize,
+            int skipBatches = 0)
+            => EnumerableExtensions
+                .BatchGroup(source, batchSize, skipBatches)
+                .Select(g => g.Batch);
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="source"></param>
+        /// <param name="batchSize"></param>
+        /// <param name="skipBatches"></param>
+        /// <returns></returns>
+        public static IEnumerable<(long Index, IEnumerable<T> Batch)> BatchGroup<T>(this
+            IEnumerable<T> source,
+            int batchSize,
+            int skipBatches = 0)
+        {
+            long count = 0;
+            long index = 0;
+            var batch = new List<T>();
+
+            foreach (var value in source.Skip(skipBatches * batchSize))
+            {
+                batch.Add(value);
+
+                if (++count % batchSize == 0)
+                {
+                    yield return (index++, batch.AsEnumerable());
+
+                    batch = new List<T>();
+                }
+            }
+
+            if (batch.Count > 0)
+                yield return (index++, batch.AsEnumerable());
+        }
+
+        /// <summary>
+        /// TODO: unit test this.
+        /// Although I believe it may perform slower than the other implementation
+        /// </summary>
+        /// <typeparam name="TItem"></typeparam>
+        /// <param name="source"></param>
+        /// <param name="batchSize"></param>
+        /// <param name="skipBatches"></param>
+        /// <returns></returns>
+        public static IEnumerable<(long Index, IEnumerable<TItem> Batch)> BatchGroup_<TItem>(this
+            IEnumerable<TItem> source,
+            int batchSize,
+            int skipBatches = 0)
+        {
+            return source
+                .Select((item, index) => (item, index))
+                .GroupBy(tuple => tuple.index / batchSize)
+                .Select(group => group.Select(tuple => tuple.item))
+                .Select((batch, index) => ((long)index, batch))
+                .Skip(skipBatches);
+        }
+        #endregion
 
         #region Nested types
         internal readonly struct Grouping<TKey, TItem> : IGrouping<TKey, TItem>

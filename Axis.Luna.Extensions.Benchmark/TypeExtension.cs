@@ -60,22 +60,12 @@ namespace Axis.Luna.Extensions.Benchmark
         {
             PublicClassField.SetValue(fatc, "bleh");
         }
-        [Benchmark]
-        public void PublicfieldTestOnClass_IL()
-        {
-            PublicClassField.FieldMutatorFor().Invoke(fatc, "bleh");
-        }
 
 
         [Benchmark]
         public void PrivatefieldTestOnClass_Reflection()
         {
             PrivateClassField.SetValue(fatc, "bleh");
-        }
-        [Benchmark]
-        public void PrivatefieldTestOnClass_IL()
-        {
-            PrivateClassField.FieldMutatorFor().Invoke(fatc, "bleh");
         }
         #endregion
 
@@ -91,11 +81,6 @@ namespace Axis.Luna.Extensions.Benchmark
         {
             PublicStructField.SetValue(fats, "bleh");
         }
-        [Benchmark]
-        public void PublicfieldTestOnStruct_IL()
-        {
-            PublicStructField.FieldMutatorFor().Invoke(fatsRef, "bleh");
-        }
 
 
         [Benchmark]
@@ -103,22 +88,12 @@ namespace Axis.Luna.Extensions.Benchmark
         {
             PrivateStructField.SetValue(fats, "bleh");
         }
-        [Benchmark]
-        public void PrivatefieldTestOnStruct_IL()
-        {
-            PrivateStructField.FieldMutatorFor().Invoke(fatsRef, "bleh");
-        }
 
 
         [Benchmark]
         public void FakeLargefieldTestOnStruct_Reflection()
         {
             FakeLargeStructField.SetValue(fats, fls);
-        }
-        [Benchmark]
-        public void FakeLargefieldTestOnStruct_IL()
-        {
-            FakeLargeStructField.FieldMutatorFor().Invoke(fatsRef, fls);
         }
         #endregion
     }

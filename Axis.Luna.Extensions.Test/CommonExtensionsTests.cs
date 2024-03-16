@@ -120,18 +120,6 @@ namespace Axis.Luna.Extensions.Test
         }
 
         [TestMethod]
-        public void RelocateStateFrom_Tests()
-        {
-            var l1 = new List<int> { 1, 2, 3, 4, 5 };
-            var l2 = new List<int>();
-
-            l2.CopyStateFrom(l1);
-
-            Assert.AreEqual(l1.Count, l2.Count);
-            Assert.IsTrue(Enumerable.SequenceEqual(l1, l2));
-        }
-
-        [TestMethod]
         public void RegularAssignment_Tests()
         {
             var tcwf = new TestClassWithFields();
@@ -145,39 +133,6 @@ namespace Axis.Luna.Extensions.Test
             Assert.AreEqual("bleh", tcwf.Property1);
         }
 
-        [TestMethod]
-        public void ILGeneratedAssignment_Tests()
-        {
-            var tcwf = new TestClassWithFields();
-            FieldInfo[] fields = typeof(TestClassWithFields).GetFields(
-                BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
-
-            fields.ToList().ForEach(field => ILGeneratedFieldAssignment(tcwf, field, "bleh"));
-            fields.ToList().ForEach(field => Assert.AreEqual("bleh", ILGeneratedFieldExtratction(tcwf, field)));
-        }
-
-        [TestMethod]
-        public void TypedILGeneratedAssignment_Tests()
-        {
-            var tcwf = new TestClassWithFields();
-            FieldInfo[] fields = typeof(TestClassWithFields).GetFields(
-                BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
-
-            fields.ToList().ForEach(field => TypedILGeneratedFieldAssignment(tcwf, field, "bleh"));
-            fields.ToList().ForEach(field => Assert.AreEqual("bleh", ILGeneratedFieldExtratction(tcwf, field)));
-        }
-
-        [TestMethod]
-        public void ILGeneratedAssignmentStruct_Tests()
-        {
-            object tswf = new TestStructWithFields();
-            FieldInfo[] fields = typeof(TestStructWithFields).GetFields(
-                BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
-
-            fields.ToList().ForEach(field => ILGeneratedFieldAssignment(tswf, field, "bleh"));
-            fields.ToList().ForEach(field => Assert.AreEqual("bleh", ILGeneratedFieldExtratction(tswf, field)));
-        }
-
         public static void RegularFieldAssignment(TestClassWithFields tcwf, string value)
         {
             tcwf.Field1 = value;
@@ -186,21 +141,6 @@ namespace Axis.Luna.Extensions.Test
         public static void ReflectionFieldAssignment(object tcwf, FieldInfo field, object value)
         {
             field.SetValue(tcwf, value);
-        }
-
-        public static void ILGeneratedFieldAssignment(object tcwf, FieldInfo field, object value)
-        {
-            field.FieldMutatorFor().Invoke(tcwf, value);
-        }
-
-        public static void TypedILGeneratedFieldAssignment(TestClassWithFields tcwf, FieldInfo field, string value)
-        {
-            field.TypedFieldMutatorFor<TestClassWithFields, string>().Invoke(tcwf, value);
-        }
-
-        public static object ILGeneratedFieldExtratction(object tcwf, FieldInfo field)
-        {
-            return field.FieldAccessorFor().Invoke(tcwf);
         }
 
         public interface ISomething { }

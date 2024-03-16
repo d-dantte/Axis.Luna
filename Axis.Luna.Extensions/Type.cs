@@ -9,16 +9,11 @@ using System.Text;
 
 namespace Axis.Luna.Extensions
 {
-
     //[DebuggerStepThrough]
     public static class TypeExtensions
     {
         private static readonly ConcurrentDictionary<Type, Func<object>> TypeDefaultsProducer = new ConcurrentDictionary<Type, Func<object>>();
         private static readonly ConcurrentDictionary<Type, string> MinimalAQNames = new ConcurrentDictionary<Type, string>();
-        private static readonly ConcurrentDictionary<string, Delegate> PropertyAccessors = new ConcurrentDictionary<string, Delegate>();
-        private static readonly ConcurrentDictionary<(FieldInfo Field, TypedAccessorMode Mode), Delegate> TypedFieldMap = new();
-        private static readonly ConcurrentDictionary<FieldInfo, Action<object, object>> FieldMutatorMap = new();
-        private static readonly ConcurrentDictionary<FieldInfo, Func<object, object>> FieldAccessorMap = new();
 
         private const string ExplicitOperatorName = "op_Explicit";
         private const string ImplicitOperatorName = "op_Implicit";
@@ -83,9 +78,6 @@ namespace Axis.Luna.Extensions
 
         private static string MutatorSignature(this PropertyInfo pinfo)
         => $"[{pinfo.DeclaringType.MinimalAQName()}].Set{pinfo.Name}";
-
-        ////private static string AccessorSignature(this FieldInfo finfo)
-        ////=> $"[{finfo.DeclaringType.MinimalAQName()}].@{finfo.Name}";
         #endregion
 
         #region Inheritance
@@ -135,22 +127,33 @@ namespace Axis.Luna.Extensions
         }
 
         /// <summary>
-        /// NOTE: his will fail if <c>genericDefinitionBaseType</c> is the <c>GenericTypeDefinition</c> of <c>type</c>
+        /// Verifies that the given <paramref name="type"/> has an generic ancestor with <paramref name="genericDefinitionBaseType"/>
+        /// as its generic type definition.
+        /// <para/>
+        /// NOTE: this will fail if <paramref name="genericDefinitionBaseType"/> is the <c>GenericTypeDefinition</c> of <c>type</c>
         /// </summary>
-        /// <param name="type"></param>
-        /// <param name="genericDefinitionBaseType"></param>
-        /// <returns></returns>
-        public static bool HasGenericBaseType(this Type type, Type genericDefinitionBaseType)
+        /// <param name="type">The type to verify</param>
+        /// <param name="genericDefinitionBaseType">The generic type definition to check the ancestors against</param>
+        public static bool HasBaseGenericType(this Type type, Type genericDefinitionBaseType)
         {
-            if (!genericDefinitionBaseType.IsGenericTypeDefinition) throw new System.Exception("ancestor is not a generic type definition");
+            if (!genericDefinitionBaseType.IsGenericTypeDefinition)
+                throw new ArgumentException($"Invalid {nameof(genericDefinitionBaseType)}: ancestor is not a generic type definition");
+
+            EqualityComparer<Type> comparer = EqualityComparer<Type>.Default;
             return type
                 .BaseTypes()
                 .Where(_bt => _bt != type)
                 .Where(_bt => _bt.IsGenericType)
-                .Where(_bt => _bt.GetGenericTypeDefinition() == genericDefinitionBaseType)
+                .Where(_bt => comparer.Equals(_bt.GetGenericTypeDefinition(), genericDefinitionBaseType))
                 .Any();
         }
 
+        /// <summary>
+        /// Verifies that one of the interfaces implemented by <paramref name="type"/> has
+        /// <paramref name="genericDefinitionInterfaceType"/> as it's generic type definition.
+        /// </summary>
+        /// <param name="type">The type to verify</param>
+        /// <param name="genericDefinitionInterfaceType">The generic type definition to check interfaces against</param>
         public static bool ImplementsGenericInterface(this
             Type type,
             Type genericDefinitionInterfaceType)
@@ -159,6 +162,11 @@ namespace Axis.Luna.Extensions
                 .Any(_i => _i.IsGenericType && _i.GetGenericTypeDefinition() == genericDefinitionInterfaceType);
 
 
+        /// <summary>
+        /// Gets the base type who has the given <paramref name="genericBaseDefinition"/> as its generic type definition.
+        /// </summary>
+        /// <param name="type">The type to verify</param>
+        /// <param name="genericBaseDefinition">The type definition to check base types against</param>
         public static Type GetGenericBase(this Type type, Type genericBaseDefinition)
         {
             genericBaseDefinition
@@ -176,6 +184,14 @@ namespace Axis.Luna.Extensions
                 .FirstOrDefault();
         }
 
+        /// <summary>
+        /// Similar to  <see cref="GetGenericBase(Type, Type)"/>, except using the <c>TryXXX</c> pattern: returns true
+        /// if the base is found, false otherwise, in addition to populating the <c>out</c> parameter when found.
+        /// </summary>
+        /// <param name="type">The type to verify</param>
+        /// <param name="genericBaseDefinition">The generic type definition to check base types against</param>
+        /// <param name="genericBase">The base type if found</param>
+        /// <returns>True if the base type is found, false otherwise</returns>
         public static bool TryGetGenericBase(this Type type, Type genericBaseDefinition, out Type genericBase)
         {
             genericBase = null;
@@ -195,6 +211,11 @@ namespace Axis.Luna.Extensions
             return genericBase != null;
         }
 
+        /// <summary>
+        /// Gets the interface who has the given <paramref name="genericBaseDefinition"/> as its generic type definition.
+        /// </summary>
+        /// <param name="type">The type to verify</param>
+        /// <param name="genericDefinitionInterface">The generic type definition to check interfaces against</param>
         public static Type GetGenericInterface(this Type type, Type genericDefinitionInterface)
         {
             genericDefinitionInterface
@@ -212,6 +233,14 @@ namespace Axis.Luna.Extensions
                 .FirstOrDefault();
         }
 
+        /// <summary>
+        /// Similar to  <see cref="GetGenericInterface(Type, Type)(Type, Type)"/>, except using the <c>TryXXX</c> pattern: returns true
+        /// if the interface is found, false otherwise, in addition to populating the <c>out</c> parameter when found.
+        /// </summary>
+        /// <param name="type">The type to verify</param>
+        /// <param name="genericInterfaceDefinition">The generic type definition to check interfaces against</param>
+        /// <param name="genericInterface">The interface, if found</param>
+        /// <returns>True if the interface is found, false otherwise</returns>
         public static bool TryGetGenericInterface(this Type type, Type genericInterfaceDefinition, out Type genericInterface)
         {
             genericInterface = null;
@@ -235,51 +264,37 @@ namespace Axis.Luna.Extensions
         /// Verifies that the given type implements all of the supplied interfaces.
         /// </summary>
         /// <param name="type">The type to test against. Can be a class or struct, or interface, etc.</param>
-        /// <param name="firstInterface">The first interface to check for implementation</param>
-        /// <param name="otherInterfaces">Multiple interfaces to check for implementation</param>
-        public static bool Implements(this Type type, Type firstInterface, params Type[] otherInterfaces)
+        /// <param name="interfaces">Multiple interfaces to check for implementation</param>
+        public static bool Implements(this Type type, params Type[] interfaces)
         {
-            var interfaces = new HashSet<Type>(type.GetInterfaces());
-            return firstInterface
-                .EnumerateWith(otherInterfaces)
-                .Distinct()
-                .Select(@interface => !@interface.IsInterface
-                    ? throw new InvalidOperationException($"{@interface} is not an interface")
-                    : @interface)
-                .All(interfaces.Contains);
+            ArgumentNullException.ThrowIfNull(type);
+            ArgumentNullException.ThrowIfNull(interfaces);
+
+            if (interfaces.IsEmpty())
+                return true;
+
+            var interfaceSet = new HashSet<Type>(type.GetInterfaces());
+            return interfaces
+                .ThrowIfAny(
+                    i => !i.IsInterface,
+                    i => new ArgumentException($"{i} is not an interface"))
+                .All(interfaceSet.Contains);
         }
 
         /// <summary>
         /// Verifies that the given type implements any of the supplied interfaces.
         /// </summary>
         /// <param name="type">The type to test against. Can be a class or struct, or interface, etc.</param>
-        /// <param name="firstInterface">The first interface to check for implementation</param>
-        /// <param name="otherInterfaces">Multiple interfaces to check for implementation</param>
-        public static bool ImplementsAny(this Type type, Type firstInterface, params Type[] otherInterfaces)
+        /// <param name="interfaces">Multiple interfaces to check for implementation</param>
+        public static bool ImplementsAny(this Type type, params Type[] interfaces)
         {
-            var interfaces = new HashSet<Type>(type.GetInterfaces());
-            return firstInterface
-                .EnumerateWith(otherInterfaces)
-                .Distinct()
-                .Select(@interface => !@interface.IsInterface
-                    ? throw new InvalidOperationException($"{@interface} is not an interface")
-                    : @interface)
-                .Any(interfaces.Contains);
+            var interfaceSet = new HashSet<Type>(type.GetInterfaces());
+            return interfaces
+                .ThrowIfAny(
+                    i => !i.IsInterface,
+                    i => new ArgumentException($"{i} is not an interface"))
+                .Any(interfaceSet.Contains);
         }
-
-        /// <summary>
-        /// Ensures that a type inherits from all the listed types. If any of the bases is a GenericTypeDefinition, the method checks that any of the
-        /// target type's generic bases has a generic definition that matches the given one. If the type itself is contained in the base list, it still passes
-        /// </summary>
-        /// <param name="type"></param>
-        /// <param name="baseType"></param>
-        /// <param name="otherBases"></param>
-        /// <returns></returns>
-        public static bool Extends(this
-            Type type,
-            Type baseType,
-            params Type[] otherBases)
-            => type.Extends(baseType.EnumerateWith(otherBases).ToArray());
 
         /// <summary>
         /// Ensures that a type inherits from all the listed types. If any of the bases is a GenericTypeDefinition, the method checks that any of the
@@ -287,19 +302,21 @@ namespace Axis.Luna.Extensions
         /// </summary>
         /// <param name="type"></param>
         /// <param name="bases"></param>
-        /// <returns></returns>
         public static bool Extends(this Type type, params Type[] bases)
         {
             if (type == null)
                 throw new ArgumentNullException(nameof(type));
 
-            if (bases == null || bases.Length == 0)
+            if (bases is null)
                 return false;
+
+            if (bases.IsEmpty())
+                return true;
 
             var regularBases = new HashSet<Type>();
             var genericDefinitionBases = new HashSet<Type>();
 
-            bases.ForAll(@base =>
+            bases.ForEvery(@base =>
             {
                 if (!@base.IsClass)
                     throw new InvalidOperationException($"{@base} is not a class");
@@ -320,12 +337,17 @@ namespace Axis.Luna.Extensions
                 && genericDefinitionBases.All(@base => actualBases.Contains(@base));
         }
 
+        /// <summary>
+        /// Gets all of the types and interfaces in a types inheritance lineage.
+        /// </summary>
+        /// <param name="type">The type to query</param>
+        /// <returns>All types found in its lineage</returns>
         public static IEnumerable<Type> TypeLineage(this Type type) => type.GetInterfaces().Concat(type.BaseTypes());
 
         /// <summary>
         /// Returns this type, along with all the types it inherits from, all the way back to "object"
         /// </summary>
-        /// <param name="type"></param>
+        /// <param name="type">The type to query</param>
         /// <returns></returns>
         public static IEnumerable<Type> BaseTypes(this Type type)
         {
@@ -374,343 +396,6 @@ namespace Axis.Luna.Extensions
                 .Where(type => type.IsGenericType)
                 .Select(type => type.GetGenericTypeDefinition())
                 .Any(definition => definition.Equals(genericDefinitionBase));
-        }
-
-        #endregion
-
-        #region Property
-
-        public static bool IsInit(this PropertyInfo property)
-        {
-            if (property is null)
-                throw new ArgumentNullException(nameof(property));
-
-            if (property.SetMethod is null)
-                return false;
-
-            return property.SetMethod.ReturnParameter
-                .GetRequiredCustomModifiers()
-                .Contains(typeof(System.Runtime.CompilerServices.IsExternalInit));
-        }
-
-        public static MemberInfo Member(Expression<Func<object>> expr)
-        {
-            if (!(expr is LambdaExpression lambda)) return null;
-            else if (lambda.Body is UnaryExpression)
-            {
-                var member = (lambda.Body as UnaryExpression).Operand as MemberExpression;
-                return member?.Member as MemberInfo;
-            }
-            else if (lambda.Body is MemberExpression)
-            {
-                var member = (lambda.Body as MemberExpression);
-                return member?.Member as MemberInfo;
-            }
-            else return null;
-        }
-
-        public static MemberInfo Member<V>(Expression<Func<V>> expr)
-        {
-            if (!(expr is LambdaExpression lambda)) return null;
-            else if (lambda.Body is UnaryExpression)
-            {
-                if (!((lambda.Body as UnaryExpression).Operand is MemberExpression member)) return null;
-                else return member.Member as MemberInfo;
-            }
-            else if (lambda.Body is MemberExpression)
-            {
-                var member = (lambda.Body as MemberExpression);
-                if (member == null) return null;
-                else return member.Member as MemberInfo;
-            }
-            else return null;
-        }
-
-        public static PropertyInfo Property<V>(Expression<Func<V>> expr) => Member(expr).As<PropertyInfo>();
-
-        public static PropertyInfo Property(this object obj, string property) => obj?.GetType()?.GetProperty(property);
-
-
-        public static V PropertyValue<V>(this object obj, string property)
-        {
-            if (!obj.TryGetPropertyValue<V>(property, out V val)) throw new System.Exception("Property value could not be retrieved");
-            else return val;
-        }
-
-        public static object PropertyValue(this object obj, string property)
-        {
-            if (!obj.TryGetPropertyValue(property, out object val)) throw new System.Exception("Property value could not be retrieved");
-            else return val;
-        }
-
-
-        public static bool TryGetPropertyValue<V>(this object obj, string property, out V val)
-        {
-            val = default; //<-- initial value
-            var propInfo = obj.Property(property);
-            if (propInfo == null) return false;
-            else
-            {
-                try
-                {
-                    val = (V)PropertyAccessorFor(obj.GetType(), propInfo.Name).Invoke(obj);
-                    return true;
-                }
-                catch
-                {
-                    return false;
-                }
-            }
-        }
-
-        public static bool TryGetPropertyValue(this object obj, string property, out object val)
-        {
-            val = null; //<-- initial value
-            var propInfo = obj.Property(property);
-            if (propInfo == null) return false;
-            else
-            {
-                try
-                {
-                    val = PropertyAccessorFor(obj.GetType(), propInfo.Name).Invoke(obj);
-                    return true;
-                }
-                catch
-                {
-                    return false;
-                }
-            }
-        }
-
-
-        public static object SetPropertyValue(this object obj, string propertyName, object value)
-        {
-            var propInfo = obj.Property(propertyName);
-            PropertyMutatorFor(obj.GetType(), propertyName).Invoke(obj, value);
-
-            return value;
-        }
-
-        public static V SetPropertyValue<V>(this object obj, Expression<Func<V>> propertyExpression, V value)
-        => obj.SetPropertyValue(Property(propertyExpression).Name, value);
-
-        public static V SetPropertyValue<V>(this object obj, string propertyName, V value) 
-        => (V)obj.SetPropertyValue(propertyName, (object)value);
-
-        #endregion
-
-        #region Field
-
-        public static Func<object, object> FieldAccessorFor(this FieldInfo fieldInfo)
-        {
-            ArgumentNullException.ThrowIfNull(fieldInfo);
-
-            return FieldAccessorMap.GetOrAdd(fieldInfo, field =>
-            {
-                var guid = Guid
-                    .NewGuid()
-                    .ToString()
-                    .Replace("-", "_");
-
-                var dynamicMethod = new DynamicMethod(
-                    name: $"FieldGetterFor_{field.Name}_{guid}",
-                    returnType: typeof(object),
-                    parameterTypes: new[] { typeof(object) },
-                    m: typeof(TypeExtensions).Module);
-
-                var emitter = dynamicMethod.GetILGenerator();
-
-                // push 'this' unto the stack - for value-types, this is a boxed value
-                emitter.Emit(OpCodes.Ldarg_0);
-
-                // cast/unbox 'this' from object to appropariate type.
-                if (field.DeclaringType.IsValueType)
-                {
-                    emitter.Emit(OpCodes.Unbox_Any, field.DeclaringType);
-                }
-                else
-                {
-                    emitter.Emit(OpCodes.Castclass, field.DeclaringType);
-                }
-
-                // load the field
-                emitter.Emit(OpCodes.Ldfld, field);
-
-                // box the value if it is a value-type
-                if (field.FieldType.IsValueType)
-                    emitter.Emit(OpCodes.Box, field.FieldType);
-
-                // return the value
-                emitter.Emit(OpCodes.Ret);
-
-                return dynamicMethod.CreateDelegate<Func<object, object>>();
-            });
-        }
-
-        public static Func<TType, TFieldType> TypedFieldAccessorFor<TType, TFieldType>(this FieldInfo fieldInfo)
-        {
-            ArgumentNullException.ThrowIfNull(fieldInfo);
-
-            if (!typeof(TType).Equals(fieldInfo.DeclaringType))
-                throw new ArgumentException(
-                    "Type mismatch. "
-                    + $"'{nameof(fieldInfo)}.DeclaringType':{fieldInfo.DeclaringType.FullName}, "
-                    + $"'{nameof(TType)}': {typeof(TType).FullName}");
-
-            if (!typeof(TFieldType).Equals(fieldInfo.FieldType))
-                throw new ArgumentException(
-                    "Type mismatch. "
-                    + $"'{nameof(fieldInfo)}.FieldType':{fieldInfo.FieldType.FullName}, "
-                    + $"'{nameof(TFieldType)}': {typeof(TFieldType).FullName}");
-
-            return TypedFieldMap
-                .GetOrAdd((fieldInfo, TypedAccessorMode.Access), field =>
-                {
-                    var guid = Guid
-                        .NewGuid()
-                        .ToString()
-                        .Replace("-", "_");
-
-                    var dynamicMethod = new DynamicMethod(
-                        name: $"FieldGetterFor_{field.Field.Name}_{guid}",
-                        returnType: typeof(TFieldType),
-                        parameterTypes: new[] { typeof(TType) },
-                        m: typeof(TypeExtensions).Module);
-
-                    var emitter = dynamicMethod.GetILGenerator();
-
-                    // push 'this' unto the stack - for value-types, this is a boxed value
-                    emitter.Emit(OpCodes.Ldarg_0);
-
-                    // load the field
-                    emitter.Emit(OpCodes.Ldfld, field.Field);
-
-                    // return the value
-                    emitter.Emit(OpCodes.Ret);
-
-                    return dynamicMethod.CreateDelegate<Func<TType, TFieldType>>();
-                })
-                .As<Func<TType, TFieldType>>();
-        }
-
-        /// <summary>
-        /// Returns a delegate that when called, assigns the given value to the supplied field of the supplied object/struct.
-        /// <para/>
-        /// Note, if called for a struct, be sure to hold a reference to a boxed version of the struct, and pass that into the delegate, 
-        /// else any changes will be lost as they are only effected on the boxed struct passed into the delegate.
-        /// </summary>
-        /// <param name="fieldInfo">The field for which the delegate is created</param>
-        /// <returns>The mutator delegate</returns>
-        /// <exception cref="InvalidOperationException"></exception>
-        public static Action<object, object> FieldMutatorFor(this FieldInfo fieldInfo)
-        {
-            ArgumentNullException.ThrowIfNull(fieldInfo);
-
-            return FieldMutatorMap.GetOrAdd(fieldInfo, field =>
-            {
-                if (field.DeclaringType.IsClass)
-                {
-                    var guid = Guid
-                        .NewGuid()
-                        .ToString()
-                        .Replace("-", "_");
-
-                    var dynamicMethod = new DynamicMethod(
-                        name: $"FieldSetterFor_{field.Name}_{guid}",
-                        returnType: typeof(void),
-                        parameterTypes: new[] { typeof(object), typeof(object) },
-                        m: typeof(TypeExtensions).Module);
-
-                    var emitter = dynamicMethod.GetILGenerator();
-
-                    // push 'this' unto the stack
-                    emitter.Emit(OpCodes.Ldarg_0);
-
-                    // cast the object to the appropriate value
-                    if (!field.DeclaringType.Equals(typeof(object)))
-                        emitter.Emit(OpCodes.Castclass, field.DeclaringType);
-
-                    // push the value unto the stack
-                    emitter.Emit(OpCodes.Ldarg_1);
-
-                    if (field.FieldType.IsValueType)
-                        emitter.Emit(OpCodes.Unbox_Any, field.FieldType);
-
-                    // assign the field
-                    emitter.Emit(OpCodes.Stfld, field);
-
-                    // return
-                    emitter.Emit(OpCodes.Ret);
-
-                    return dynamicMethod.CreateDelegate<Action<object, object>>();
-                }
-                else if (field.DeclaringType.IsValueType)
-                {
-                    // using raw reflection because it benchmarks faster than the IL generated delegates! 🤯
-                    return (@this, arg) =>
-                    {
-                        field.SetValue(@this, arg);
-                    };
-                }
-
-                else throw new InvalidOperationException($"Supplied field belongs neighter to a Class nor a Struct");
-            });
-        }
-
-        public static Action<TType, TFieldType> TypedFieldMutatorFor<TType, TFieldType>(this FieldInfo fieldInfo)
-        where TType : class
-        {
-            ArgumentNullException.ThrowIfNull(fieldInfo);
-
-            if (!typeof(TType).Equals(fieldInfo.DeclaringType))
-                throw new ArgumentException(
-                    "Type mismatch. "
-                    + $"'{nameof(fieldInfo)}.DeclaringType':{fieldInfo.DeclaringType.FullName}, "
-                    + $"'{nameof(TType)}': {typeof(TType).FullName}");
-
-            if (!typeof(TFieldType).Equals(fieldInfo.FieldType))
-                throw new ArgumentException(
-                    "Type mismatch. "
-                    + $"'{nameof(fieldInfo)}.FieldType':{fieldInfo.FieldType.FullName}, "
-                    + $"'{nameof(TFieldType)}': {typeof(TFieldType).FullName}");
-
-            return TypedFieldMap
-                .GetOrAdd((fieldInfo, TypedAccessorMode.Mutate), field =>
-                {
-                    var guid = Guid
-                        .NewGuid()
-                        .ToString()
-                        .Replace("-", "_");
-
-                    var dynamicMethod = new DynamicMethod(
-                        name: $"TypedFieldSetterFor_{field.Field.Name}_{guid}",
-                        returnType: typeof(void),
-                        parameterTypes: new[] { field.Field.DeclaringType, typeof(TFieldType) },
-                        m: typeof(TypeExtensions).Module);
-
-                    var emitter = dynamicMethod.GetILGenerator();
-
-                    // push 'this' unto the stack
-                    emitter.Emit(OpCodes.Ldarg_0);
-
-                    // push the value unto the stack
-                    emitter.Emit(OpCodes.Ldarg_1);
-
-                    // assign the field
-                    emitter.Emit(OpCodes.Stfld, field.Field);
-
-                    // return
-                    emitter.Emit(OpCodes.Ret);
-
-                    return dynamicMethod.CreateDelegate<Action<TType, TFieldType>>();
-                })
-                .As<Action<TType, TFieldType>>();
-        }
-
-        internal enum TypedAccessorMode
-        {
-            Access,
-            Mutate
         }
 
         #endregion
@@ -900,7 +585,9 @@ namespace Axis.Luna.Extensions
 
         public static bool IsIntegral(this Type type) => Integrals.Contains(type);
 
-        public static bool IsDecimal(this Type type) => Decimals.Contains(type);
+        public static bool IsDecimal(this Type type) => typeof(decimal).Equals(type);
+
+        public static bool IsReal(this Type type) => Reals.Contains(type);
 
         internal static readonly IEnumerable<Type> Integrals = new HashSet<Type>()
         {
@@ -914,59 +601,14 @@ namespace Axis.Luna.Extensions
             typeof(ulong)
         };
 
-        internal static readonly IEnumerable<Type> Decimals = new HashSet<Type>()
+        internal static readonly IEnumerable<Type> Reals = new HashSet<Type>()
         {
-            typeof(decimal),
+            typeof(Half),
             typeof(float),
             typeof(double)
         };
 
         #endregion
-
-        private static Func<object, object> PropertyAccessorFor(this Type targetType, string propertyName)
-        {
-            var property = targetType
-                .GetProperty(propertyName)
-                ?? throw new ArgumentException($"Invalid property name: {propertyName}");
-
-            return PropertyAccessors
-                .GetOrAdd($"{property.AccessorSignature()}", _sig =>
-                {
-                    var targetArg = Expression.Parameter(typeof(object), "target");
-                    var targetCast = Expression.Convert(targetArg, targetType);
-                    var propertyAccessor = Expression.MakeMemberAccess(targetCast, property);
-                    Expression body = property.PropertyType.IsValueType
-                        ? Expression.Convert(propertyAccessor, typeof(object))
-                        : propertyAccessor.As<Expression>();
-                    var lambda = Expression.Lambda(typeof(Func<object, object>), body, targetArg);
-                    var @delegate = lambda.Compile();
-
-                    return @delegate;
-                })
-                .As<Func<object, object>>();
-        }
-
-        private static Action<object, object> PropertyMutatorFor(this Type targetType, string propertyName)
-        {
-            var property = targetType
-                .GetProperty(propertyName)
-                ?? throw new ArgumentException($"Invalid property name: {propertyName}");
-
-            return PropertyAccessors
-                .GetOrAdd($"{property.MutatorSignature()}", _sig =>
-                {
-                    var targetArg = Expression.Parameter(typeof(object), "target");
-                    var valueArg = Expression.Parameter(typeof(object), "value");
-                    var targetCast = Expression.Convert(targetArg, targetType);
-                    var valueCast = Expression.Convert(valueArg, property.PropertyType);
-                    var propertyMutatorFunction = Expression.Call(targetCast, property.GetSetMethod(), valueCast);
-                    var lambda = Expression.Lambda(typeof(Action<object, object>), propertyMutatorFunction, targetArg, valueArg);
-                    var @delegate = lambda.Compile();
-
-                    return @delegate;
-                })
-                .As<Action<object, object>>();
-        }
 
         private static IEnumerable<Type> FlattenIfGeneric(Type type)
         {

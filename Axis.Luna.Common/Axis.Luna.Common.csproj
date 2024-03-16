@@ -15,21 +15,20 @@
     <Company>Axiis</Company>
     <Authors>Dantte</Authors>
     <PackageReadmeFile>axis.luna.common.readme.md</PackageReadmeFile>
+    <Nullable>enable</Nullable>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="Automata\**" />
+    <EmbeddedResource Remove="Automata\**" />
+    <None Remove="Automata\**" />
+  </ItemGroup>
 
   <ItemGroup>
     <None Include="..\axis.luna.common.readme.md">
       <Pack>True</Pack>
       <PackagePath>\</PackagePath>
     </None>
-  </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\Axis.Luna.Extensions\Axis.Luna.Extensions.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Automata\Async\" />
   </ItemGroup>
 
 </Project>

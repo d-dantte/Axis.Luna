@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Text;
 
 namespace Axis.Luna.Extensions
 {
@@ -10,17 +9,6 @@ namespace Axis.Luna.Extensions
     [DebuggerStepThrough]
     public static class MathExtensions
     {
-        public static Fraction Divide(this int denominator, int numerator) => new Fraction
-        {
-            Remainder = numerator % denominator,
-            Multiples = numerator / denominator
-        };
-        public static Fraction Divide(this long denominator, long numerator) => new Fraction
-        {
-            Remainder = numerator % denominator,
-            Multiples = numerator / denominator
-        };
-
         public static int DigitCount(long value) => (int)Math.Floor(Math.Log10(value) + 1);
 
         public static int DigitCount(ulong value) => (int)Math.Floor(Math.Log10(value) + 1);
@@ -78,11 +66,5 @@ namespace Axis.Luna.Extensions
 
         public static bool IsEven(this ulong value) => !value.IsOdd();
 
-    }
-
-    public class Fraction
-    {
-        public long Multiples { get; set; }
-        public long Remainder { get; set; }
     }
 }

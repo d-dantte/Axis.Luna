@@ -1,9 +1,6 @@
-﻿
-using Axis.Luna.Common.Utils;
-using Axis.Luna.Extensions;
+﻿using Axis.Luna.Extensions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
-using System.Linq;
 using System.Text;
 
 namespace Axis.Luna.Common.Test

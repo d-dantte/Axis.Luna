@@ -1,13 +1,10 @@
 ﻿using System;
-using System.Diagnostics.CodeAnalysis;
 
 namespace Axis.Luna.Common
 {
-
     /// <summary>
     /// Rolling polynomial hash implementation.
     /// <para/>
-    /// 
     /// Instances of this type, upon creation, assume that the "current" offset is one step behind the provided
     /// offset value in the constructor. This means <see cref="RollingHash.WindowHash"/> will hold "null" until
     /// the first call to either of the <c>TryNext(...)</c> methods.
@@ -116,7 +113,7 @@ namespace Axis.Luna.Common
 
             public override int GetHashCode() => HashCode.Combine(_hash1, _hash2);
 
-            public override bool Equals([NotNullWhen(true)] object obj)
+            public override bool Equals(object? obj)
             {
                 return obj is Hash other && Equals(other);
             }
@@ -210,10 +207,10 @@ namespace Axis.Luna.Common
                 Validate(source, oldOffset + 1, length);
 
                 // Remove hash of left-most character, and refactor hash
-                var hash = (previousHash + mod - factor * source[oldOffset].GetHashCode() % mod) % mod;
+                var hash = (previousHash + mod - factor * (source[oldOffset]?.GetHashCode() ?? 0) % mod) % mod;
 
                 // Add hash of new right-most character
-                hash = (hash * @base + source[oldOffset + length].GetHashCode()) % mod;
+                hash = (hash * @base + (source[oldOffset + length]?.GetHashCode() ?? 0)) % mod;
 
                 return hash;
             }
@@ -231,7 +228,7 @@ namespace Axis.Luna.Common
                 var limit = offset + length;
                 for (int index = offset; index < limit; index++)
                 {
-                    hash = (@base * hash + source[index].GetHashCode()) % mod;
+                    hash = (@base * hash + (source[index]?.GetHashCode() ?? 0)) % mod;
                 }
                 return hash;
             }
@@ -289,7 +286,7 @@ namespace Axis.Luna.Common
                 Validate(source, offset, length);
 
                 return Hash.Of(
-                    source[offset..(offset + 1)][0].GetHashCode(),
+                    (source[offset..(offset + 1)][0]?.GetHashCode() ?? 0),
                     0);
             }
         }

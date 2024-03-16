@@ -6,6 +6,7 @@ using System.Reflection;
 using System.Reflection.Emit;
 using System.Text;
 using System.Threading.Tasks;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace Axis.Luna.Extensions
 {
@@ -80,62 +81,6 @@ namespace Axis.Luna.Extensions
         }
         #endregion
 
-        #region State Relocation
-        private static readonly ConcurrentDictionary<Type, Delegate> RelocateStateMap = new ConcurrentDictionary<Type, Delegate>();
-
-        /// <summary>
-        /// Copies the state (fields) from the <paramref name="sourceValue"/> instance into the <paramref name="destinationValue"/> instance.
-        /// <para/>
-        /// Note that some structures may have complex associations/dependencies beyond their local fields, and so simply copying the fields
-        /// may not be enough to "clone" the object. Only use this method if you understand to a large extent, the internal workings of the
-        /// class you intend to copy it's state.
-        /// </summary>
-        /// <typeparam name="TRefType">The type of the values to copy</typeparam>
-        /// <param name="destinationValue">The destination value</param>
-        /// <param name="sourceValue">The source value</param>
-        /// <returns></returns>
-        public static TRefType CopyStateFrom<TRefType>(this TRefType destinationValue, TRefType sourceValue)
-        where TRefType : class
-        {
-            ArgumentNullException.ThrowIfNull(destinationValue);
-            ArgumentNullException.ThrowIfNull(sourceValue);
-
-            if (!destinationValue.GetType().Equals(sourceValue.GetType()))
-                throw new InvalidOperationException(
-                    $"Type mismatch. "
-                    + $"source type: '{sourceValue.GetType().FullName}', "
-                    + $"destination type: '{destinationValue.GetType().FullName}'");
-
-            var rerefer = RelocateStateMap
-                .GetOrAdd(typeof(TRefType), _ => BuildStateRelocator<TRefType>(destinationValue.GetType()))
-                .As<Action<TRefType, TRefType>>();
-
-            rerefer.Invoke(destinationValue, sourceValue);
-            return destinationValue;
-        }
-
-        private static Delegate BuildStateRelocator<TRefType>(Type instanceType)
-        where TRefType : class
-        {
-            var fields = instanceType.GetFields(
-                BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
-
-            return (TRefType destination, TRefType source) =>
-            {
-                fields.ForAll(field =>
-                {
-                    var value = field.FieldAccessorFor().Invoke(source);
-                    var @default = field.FieldType.DefaultValue();
-
-                    if ((@default is null && value is not null)
-                        || (@default is not null && !@default.Equals(value)))
-                        field.FieldMutatorFor().Invoke(destination, value);
-                });
-            };
-        }
-        #endregion
-
-
         public static bool Is<T>(this object value) => value is T;
 
         public static bool Is<TIn, TOut>(this TIn @in, out TOut @out)
@@ -176,11 +121,7 @@ namespace Axis.Luna.Extensions
 
         public static void NoOp() { }
 
-        public static void NoOp<T>(T arg) { }
-
-        public static T Default<T>() => default;
-
-        public static TOut Default<TIn, TOut>(TIn @in) => default;
+        public static void NoOp<T>(T _) { }
 
         public static bool NullOrEquals<T>(this
             T operand1,
@@ -199,59 +140,6 @@ namespace Axis.Luna.Extensions
                 return false;
 
             return predicate.Invoke(operand1, operand2);
-        }
-
-
-        /// <summary>
-        /// Convenience method for "using" disposables with lambda delegates
-        /// </summary>
-        /// <typeparam name="D"></typeparam>
-        /// <typeparam name="Out"></typeparam>
-        /// <param name="disposable"></param>
-        /// <param name="func"></param>
-        /// <returns></returns>
-        public static Out Using<D, Out>(this D disposable, Func<D, Out> func)
-        where D : IDisposable
-        {
-            using (disposable)
-            {
-                return func(disposable);
-            }
-        }
-
-        /// <summary>
-        /// Async version of Convenience method for "using" disposables with lambda delegates
-        /// </summary>
-        /// <typeparam name="D"></typeparam>
-        /// <typeparam name="Out"></typeparam>
-        /// <param name="disposable"></param>
-        /// <param name="func"></param>
-        /// <returns></returns>
-        public static async Task<Out> UsingAsync<D, Out>(this D disposable, Func<D, Task<Out>> func)
-        where D : IDisposable
-        {
-            using (disposable)
-            {
-                return await func(disposable);
-            }
-        }
-
-        public static void Using<D>(this D disposable, Action<D> action)
-        where D : IDisposable
-        {
-            using (disposable)
-            {
-                action(disposable);
-            }
-        }
-
-        public static async Task UsingAsync<D>(this D disposable, Func<D, Task> action)
-        where D : IDisposable
-        {
-            using (disposable)
-            {
-                await action(disposable);
-            }
         }
 
         public static KeyValuePair<K, V> ValuePair<K, V>(this K key, V value) => new KeyValuePair<K, V>(key, value);
@@ -369,37 +257,8 @@ namespace Axis.Luna.Extensions
         public static bool IsNull(this object value) => value == null;
         public static bool IsNotNull(this object value) => value != null;
 
-        public static int PropertyHash(this object @this)
-            => ValueHash(@this
-            .GetType()
-            .GetProperties()
-            .OrderBy(p => p.Name)
-            .Select(p => p.GetValue(@this)));
 
-        public static int ValueHash(
-            IEnumerable<object> values,
-            int prime1 = 19,
-            int prime2 = 181)
-            => ValueHashInternal(prime1, prime2, values.ToArray());
-
-        public static int ValueHash(
-            int prime1,
-            int prime2,
-            params object[] values)
-            => ValueHashInternal(prime1, prime2, values);
-
-        public static int ValueHash(params
-            object[] values) 
-            => ValueHashInternal(19, 181, values);
-
-        private static int ValueHashInternal(
-            int prime1,
-            int prime2,
-            object[] values)
-            => values.Aggregate(prime1, (hash, next) => hash * prime2 + (next?.GetHashCode() ?? 0));
-
-
-        #region Apply/Consume/Use
+        #region ApplyTo
 
         /// <summary>
         /// Applies the mapping function to the given input argument
@@ -411,13 +270,12 @@ namespace Axis.Luna.Extensions
         /// <returns>transformed output</returns>
         public static TOut ApplyTo<TIn, TOut>(this TIn @in, Func<TIn, TOut> mapper)
         {
-            if (mapper == null) 
+            if (mapper == null)
                 throw new ArgumentNullException(nameof(mapper));
 
             return mapper.Invoke(@in);
         }
 
-        #region ApplyTo
         public static TOut ApplyTo
             <TIn1, TIn2, TOut>
             (this (TIn1 in1, TIn2 in2) input,
@@ -507,6 +365,7 @@ namespace Axis.Luna.Extensions
         }
         #endregion
 
+        #region With
         /// <summary>
         /// Consumes the given input using the consumer action, and returns the input
         /// </summary>
@@ -516,10 +375,8 @@ namespace Axis.Luna.Extensions
         /// <returns>The Input argument</returns>
         public static TIn With<TIn>(this TIn @in, Action<TIn> consumer)
         {
-            if (consumer == null)
-                throw new ArgumentNullException(nameof(consumer));
-
-            else consumer.Invoke(@in);
+            ArgumentNullException.ThrowIfNull(consumer);
+            consumer.Invoke(@in);
 
             return @in;
         }
@@ -529,18 +386,17 @@ namespace Axis.Luna.Extensions
             Func<TIn, bool> predicate,
             Action<TIn> consumer)
         {
-            if (predicate == null)
-                throw new ArgumentNullException(nameof(predicate));
-
-            if (consumer == null)
-                throw new ArgumentNullException(nameof(consumer));
+            ArgumentNullException.ThrowIfNull(predicate);
+            ArgumentNullException.ThrowIfNull(consumer);
 
             if (predicate.Invoke(@in))
                 consumer.Invoke(@in);
 
             return @in;
         }
+        #endregion
 
+        #region Consume
         /// <summary>
         /// Consumes the given input using the consumer action.
         /// </summary>
@@ -554,128 +410,6 @@ namespace Axis.Luna.Extensions
 
             consumer.Invoke(@in);
         }
-        #endregion
-
-        #region String extensions
-
-        public static string Trim(this
-            string @string,
-            string trimChars)
-            => @string.TrimStart(trimChars).TrimEnd(trimChars);
-
-        public static string TrimStart(this
-            string original,
-            string searchString)
-            => original.StartsWith(searchString)
-               ? original[searchString.Length..]
-               : original;
-
-        public static string TrimEnd(this
-            string original,
-            string searchString)
-            => original.EndsWith(searchString)
-               ? original[..^searchString.Length]
-               : original;
-
-        public static string JoinUsing(this
-            IEnumerable<string> strings,
-            string separator)
-            => string.Join(separator, strings);
-
-        public static string JoinUsing(this
-            IEnumerable<char> subStrings,
-            string separator)
-            => string.Join(separator, subStrings.ToArray());
-
-        public static string WrapIn(this
-            string @string,
-            string left,
-            string right = null)
-            => $"{left}{@string}{right ?? left}";
-
-        public static string WrapIf(this
-            string @string, Func<string, bool> predicate,
-            string left,
-            string right = null)
-        {
-            if (predicate.Invoke(@string))
-                return @string.WrapIn(left, right);
-
-            else return @string;
-        }
-
-        public static string UnwrapFrom(this
-            string @string,
-            string left,
-            string right = null)
-        {
-            if (@string.IsWrappedIn(left, right))
-                return @string
-                    [left.Length..^(right ?? left).Length]; //remove the first left.length, and the last (left|right).length, characters
-
-            else return @string;
-        }
-
-        public static string UnwrapIf(this
-            string @string,
-            Func<string, bool> predicate,
-            string left,
-            string right = null)
-        {
-            if (predicate.Invoke(@string))
-                return @string.UnwrapFrom(left, right);
-
-            else return @string;
-        }
-
-        public static bool IsWrappedIn(this
-            string @string,
-            string left,
-            string right = null)
-        {
-            return @string.StartsWith(left) && @string.EndsWith(right ?? left);
-        }
-
-        public static int SubstringCount(this string source, string subString)
-        {
-            if (string.IsNullOrWhiteSpace(source) || string.IsNullOrWhiteSpace(subString)) return 0;
-            else if (subString.Length > source.Length) return 0;
-
-            int lindex = 0;
-            int count = 0;
-            do
-            {
-                var sub = source.Substring(lindex, subString.Length);
-
-                if (sub.Equals(subString))
-                {
-                    count++;
-                    lindex += subString.Length;
-                }
-                else lindex++;
-            }
-            while ((lindex + subString.Length) <= source.Length);
-
-            return count;
-        }
-
-        public static bool ContainsAny(this
-            string source,
-            params string[] substrings)
-            => substrings.Any(source.Contains);
-
-        public static bool ContainsAll(this
-            string source,
-            params string[] substrings)
-            => substrings.All(source.Contains);
-
-        public static string SplitCamelCase(this
-            string source,
-            string separator = " ")
-            => source
-            .Aggregate(new StringBuilder(), (acc, ch) => acc.Append(char.IsUpper(ch) ? separator : "").Append(ch))
-            .ToString()
-            .Trim();
         #endregion
     }
 
@@ -692,6 +426,6 @@ namespace Axis.Luna.Extensions
                 && other.To == To;
         }
 
-        public override int GetHashCode() => Common.ValueHash(From, To);
+        public override int GetHashCode() => HashCode.Combine(From, To);
     }
 }

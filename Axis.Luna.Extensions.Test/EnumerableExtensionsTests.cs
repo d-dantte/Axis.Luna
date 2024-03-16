@@ -13,12 +13,6 @@ namespace Axis.Luna.Extensions.Test
             var sequence = new[] { 2, 4, 6, 8, 10, 12, 14, 16, 18, 20 };
             var empty = new int[0];
 
-            var result = sequence.ExactlyAll(_v => _v % 2 == 0);
-            Assert.IsTrue(result);
-
-            result = empty.ExactlyAll(_v => _v % 2 == 0);
-            Assert.IsFalse(result);
-
             sequence = System.Linq.Enumerable.Range(0, 20).ToArray();
 
             var skipped = sequence.SkipEvery(1, (_cnt, _v) => _v >= 10).ToArray();
@@ -29,33 +23,13 @@ namespace Axis.Luna.Extensions.Test
         }
 
         [TestMethod]
-        public void SubsetTests()
-        {
-            var sequence = System.Linq.Enumerable.Range(0, 100).ToArray().Reverse();
-            var subset = new[] { 8, 7, 6, 5 };
-            Assert.IsTrue(subset.IsSubsetOf(sequence));
-
-            subset = new[] { 8 };
-            Assert.IsTrue(subset.IsSubsetOf(sequence));
-
-            subset = new int[0];
-            Assert.IsTrue(subset.IsSubsetOf(sequence));
-
-            subset = System.Linq.Enumerable.Range(0, 101).Reverse().ToArray();
-            Assert.IsFalse(subset.IsSubsetOf(sequence));
-
-            subset = System.Linq.Enumerable.Range(0, 100).Reverse().ToArray();
-            Assert.IsTrue(subset.IsSubsetOf(sequence));
-        }
-
-        [TestMethod]
         public void CombinationTest()
         {
             "aacde"
                 .Permutations()
                 .Select(arr => new string(arr.ToArray()))
                 .Distinct()
-                .WithEach(Console.WriteLine)
+                .WithEvery(Console.WriteLine)
                 .Count()
                 .Consume(count => Console.WriteLine("Total combination count: " + count));
 
@@ -95,7 +69,7 @@ namespace Axis.Luna.Extensions.Test
             var x = new[] { 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0 };
             var skipped = x.SkipEvery(4).ToArray();
 
-            skipped.ForAll(t => Console.Write(t + " "));
+            skipped.ForEvery(t => Console.Write(t + " "));
         }
 
         [TestMethod]
@@ -104,7 +78,7 @@ namespace Axis.Luna.Extensions.Test
             var x = new[] { 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0 };
             var skipped = x.TakeEvery(3).ToArray();
 
-            skipped.ForAll(t => Console.Write(t + " "));
+            skipped.ForEvery(t => Console.Write(t + " "));
         }
     }
 }

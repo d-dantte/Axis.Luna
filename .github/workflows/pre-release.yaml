@@ -16,17 +16,53 @@ jobs:
     - name: Test
       run: dotnet test --configuration Release /p:Version=${VERSION} --no-build
 
-    # Axis.Luna.Extensions
+    # Axis.Luna.Automata
     - name: Pack
-      run: dotnet pack ./Axis.Luna.Extensions/Axis.Luna.Extensions.csproj --configuration Release /p:Version=${VERSION} --output .
+      run: dotnet pack ./Axis.Luna.Automata/Axis.Luna.Automata.csproj --configuration Release /p:Version=${VERSION} --output .
     - name: Push
-      run: dotnet nuget push Axis.Luna.Extensions.${VERSION}.nupkg --source https://api.nuget.org/v3/index.json --api-key ${{ secrets.NUGET_API_TOKEN }}
+      run: dotnet nuget push Axis.Luna.Automata.${VERSION}.nupkg --source https://api.nuget.org/v3/index.json --api-key ${{ secrets.NUGET_API_TOKEN }}
+
+    # Axis.Luna.BitSequence
+    - name: Pack
+      run: dotnet pack ./Axis.Luna.BitSequence/Axis.Luna.BitSequence.csproj --configuration Release /p:Version=${VERSION} --output .
+    - name: Push
+      run: dotnet nuget push Axis.Luna.BitSequence.${VERSION}.nupkg --source https://api.nuget.org/v3/index.json --api-key ${{ secrets.NUGET_API_TOKEN }}
+
+    # Axis.Luna.Numerics
+    - name: Pack
+      run: dotnet pack ./Axis.Luna.Numerics/Axis.Luna.Numerics.csproj --configuration Release /p:Version=${VERSION} --output .
+    - name: Push
+      run: dotnet nuget push Axis.Luna.Numerics.${VERSION}.nupkg --source https://api.nuget.org/v3/index.json --api-key ${{ secrets.NUGET_API_TOKEN }}
+
+    # Axis.Luna.Optional
+    - name: Pack
+      run: dotnet pack ./Axis.Luna.Optional/Axis.Luna.Optional.csproj --configuration Release /p:Version=${VERSION} --output .
+    - name: Push
+      run: dotnet nuget push Axis.Luna.Optional.${VERSION}.nupkg --source https://api.nuget.org/v3/index.json --api-key ${{ secrets.NUGET_API_TOKEN }}
+
+    # Axis.Luna.Result
+    - name: Pack
+      run: dotnet pack ./Axis.Luna.Result/Axis.Luna.Result.csproj --configuration Release /p:Version=${VERSION} --output .
+    - name: Push
+      run: dotnet nuget push Axis.Luna.Result.${VERSION}.nupkg --source https://api.nuget.org/v3/index.json --api-key ${{ secrets.NUGET_API_TOKEN }}
+
+    # Axis.Luna.Unions
+    - name: Pack
+      run: dotnet pack ./Axis.Luna.Unions/Axis.Luna.Unions.csproj --configuration Release /p:Version=${VERSION} --output .
+    - name: Push
+      run: dotnet nuget push Axis.Luna.Unions.${VERSION}.nupkg --source https://api.nuget.org/v3/index.json --api-key ${{ secrets.NUGET_API_TOKEN }}
 
     # Axis.Luna.Common
     - name: Pack
       run: dotnet pack ./Axis.Luna.Common/Axis.Luna.Common.csproj --configuration Release /p:Version=${VERSION} --output .
     - name: Push
       run: dotnet nuget push Axis.Luna.Common.${VERSION}.nupkg --source https://api.nuget.org/v3/index.json --api-key ${{ secrets.NUGET_API_TOKEN }}
+
+    # Axis.Luna.Extensions
+    - name: Pack
+      run: dotnet pack ./Axis.Luna.Extensions/Axis.Luna.Extensions.csproj --configuration Release /p:Version=${VERSION} --output .
+    - name: Push
+      run: dotnet nuget push Axis.Luna.Extensions.${VERSION}.nupkg --source https://api.nuget.org/v3/index.json --api-key ${{ secrets.NUGET_API_TOKEN }}
 
     # Axis.Luna.FInvoke
     - name: Pack

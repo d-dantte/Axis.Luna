@@ -16,9 +16,9 @@ namespace Axis.Luna.Extensions
 
             if (EqualityComparer<T>.Default.Equals(value, compare))
             {
-                var e = exceptionProvider.Invoke(value);
                 ExceptionDispatchInfo
-                    .Capture(e)
+                    .Capture(exceptionProvider.Invoke(value)
+                        ?? new InvalidOperationException($"'null' returns forbidden from {nameof(exceptionProvider)}"))
                     .Throw();
             }
 
@@ -39,9 +39,9 @@ namespace Axis.Luna.Extensions
         {
             if (EqualityComparer<T?>.Default.Equals(value.Value, compare.Value))
             {
-                var e = exceptionProvider.Invoke(value);
                 ExceptionDispatchInfo
-                    .Capture(e)
+                    .Capture(exceptionProvider.Invoke(value)
+                        ?? new InvalidOperationException($"'null' returns forbidden from {nameof(exceptionProvider)}"))
                     .Throw();
             }
 
@@ -66,9 +66,9 @@ namespace Axis.Luna.Extensions
 
             if (!EqualityComparer<T>.Default.Equals(value, compare))
             {
-                var e = exceptionProvider.Invoke();
                 ExceptionDispatchInfo
-                    .Capture(e)
+                    .Capture(exceptionProvider.Invoke()
+                        ?? new InvalidOperationException($"'null' returns forbidden from {nameof(exceptionProvider)}"))
                     .Throw();
             }
             return value;
@@ -88,9 +88,9 @@ namespace Axis.Luna.Extensions
         {
             if (!EqualityComparer<T?>.Default.Equals(value.Value, compare.Value))
             {
-                var e = exceptionProvider.Invoke();
                 ExceptionDispatchInfo
-                    .Capture(e)
+                    .Capture(exceptionProvider.Invoke()
+                        ?? new InvalidOperationException($"'null' returns forbidden from {nameof(exceptionProvider)}"))
                     .Throw();
             }
 
@@ -122,9 +122,9 @@ namespace Axis.Luna.Extensions
 
             if (predicate(value))
             {
-                var e = exceptionProvider.Invoke(value);
                 ExceptionDispatchInfo
-                    .Capture(e)
+                    .Capture(exceptionProvider.Invoke(value)
+                        ?? new InvalidOperationException($"'null' returns forbidden from {nameof(exceptionProvider)}"))
                     .Throw();
             }
             return value;
@@ -144,9 +144,9 @@ namespace Axis.Luna.Extensions
 
             if (!predicate.Invoke(value))
             {
-                var e = exceptionProvider.Invoke(value);
                 ExceptionDispatchInfo
-                    .Capture(e)
+                    .Capture(exceptionProvider.Invoke(value)
+                        ?? new InvalidOperationException($"'null' returns forbidden from {nameof(exceptionProvider)}"))
                     .Throw();
             }
 
@@ -164,9 +164,9 @@ namespace Axis.Luna.Extensions
 
             if (!predicate.Invoke(value))
             {
-                var e = exceptionProvider.Invoke(value);
                 ExceptionDispatchInfo
-                    .Capture(e)
+                    .Capture(exceptionProvider.Invoke(value)
+                        ?? new InvalidOperationException($"'null' returns forbidden from {nameof(exceptionProvider)}"))
                     .Throw();
             }
 
@@ -196,7 +196,8 @@ namespace Axis.Luna.Extensions
             if (!found)
             {
                 ExceptionDispatchInfo
-                    .Capture(exceptionProvider.Invoke(items))
+                    .Capture(exceptionProvider.Invoke(items)
+                        ?? new InvalidOperationException($"'null' returns forbidden from {nameof(exceptionProvider)}"))
                     .Throw();
             }
         }
@@ -225,7 +226,8 @@ namespace Axis.Luna.Extensions
             if (allMatch && !empty)
             {
                 ExceptionDispatchInfo
-                    .Capture(exceptionProvider.Invoke(items) ?? new Exception("No element matched the predicate"))
+                    .Capture(exceptionProvider.Invoke(items)
+                        ?? new InvalidOperationException($"'null' returns forbidden from {nameof(exceptionProvider)}"))
                     .Throw();
             }
         }
@@ -243,7 +245,8 @@ namespace Axis.Luna.Extensions
             {
                 if (predicate.Invoke(item))
                     ExceptionDispatchInfo
-                        .Capture(exceptionProvider.Invoke(item) ?? new Exception("No element matched the predicate"))
+                        .Capture(exceptionProvider.Invoke(item) 
+                            ?? new InvalidOperationException($"'null' returns forbidden from {nameof(exceptionProvider)}"))
                         .Throw();
 
                 yield return item;
@@ -257,9 +260,9 @@ namespace Axis.Luna.Extensions
         {
             if (value is null)
             {
-                var e = exceptionProvider.Invoke();
                 ExceptionDispatchInfo
-                    .Capture(e)
+                    .Capture(exceptionProvider.Invoke()
+                        ?? new InvalidOperationException($"'null' returns forbidden from {nameof(exceptionProvider)}"))
                     .Throw();
             }
             return value;
@@ -297,9 +300,9 @@ namespace Axis.Luna.Extensions
         {
             if (value is not null)
             {
-                var e = exceptionProvider.Invoke(value);
                 ExceptionDispatchInfo
-                    .Capture(e)
+                    .Capture(exceptionProvider.Invoke(value)
+                        ?? new InvalidOperationException($"'null' returns forbidden from {nameof(exceptionProvider)}"))
                     .Throw();
             }
             return value;
@@ -318,9 +321,9 @@ namespace Axis.Luna.Extensions
         {
             if (value.HasValue)
             {
-                var e = exceptionProvider.Invoke(value);
                 ExceptionDispatchInfo
-                    .Capture(e)
+                    .Capture(exceptionProvider.Invoke(value)
+                        ?? new InvalidOperationException($"'null' returns forbidden from {nameof(exceptionProvider)}"))
                     .Throw();
             }
             return value;
@@ -353,9 +356,9 @@ namespace Axis.Luna.Extensions
 
             if (default(T?).Equals(value.Value))
             {
-                var e = exceptionProvider.Invoke(value);
                 ExceptionDispatchInfo
-                    .Capture(e)
+                    .Capture(exceptionProvider.Invoke(value)
+                        ?? new InvalidOperationException($"'null' returns forbidden from {nameof(exceptionProvider)}"))
                     .Throw();
             }
 
