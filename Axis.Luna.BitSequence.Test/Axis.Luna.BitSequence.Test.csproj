@@ -24,7 +24,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Axis.Luna.BitUtils\Axis.Luna.BitSequence.csproj" />
+    <ProjectReference Include="..\Axis.Luna.BitSequence\Axis.Luna.BitSequence.csproj" />
     <ProjectReference Include="..\Axis.Luna.Result\Axis.Luna.Result.csproj" />
   </ItemGroup>
 
