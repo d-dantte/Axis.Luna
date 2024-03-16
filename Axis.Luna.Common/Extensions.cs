@@ -17,7 +17,7 @@ namespace Axis.Luna.Common
             return countable.LongCount == 0;
         }
 
-        public static TOut ApplyTo<TIn, TOut>(this TIn @in, Func<TIn, TOut> mapper)
+        internal static TOut ApplyTo<TIn, TOut>(this TIn @in, Func<TIn, TOut> mapper)
         {
             ArgumentNullException.ThrowIfNull(mapper);
             return mapper.Invoke(@in);
