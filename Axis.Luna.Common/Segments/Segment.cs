@@ -60,12 +60,6 @@ namespace Axis.Luna.Common.Segments
         public static implicit operator Segment((int Offset, int Count) segment) => new(segment.Offset, segment.Count);
 
         public static implicit operator Range(Segment segment) => segment.ToRange();
-
-        public static implicit operator Segment(Array array)
-        {
-            ArgumentNullException.ThrowIfNull(array);
-            return new(0, array.Length);
-        }
         #endregion
 
         #region Index & Range

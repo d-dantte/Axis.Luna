@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using Axis.Luna.Common.Segments;
 
 namespace Axis.Luna.Common
@@ -22,5 +23,10 @@ namespace Axis.Luna.Common
             ArgumentNullException.ThrowIfNull(mapper);
             return mapper.Invoke(@in);
         }
+    }
+
+    internal static class EnumerableUtil
+    {
+        public static IEnumerable<T> Of<T>(params T[] items) => items;
     }
 }
