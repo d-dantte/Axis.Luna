@@ -13,7 +13,7 @@ namespace Axis.Luna.Common.StringEscape
     public class CommonStringEscaper : IStringEscaper
     {
         private static readonly ImmutableHashSet<char> SimpleEscapes = EnumerableUtil
-            .Of('0', 'a', 'b', 'f', 'n', 'r', 't', 'v', '\'', '\\')
+            .Of('0', 'a', 'b', 'f', 'n', 'r', 't', 'v', '\'', '"', '\\')
             .ToImmutableHashSet();
 
         private static readonly ImmutableHashSet<CharSequence> AsciiEscapes = Enumerable
@@ -27,7 +27,7 @@ namespace Axis.Luna.Common.StringEscape
             | RegexOptions.IgnoreCase);
 
         #region Escape Sequences
-        private static readonly string SimpleEscapeSequences = "\\0\\a\\b\\f\\n\\r\\t\\v\\\'\\\\";
+        private static readonly string SimpleEscapeSequences = "\\0\\a\\b\\f\\n\\r\\t\\v\\'\\\"\\\\";
 
         private static readonly string AsciiEscapeSequences = Enumerable
             .Range(0, byte.MaxValue + 1)
@@ -79,7 +79,8 @@ namespace Axis.Luna.Common.StringEscape
                 '\t' => CharSequence.Of(SimpleEscapeSequences, 6 * 2, 2),
                 '\v' => CharSequence.Of(SimpleEscapeSequences, 7 * 2, 2),
                 '\'' => CharSequence.Of(SimpleEscapeSequences, 8 * 2, 2),
-                '\\' => CharSequence.Of(SimpleEscapeSequences, 9 * 2, 2),
+                '\"' => CharSequence.Of(SimpleEscapeSequences, 9 * 2, 2),
+                '\\' => CharSequence.Of(SimpleEscapeSequences, 10 * 2, 2),
                 #endregion
 
                 #region Ascii
@@ -112,7 +113,8 @@ namespace Axis.Luna.Common.StringEscape
                     'r' => "\r",
                     't' => "\t",
                     'v' => "\v",
-                    '\'' => "'",
+                    '\'' => "\'",
+                    '\"' => "\"",
                     '\\' or _ => "\\"
                 },
 

@@ -16,7 +16,7 @@ namespace Axis.Luna.Common.Test.StringEscape
 
             // simple
             var escapes = EnumerableUtil.Of(
-                "\\0", "\\a", "\\b", "\\f", "\\n", "\\r", "\\t", "\\v", "\\'", "\\\\");
+                "\\0", "\\a", "\\b", "\\f", "\\n", "\\r", "\\t", "\\v", "\\'", "\\\"", "\\\\");
 
             escapes.ForEvery(escape =>
             {
@@ -71,12 +71,13 @@ namespace Axis.Luna.Common.Test.StringEscape
             Assert.AreEqual("\\t", escaper.Escape("\t"));
             Assert.AreEqual("\\v", escaper.Escape("\v"));
             Assert.AreEqual("\\'", escaper.Escape("\'"));
+            Assert.AreEqual("\\\"", escaper.Escape("\""));
             Assert.AreEqual("\\\\", escaper.Escape("\\"));
 
             // ascii
             Enumerable
                 .Range(0, byte.MaxValue + 1)
-                .Except(EnumerableUtil.Of('\0', '\a', '\b', '\f', '\n', '\r', '\t', '\v', '\'', '\\').Select(v => (int)v))
+                .Except(EnumerableUtil.Of('\0', '\a', '\b', '\f', '\n', '\r', '\t', '\v', '\'', '\"', '\\').Select(v => (int)v))
                 .ForEvery(value => Assert.AreEqual($"\\x{value:x2}", escaper.Escape(CharSequence.Of(Convert.ToChar(value)))));
 
             // unicode
@@ -103,12 +104,13 @@ namespace Axis.Luna.Common.Test.StringEscape
             Assert.AreEqual("\t", escaper.Unescape("\\t"));
             Assert.AreEqual("\v", escaper.Unescape("\\v"));
             Assert.AreEqual("\'", escaper.Unescape("\\'"));
+            Assert.AreEqual("\"", escaper.Unescape("\\\""));
             Assert.AreEqual("\\", escaper.Unescape("\\\\"));
 
             // ascii
             Enumerable
                 .Range(0, byte.MaxValue + 1)
-                .Except(EnumerableUtil.Of('\0', '\a', '\b', '\f', '\n', '\r', '\t', '\v', '\'', '\\').Select(v => (int)v))
+                .Except(EnumerableUtil.Of('\0', '\a', '\b', '\f', '\n', '\r', '\t', '\v', '\'', '\"', '\\').Select(v => (int)v))
                 .ForEvery(value =>
                 {
                     Assert.AreEqual(Convert.ToChar(value).ToString(), escaper.Unescape($"\\x{value:x2}"));
