@@ -3,25 +3,25 @@
     public interface IUnion<T1, T2, T3, T4, T5, T6, T7, TSelf>
     where TSelf : IUnion<T1, T2, T3, T4, T5, T6, T7, TSelf>
     {
-        protected object Value { get; }
+        protected object? Value { get; }
 
-        bool Is(out T1 value);
+        bool Is(out T1? value);
 
-        bool Is(out T2 value);
+        bool Is(out T2? value);
 
-        bool Is(out T3 value);
+        bool Is(out T3? value);
 
-        bool Is(out T4 value);
+        bool Is(out T4? value);
 
-        bool Is(out T5 value);
+        bool Is(out T5? value);
 
-        bool Is(out T6 value);
+        bool Is(out T6? value);
 
-        bool Is(out T7 value);
+        bool Is(out T7? value);
 
         bool IsNull();
 
-        public TOut MapMatch<TOut>(
+        public TOut? MapMatch<TOut>(
             Func<T1, TOut> t1Mapper,
             Func<T2, TOut> t2Mapper,
             Func<T3, TOut> t3Mapper,
@@ -29,7 +29,7 @@
             Func<T5, TOut> t5Mapper,
             Func<T6, TOut> t6Mapper,
             Func<T7, TOut> t7Mapper,
-            Func<TOut> nullMap = null);
+            Func<TOut>? nullMap = null);
 
         public void ConsumeMatch(
             Action<T1> t1Consumer,
@@ -39,7 +39,7 @@
             Action<T5> t5Consumer,
             Action<T6> t6Consumer,
             Action<T7> t7Consumer,
-            Action nullConsumer = null);
+            Action? nullConsumer = null);
 
         public TSelf WithMatch(
             Action<T1> t1Consumer,
@@ -49,7 +49,7 @@
             Action<T5> t5Consumer,
             Action<T6> t6Consumer,
             Action<T7> t7Consumer,
-            Action nullConsumer = null);
+            Action? nullConsumer = null);
     }
 
     public interface IUnionOf<T1, T2, T3, T4, T5, T6, T7, TSelf> :
@@ -88,9 +88,9 @@
         IUnion<T1, T2, T3, T4, T5, T6, T7, TSelf>
         where TSelf : RefUnion<T1, T2, T3, T4, T5, T6, T7, TSelf>
     {
-        private readonly object _value;
+        private readonly object? _value;
 
-        object IUnion<T1, T2, T3, T4, T5, T6, T7, TSelf>.Value => _value;
+        object? IUnion<T1, T2, T3, T4, T5, T6, T7, TSelf>.Value => _value;
 
         #region Construction
 
@@ -121,23 +121,23 @@
 
         #region Is
 
-        public bool Is(out T1 value) => Is(_value, out value);
+        public bool Is(out T1? value) => Is(_value, out value);
 
-        public bool Is(out T2 value) => Is(_value, out value);
+        public bool Is(out T2? value) => Is(_value, out value);
 
-        public bool Is(out T3 value) => Is(_value, out value);
+        public bool Is(out T3? value) => Is(_value, out value);
 
-        public bool Is(out T4 value) => Is(_value, out value);
+        public bool Is(out T4? value) => Is(_value, out value);
 
-        public bool Is(out T5 value) => Is(_value, out value);
+        public bool Is(out T5? value) => Is(_value, out value);
 
-        public bool Is(out T6 value) => Is(_value, out value);
+        public bool Is(out T6? value) => Is(_value, out value);
 
-        public bool Is(out T7 value) => Is(_value, out value);
+        public bool Is(out T7? value) => Is(_value, out value);
 
         public bool IsNull() => _value is null;
 
-        private static bool Is<T>(object unionValue, out T value)
+        private static bool Is<T>(object? unionValue, out T? value)
         {
             if (unionValue is T t1)
             {
@@ -153,7 +153,7 @@
 
         #region Map
 
-        public TOut MapMatch<TOut>(
+        public TOut? MapMatch<TOut>(
             Func<T1, TOut> t1Mapper,
             Func<T2, TOut> t2Mapper,
             Func<T3, TOut> t3Mapper,
@@ -161,7 +161,7 @@
             Func<T5, TOut> t5Mapper,
             Func<T6, TOut> t6Mapper,
             Func<T7, TOut> t7Mapper,
-            Func<TOut> nullMap = null)
+            Func<TOut>? nullMap = null)
         {
             ArgumentNullException.ThrowIfNull(t1Mapper);
             ArgumentNullException.ThrowIfNull(t2Mapper);
@@ -212,7 +212,7 @@
             Action<T5> t5Consumer,
             Action<T6> t6Consumer,
             Action<T7> t7Consumer,
-            Action nullConsumer = null)
+            Action? nullConsumer = null)
         {
             ArgumentNullException.ThrowIfNull(t1Consumer);
             ArgumentNullException.ThrowIfNull(t2Consumer);
@@ -259,7 +259,7 @@
             Action<T5> t5Consumer,
             Action<T6> t6Consumer,
             Action<T7> t7Consumer,
-            Action nullConsumer = null)
+            Action? nullConsumer = null)
         {
             ConsumeMatch(
                 t1Consumer, t2Consumer, t3Consumer,
@@ -274,9 +274,9 @@
     public readonly struct ValueUnion<T1, T2, T3, T4, T5, T6, T7> :
         IUnion<T1, T2, T3, T4, T5, T6, T7, ValueUnion<T1, T2, T3, T4, T5, T6, T7>>
     {
-        private readonly object _value;
+        private readonly object? _value;
 
-        object IUnion<T1, T2, T3, T4, T5, T6, T7, ValueUnion<T1, T2, T3, T4, T5, T6, T7>>.Value => _value;
+        object? IUnion<T1, T2, T3, T4, T5, T6, T7, ValueUnion<T1, T2, T3, T4, T5, T6, T7>>.Value => _value;
 
         #region Construction
 
@@ -307,23 +307,23 @@
 
         #region Is
 
-        public bool Is(out T1 value) => Is(_value, out value);
+        public bool Is(out T1? value) => Is(_value, out value);
 
-        public bool Is(out T2 value) => Is(_value, out value);
+        public bool Is(out T2? value) => Is(_value, out value);
 
-        public bool Is(out T3 value) => Is(_value, out value);
+        public bool Is(out T3? value) => Is(_value, out value);
 
-        public bool Is(out T4 value) => Is(_value, out value);
+        public bool Is(out T4? value) => Is(_value, out value);
 
-        public bool Is(out T5 value) => Is(_value, out value);
+        public bool Is(out T5? value) => Is(_value, out value);
 
-        public bool Is(out T6 value) => Is(_value, out value);
+        public bool Is(out T6? value) => Is(_value, out value);
 
-        public bool Is(out T7 value) => Is(_value, out value);
+        public bool Is(out T7? value) => Is(_value, out value);
 
         public bool IsNull() => _value is null;
 
-        private static bool Is<T>(object unionValue, out T value)
+        private static bool Is<T>(object? unionValue, out T? value)
         {
             if (unionValue is T t1)
             {
@@ -339,7 +339,7 @@
 
         #region Map
 
-        public TOut MapMatch<TOut>(
+        public TOut? MapMatch<TOut>(
             Func<T1, TOut> t1Mapper,
             Func<T2, TOut> t2Mapper,
             Func<T3, TOut> t3Mapper,
@@ -347,7 +347,7 @@
             Func<T5, TOut> t5Mapper,
             Func<T6, TOut> t6Mapper,
             Func<T7, TOut> t7Mapper,
-            Func<TOut> nullMap = null)
+            Func<TOut>? nullMap = null)
         {
             ArgumentNullException.ThrowIfNull(t1Mapper);
             ArgumentNullException.ThrowIfNull(t2Mapper);
@@ -398,7 +398,7 @@
             Action<T5> t5Consumer,
             Action<T6> t6Consumer,
             Action<T7> t7Consumer,
-            Action nullConsumer = null)
+            Action? nullConsumer = null)
         {
             ArgumentNullException.ThrowIfNull(t1Consumer);
             ArgumentNullException.ThrowIfNull(t2Consumer);
@@ -445,7 +445,7 @@
             Action<T5> t5Consumer,
             Action<T6> t6Consumer,
             Action<T7> t7Consumer,
-            Action nullConsumer = null)
+            Action? nullConsumer = null)
         {
             ConsumeMatch(
                 t1Consumer, t2Consumer, t3Consumer,

@@ -11,17 +11,17 @@
 
         bool IsNull();
 
-        public TOut? MapMatch<TOut>(
+        TOut? MapMatch<TOut>(
             Func<T1, TOut> t1Mapper,
             Func<T2, TOut> t2Mapper,
             Func<TOut>? nullMap = null);
 
-        public void ConsumeMatch(
+        void ConsumeMatch(
             Action<T1> t1Consumer,
             Action<T2> t2Consumer,
             Action? nullConsumer = null);
 
-        public TSelf? WithMatch(
+        TSelf WithMatch(
             Action<T1> t1Consumer,
             Action<T2> t2Consumer,
             Action? nullConsumer = null);
