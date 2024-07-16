@@ -3,7 +3,7 @@ using System;
 using System.Collections;
 using System.Linq;
 
-namespace Axis.Luna.Common.Test.StringEscape
+namespace Axis.Luna.Common.Test
 {
     [TestClass]
     public class CharSequenceTests
@@ -38,6 +38,11 @@ namespace Axis.Luna.Common.Test.StringEscape
             Assert.AreEqual("a", seq2.Ref);
             Assert.AreEqual(0, seq2.Segment.Offset);
             Assert.AreEqual(1, seq2.Length);
+
+            var empty = CharSequence.Empty;
+            Assert.AreEqual(string.Empty, empty.Ref);
+            Assert.AreEqual(0, empty.Segment.Offset);
+            Assert.AreEqual(0, empty.Length);
         }
 
         [TestMethod]
@@ -132,26 +137,22 @@ namespace Axis.Luna.Common.Test.StringEscape
             var seq = CharSequence.Of("abcde");
             var span = seq.AsSpan(2..^1);
             Assert.AreEqual(2, span.Length);
-            Assert.IsTrue(System.Linq.Enumerable.SequenceEqual(
-                span.ToArray(),
+            Assert.IsTrue(span.ToArray().SequenceEqual(
                 "cd"));
 
             span = seq.AsSpan(2, 2);
             Assert.AreEqual(2, span.Length);
-            Assert.IsTrue(System.Linq.Enumerable.SequenceEqual(
-                span.ToArray(),
+            Assert.IsTrue(span.ToArray().SequenceEqual(
                 "cd"));
 
             span = seq.AsSpan(2);
             Assert.AreEqual(3, span.Length);
-            Assert.IsTrue(System.Linq.Enumerable.SequenceEqual(
-                span.ToArray(),
+            Assert.IsTrue(span.ToArray().SequenceEqual(
                 "cde"));
 
             span = seq.AsSpan();
             Assert.AreEqual(5, span.Length);
-            Assert.IsTrue(System.Linq.Enumerable.SequenceEqual(
-                span.ToArray(),
+            Assert.IsTrue(span.ToArray().SequenceEqual(
                 "abcde"));
         }
 
@@ -244,6 +245,57 @@ namespace Axis.Luna.Common.Test.StringEscape
             tor.Reset();
             tor.Dispose();
             Assert.ThrowsException<InvalidOperationException>(() => tor.Current);
+        }
+
+        [TestMethod]
+        public void Concat_Tests()
+        {
+            var @ref = "the quick brown fox jumps";
+            var seq1 = CharSequence.Of(@ref, 0, 5);
+            var seq2 = CharSequence.Of(@ref, 5, 4);
+            var seq3 = CharSequence.Of(@ref, 11, 2);
+            var seq4 = CharSequence.Of("nothing goes for nothing");
+
+            var merged = seq1 + seq2;
+            Assert.AreEqual(@ref, merged.Ref);
+            Assert.AreEqual(seq1.Segment.Count + seq2.Segment.Count, merged.Segment.Count);
+            Assert.AreEqual(0, merged.Segment.Offset);
+
+            merged = seq2 + seq1;
+            Assert.AreNotEqual(@ref, merged.Ref);
+            Assert.AreEqual("uickthe q", merged.ToString());
+
+            merged = seq1 + seq3;
+            Assert.AreNotEqual(@ref, merged.Ref);
+            Assert.AreEqual("the qro", merged.ToString());
+
+            merged = seq1 + seq4;
+            Assert.AreEqual("the qnothing goes for nothing", merged.ToString());
+
+            merged = CharSequence.Default + CharSequence.Default;
+            Assert.AreEqual(CharSequence.Default, merged);
+
+            merged = CharSequence.Default + seq1;
+            Assert.AreEqual(seq1, merged);
+
+            merged = seq1 + CharSequence.Default;
+            Assert.AreEqual(seq1, merged);
+
+            merged = CharSequence.Empty + CharSequence.Empty;
+            Assert.AreEqual(CharSequence.Empty, merged);
+
+            merged = CharSequence.Empty + seq1;
+            Assert.AreEqual(seq1, merged);
+
+            merged = seq1 + CharSequence.Empty;
+            Assert.AreEqual(seq1, merged);
+
+
+            merged = seq1 + " stuff";
+            Assert.AreEqual("the q stuff", merged.ToString());
+
+            merged = seq1 + ' ';
+            Assert.AreEqual("the q ", merged.ToString());
         }
     }
 }

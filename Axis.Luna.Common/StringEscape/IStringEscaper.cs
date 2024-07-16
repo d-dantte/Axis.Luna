@@ -1,4 +1,6 @@
-﻿namespace Axis.Luna.Common.StringEscape
+﻿using System;
+
+namespace Axis.Luna.Common.StringEscape
 {
     /// <summary>
     /// A string escaper represents a set of rules that:
@@ -18,11 +20,20 @@
         bool IsValidEscapeSequence(CharSequence escapeSequence);
 
         /// <summary>
-        /// Converts the unescaped sequence into an escape sequence. If the unescaped sequence cannot be escaped, return it as-is.
+        /// Converts the entire unescaped sequence into an escape sequence. If the unescaped sequence cannot be escaped, return it as-is.
         /// </summary>
         /// <param name="chars">The unescaped sequence</param>
         /// <returns>The escaped sequence</returns>
         CharSequence Escape(CharSequence unescapedSequence);
+
+        /// <summary>
+        /// Escapes only characters in the unescaped sequence that match the predicate; otherwise returning other characters aso-is.
+        /// </summary>
+        /// <param name="chars">The unescaped sequence</param>
+        /// <returns>The escaped sequence</returns>
+        CharSequence Escape(
+            CharSequence unescapedSequence,
+            Func<char, bool> predicate);
 
         /// <summary>
         /// Converts the escaped sequence into an unescaped sequence. If the escaped sequence is invalid, return it as-is.

@@ -220,21 +220,9 @@ namespace Axis.Luna.Optional
                 .Map(mapper.Invoke);
         }
 
-        public static Optional<TValue> FirstOrOptional<TValue>(this
-            IEnumerable<TValue> enumerable,
-            Func<TValue, bool> predicate = null)
-            where TValue : class
-        {
-            if (predicate == null)
-                return enumerable.FirstOrDefault().AsOptional();
-
-            else
-                return enumerable.FirstOrDefault(predicate).AsOptional();
-        }
-
         public static IResult<TValue> AsResult<TValue>(this
             Optional<TValue> optional,
-            Exception exception = null)
+            Exception? exception = null)
             where TValue: class
         {
             return optional.IsEmpty

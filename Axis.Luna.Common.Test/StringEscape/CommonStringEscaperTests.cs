@@ -61,7 +61,7 @@ namespace Axis.Luna.Common.Test.StringEscape
             Assert.ThrowsException<ArgumentException>(() => escaper.Escape(default));
 
             // simple
-            Assert.AreEqual("abcd", escaper.Escape("abcd"));
+            Assert.AreEqual("\\x61\\x62\\x63\\x64", escaper.Escape("abcd"));
             Assert.AreEqual("\\0", escaper.Escape("\0"));
             Assert.AreEqual("\\a", escaper.Escape("\a"));
             Assert.AreEqual("\\b", escaper.Escape("\b"));
@@ -84,6 +84,17 @@ namespace Axis.Luna.Common.Test.StringEscape
             Enumerable
                 .Range(byte.MaxValue + 1, ushort.MaxValue - byte.MaxValue)
                 .ForEvery(value => Assert.AreEqual($"\\u{value:x4}", escaper.Escape(CharSequence.Of(Convert.ToChar(value)))));
+        }
+
+        [TestMethod]
+        public void Escape_WithPredicate_Tests()
+        {
+            var escaper = new CommonStringEscaper();
+
+            Assert.ThrowsException<ArgumentException>(() => escaper.Escape(default, t => true));
+            Assert.ThrowsException<ArgumentNullException>(() => escaper.Escape("abcd", null!));
+
+            Assert.AreEqual("abc\\x64", escaper.Escape("abcd", c => c == 'd'));
         }
 
         [TestMethod]

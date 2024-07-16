@@ -111,6 +111,10 @@ namespace Axis.Luna.Common
 
         #region API
 
+        public bool IsEmpty => _segment.IsEmpty();
+
+        public static CharSequence Empty { get; } = new CharSequence(string.Empty, 0, 0);
+
         public string Ref => _ref;
 
         public Segment Segment => _segment;
@@ -132,7 +136,6 @@ namespace Axis.Luna.Common
                 return new(_ref, newSegment.Offset + _segment.Offset, newSegment.Length);
             }
         }
-
 
         public ReadOnlySpan<char> AsSpan() => IsDefault
             ? throw new InvalidOperationException($"Invalid state: default")
@@ -159,6 +162,44 @@ namespace Axis.Luna.Common
             var segment = range.GetOffsetAndLength(_segment.Count);
             return _ref.AsSpan(_segment.Offset + segment.Offset, segment.Length);
         }
+
+        /// <summary>
+        /// Concatenates two <see cref="CharSequence"/> instances, similar to <see cref="String.Concat(IEnumerable{string?})"/>.
+        /// <para/>
+        /// Note: concatenating a default CharSequence with a non-default CharSequence yields the non-default CharSequence.
+        /// Note: concatenating any non-default CharSequence with an empty CharSequence yields the non-default CharSequence.
+        /// </summary>
+        /// <param name="other">The token instance to merge with.</param>
+        /// <returns></returns>
+        public CharSequence Concat(CharSequence other)
+        {
+            if (IsDefault && other.IsDefault)
+                return this;
+
+            if (IsDefault)
+                return other;
+
+            if (other.IsDefault)
+                return this;
+
+            if (IsEmpty)
+                return other;
+
+            if (other.IsEmpty)
+                return this;
+
+            if (EqualityComparer<string>.Default.Equals(_ref, other._ref)
+                && _segment.Preceeds(other._segment))
+                return Of(_ref!, _segment + other._segment);
+
+            else return Of(
+                _ref.Substring(_segment.Offset, _segment.Count) + other._ref.Substring(other._segment.Offset, other._segment.Count),
+                0, _segment.Count + other._segment.Count);
+        }
+
+        public CharSequence Concat(string @string) => this.Concat(Of(@string));
+
+        public CharSequence Concat(char @char) => this.Concat(Of(@char));
 
         #endregion
 
@@ -215,6 +256,12 @@ namespace Axis.Luna.Common
             CharSequence lhs,
             CharSequence rhs)
             => !lhs.Equals(rhs);
+
+        public static CharSequence operator +(CharSequence lhs, CharSequence rhs) => lhs.Concat(rhs);
+
+        public static CharSequence operator +(CharSequence lhs, string rhs) => lhs.Concat(rhs);
+
+        public static CharSequence operator +(CharSequence lhs, char rhs) => lhs.Concat(rhs);
 
 
         internal class Enumerator: IEnumerator<char>

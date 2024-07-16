@@ -52,45 +52,33 @@ namespace Axis.Luna.Common.StringEscape
             };
         }
 
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="unescapedSequence"></param>
-        /// <returns></returns>
-        /// <exception cref="NotImplementedException"></exception>
         public CharSequence Escape(CharSequence unescapedSequence)
         {
             if (unescapedSequence.IsDefault)
                 throw new ArgumentException($"Invalid {nameof(unescapedSequence)}: default");
 
-            if (unescapedSequence.Length != 1)
-                return unescapedSequence;
+            return unescapedSequence.Aggregate(
+                CharSequence.Empty,
+                (seq, @char) => seq + EscapeChar(@char));
+        }
 
-            var @char = unescapedSequence[0];
-            return @char switch
-            {
-                #region Simple
-                '\0' => CharSequence.Of(SimpleEscapeSequences, 0 * 2, 2),
-                '\a' => CharSequence.Of(SimpleEscapeSequences, 1 * 2, 2),
-                '\b' => CharSequence.Of(SimpleEscapeSequences, 2 * 2, 2),
-                '\f' => CharSequence.Of(SimpleEscapeSequences, 3 * 2, 2),
-                '\n' => CharSequence.Of(SimpleEscapeSequences, 4 * 2, 2),
-                '\r' => CharSequence.Of(SimpleEscapeSequences, 5 * 2, 2),
-                '\t' => CharSequence.Of(SimpleEscapeSequences, 6 * 2, 2),
-                '\v' => CharSequence.Of(SimpleEscapeSequences, 7 * 2, 2),
-                '\'' => CharSequence.Of(SimpleEscapeSequences, 8 * 2, 2),
-                '\"' => CharSequence.Of(SimpleEscapeSequences, 9 * 2, 2),
-                '\\' => CharSequence.Of(SimpleEscapeSequences, 10 * 2, 2),
-                #endregion
+        public CharSequence Escape(
+            CharSequence unescapedSequence,
+            Func<char, bool> predicate)
+        {
+            ArgumentNullException.ThrowIfNull(predicate);
 
-                #region Ascii
-                <= '\xff' => CharSequence.Of(AsciiEscapeSequences, @char * 4, 4),
-                #endregion
+            if (unescapedSequence.IsDefault)
+                throw new ArgumentException($"Invalid {nameof(unescapedSequence)}: default");
 
-                #region Unicode
-                <= '\uffff' => CharSequence.Of($"\\u{(int)@char:x4}")
-                #endregion
-            };
+            return unescapedSequence.Aggregate(
+                CharSequence.Empty,
+                (seq, @char) =>
+                {
+                    if (predicate.Invoke(@char))
+                        return seq + EscapeChar(@char);
+                    else return seq + @char;
+                });
         }
 
         public CharSequence Unescape(CharSequence escapedSequence)
@@ -188,6 +176,34 @@ namespace Axis.Luna.Common.StringEscape
                 return @string;
 
             else return stringBuilder.ToString();
+        }
+
+        private static CharSequence EscapeChar(char @char)
+        {
+            return @char switch
+            {
+                #region Simple
+                '\0' => CharSequence.Of(SimpleEscapeSequences, 0 * 2, 2),
+                '\a' => CharSequence.Of(SimpleEscapeSequences, 1 * 2, 2),
+                '\b' => CharSequence.Of(SimpleEscapeSequences, 2 * 2, 2),
+                '\f' => CharSequence.Of(SimpleEscapeSequences, 3 * 2, 2),
+                '\n' => CharSequence.Of(SimpleEscapeSequences, 4 * 2, 2),
+                '\r' => CharSequence.Of(SimpleEscapeSequences, 5 * 2, 2),
+                '\t' => CharSequence.Of(SimpleEscapeSequences, 6 * 2, 2),
+                '\v' => CharSequence.Of(SimpleEscapeSequences, 7 * 2, 2),
+                '\'' => CharSequence.Of(SimpleEscapeSequences, 8 * 2, 2),
+                '\"' => CharSequence.Of(SimpleEscapeSequences, 9 * 2, 2),
+                '\\' => CharSequence.Of(SimpleEscapeSequences, 10 * 2, 2),
+                #endregion
+
+                #region Ascii
+                <= '\xff' => CharSequence.Of(AsciiEscapeSequences, @char * 4, 4),
+                #endregion
+
+                #region Unicode
+                <= '\uffff' => CharSequence.Of($"\\u{(int)@char:x4}")
+                #endregion
+            };
         }
     }
 }
