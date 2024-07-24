@@ -9,6 +9,9 @@ namespace Axis.Luna.BitSequence
     /// A sequence of zero or more bits, represented as bools, that can be manipulated into bytes, or have some
     /// bitwise operations performed on them.
     /// <para/>
+    /// Internally, the bitsequence is represented by an array of bytes and an integer value depicting the number 
+    /// of consecutive bits within the byte array are in use.
+    /// <para/>
     /// Despite being a struct, a <see cref="BitSequence"/> is externally seen as a sequence of zero or more bits;
     /// i.e, it's internal list of bits is either empty, or contains elements, it is (externally) never null.
     /// </summary>
@@ -40,10 +43,10 @@ namespace Axis.Luna.BitSequence
         /// <summary>
         /// Gets a <see cref="BitSequence"/> representing only the significant bits
         /// <para>
-        /// Significant bits are what are left after trimming "0" bits from the right-end of the list of bits.
+        /// Significant bits are what are left after trimming "0" bits from the high-end of the list of bits.
         /// 0000-0000 => empty bit sequence
         /// 0000-0001 => 1 bit sequence
-        /// 0000-0100 => 100 bit sequence
+        /// 0000-0100 => 3 bit sequence
         /// </para>
         /// </summary>
         public BitSequence SignificantBits
@@ -64,10 +67,6 @@ namespace Axis.Luna.BitSequence
 
         #region Construction
 
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="bits"></param>
         public BitSequence(IEnumerable<bool> bits)
         {
             ArgumentNullException.ThrowIfNull(bits);
@@ -86,20 +85,10 @@ namespace Axis.Luna.BitSequence
                 : null;
         }
 
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="bits"></param>
-        /// <param name="bitRange"></param>
         public BitSequence(IEnumerable<byte> bits, Range bitRange)
             : this(bits?.ToArray()!, bitRange)
         { }
 
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="bits"></param>
-        /// <param name="bitRange"></param>
         public BitSequence(byte[] bits, Range bitRange)
         {
             ArgumentNullException.ThrowIfNull(bits);
@@ -112,47 +101,16 @@ namespace Axis.Luna.BitSequence
                 : null;
         }
 
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="bits"></param>
-        /// <returns></returns>
         public static BitSequence Of(IEnumerable<bool> bits) => new BitSequence(bits);
 
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="bits"></param>
-        /// <returns></returns>
         public static BitSequence Of(params bool[] bits) => new BitSequence(bits);
 
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="bytes"></param>
-        /// <returns></returns>
         public static BitSequence Of(params byte[] bytes) => new BitSequence(bytes, Range.All);
 
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="bitRange"></param>
-        /// <param name="bytes"></param>
-        /// <returns></returns>
         public static BitSequence Of(Range bitRange, params byte[] bytes) => new BitSequence(bytes, bitRange);
 
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="integer"></param>
-        /// <returns></returns>
         public static BitSequence Of(BigInteger integer) => new BitSequence(integer.ToByteArray(), Range.All);
 
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="integer"></param>
-        /// <returns></returns>
         public static BitSequence Of(bool isUnsigned, BigInteger integer) => new BitSequence(integer.ToByteArray(isUnsigned), Range.All);
 
         #endregion
@@ -175,15 +133,24 @@ namespace Axis.Luna.BitSequence
         #endregion
 
         #region Object overrides
+        /// <summary>
+        /// Outputs the bits with the least bit at the right most position, in groups of 8 (separated by ','),
+        /// which is in turn divided into groups of 4 (separated by ' ').
+        /// <list type="bullet">
+        /// <item>E.g. 100 is output as [0110 0100]</item>
+        /// <item>E.g. 1000 is output as [0000 0011, 1110 1000]</item>
+        /// </list>
+        /// </summary>
+        /// <returns></returns>
         public override string ToString()
         {
             // 1. converts bools into 1 or 0
             // 2. group the list into octets (sets of 8)
             // 3. further group each octet into a quartet (sets of 4)
             // 4. join the quartets using a space " "
-            // 5. join the octets using a comma ","
-            // 6. surround the result in sqare brackets "[..]"
-            // 7. if the original data was null, return "[*]"
+            // 6. join the octets using a comma ","
+            // 7. Reverse the string
+            // 8. surround the result in sqare brackets "[..]"
             return this
                 .Select(bit => bit ? "1" : "0")
                 .GroupBy((bit, index) => index / 8)
@@ -191,8 +158,8 @@ namespace Axis.Luna.BitSequence
                     .GroupBy((bit, index) => index / 4)
                     .Select(group => string.Join("", group))
                     .ApplyTo(strings => string.Join(" ", strings)))
-                .ApplyTo(strings => string.Join(", ", strings))
-                .ApplyTo(@string => $"[{@string}]")
+                .ApplyTo(strings => string.Join(" ,", strings))
+                .ApplyTo(@string => $"[{@string.ReverseString()}]")
                 ?? "[]";
         }
 
@@ -597,7 +564,15 @@ namespace Axis.Luna.BitSequence
 
         /// <summary>
         /// Parses a sequential arrangement of 1s and 0s into a bit sequence.
-        /// The least significant bit is expected to be on the left-most part of the string
+        /// <para/>
+        /// Note: the expected string conforms to conventional binary representations - where the
+        /// least-significant bit appears on the right-most position. E.g
+        /// <code>
+        ///     2   ->       10
+        ///     13  ->     1101
+        ///     100 ->  1100100
+        ///     215 -> 11101011
+        /// </code>
         /// </summary>
         /// <param name="text"></param>
         /// <returns></returns>
@@ -615,6 +590,7 @@ namespace Axis.Luna.BitSequence
                 throw new FormatException("Invalid text");
 
             return text
+                .ReverseString()
                 .Where(c => '1'.Equals(c) || '0'.Equals(c))
                 .Select('1'.Equals)
                 .ApplyTo(BitSequence.Of)

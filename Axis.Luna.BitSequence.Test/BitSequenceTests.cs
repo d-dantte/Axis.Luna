@@ -301,17 +301,17 @@ namespace Axis.Luna.BitSequence.Test
         {
             BitSequence bs = ArrayUtil.Of(true, false, true, false, true);
             var text = bs.ToString();
-            Assert.AreEqual("[1010 1]", text);
+            Assert.AreEqual("[1 0101]", text);
 
             bs = ArrayUtil.Of(true, false, true, false, true, true, true, true);
             text = bs.ToString();
-            Assert.AreEqual("[1010 1111]", text);
+            Assert.AreEqual("[1111 0101]", text);
 
             bs = ArrayUtil.Of(
                 true, false, true, false,  true, true, true, true,
                 false, false, false, true, true, true, false, true);
             text = bs.ToString();
-            Assert.AreEqual("[1010 1111, 0001 1101]", text);
+            Assert.AreEqual("[1011 1000, 1111 0101]", text);
 
             bs = default;
             text = bs.ToString();
@@ -582,11 +582,11 @@ namespace Axis.Luna.BitSequence.Test
             Assert.ThrowsException<ArgumentNullException>(() => BitSequence.Parse(null!));
             Assert.ThrowsException<FormatException>(() => BitSequence.Parse("   "));
 
-            var bs = BitSequence.Parse("");
-            Assert.AreEqual(default(BitSequence), bs.Resolve());
-
-            bs = BitSequence.Parse("0101");
-            Assert.AreEqual(BitSequence.Of(false, true, false, true), bs.Resolve());
+            var bsResult = BitSequence.Parse("");
+            Assert.AreEqual(default(BitSequence), bsResult.Resolve());
+            
+            bsResult = BitSequence.Parse("00101");
+            Assert.AreEqual(BitSequence.Of(true, false, true, false, false), bsResult.Resolve());
         }
 
         [TestMethod]
@@ -761,6 +761,16 @@ namespace Axis.Luna.BitSequence.Test
 
             bs = BitSequence.Of(new BigInteger(33));
             var bs2 = BitSequence.Of(new BigInteger(-33));
+
+
+            bs = new BitSequence(new byte[] { 100 }, ..);
+            Console.WriteLine(bs.ToString());
+
+
+            bs = new BitSequence(new byte[] { 16, 39 }, ..);
+            Console.WriteLine($"ToString: {bs.ToString()}");
+            Console.WriteLine($"ToLittleEndian:\n{bs.ToLittleEndianString()}\n");
+            Console.WriteLine($"ToBigEndian:\n{bs.ToBigEndianString()}\n");
         }
 
         [TestMethod]

@@ -155,14 +155,26 @@ namespace Axis.Luna.Optional
         /// Returns the value if it exists, or default(T);
         /// </summary>
         /// <returns></returns>
-        public T ValueOrDefault() => ValueOr(default);
+        public T ValueOrDefault() => ValueOr(default(T)!);
 
         /// <summary>
         /// Returns the given value if this <c>Optional</c> is empty.
         /// </summary>
         /// <param name="alternateValue"></param>
         /// <returns></returns>
-        public T ValueOr(T alternateValue) => HasValue ? _value : alternateValue;
+        public T ValueOr(T alternateValue) => HasValue ? _value! : alternateValue;
+
+        /// <summary>
+        /// Returns the given value if this <c>Optional</c> is empty.
+        /// </summary>
+        /// <param name="alternateValue"></param>
+        /// <returns></returns>
+        public T ValueOr(Func<T> alternateValueProvider)
+        {
+            ArgumentNullException.ThrowIfNull(alternateValueProvider);
+
+            return HasValue ? _value! : alternateValueProvider.Invoke();
+        }
         #endregion
 
         #region Equality

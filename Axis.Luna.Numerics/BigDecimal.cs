@@ -548,7 +548,7 @@ namespace Axis.Luna.Numerics
             return true;
         }
 
-        public string ToString(string format, IFormatProvider? formatProvider)
+        public string ToString(string? format, IFormatProvider? formatProvider)
         {
             return ToString();
         }
