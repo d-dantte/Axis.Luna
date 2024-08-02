@@ -217,7 +217,7 @@ namespace Axis.Luna.Optional
         public static Optional<TOut> Empty<TOut>()
         where TOut: class => default;
 
-        public static Optional<TOut> AsOptional<TOut>(this TOut value)
+        public static Optional<TOut> AsOptional<TOut>(this TOut? value)
         where TOut: class
         {
             return new Optional<TOut>(value);

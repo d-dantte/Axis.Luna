@@ -9,7 +9,7 @@ namespace Axis.Luna.BitSequence
     /// A sequence of zero or more bits, represented as bools, that can be manipulated into bytes, or have some
     /// bitwise operations performed on them.
     /// <para/>
-    /// Internally, the bitsequence is represented by an array of bytes and an integer value depicting the number 
+    // Internally, the bitsequence is represented by an array of bytes and an integer value depicting the number 
     /// of consecutive bits within the byte array are in use.
     /// <para/>
     /// Despite being a struct, a <see cref="BitSequence"/> is externally seen as a sequence of zero or more bits;
