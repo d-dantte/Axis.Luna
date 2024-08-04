@@ -35,6 +35,8 @@ namespace Axis.Luna.Extensions.Test
             enm = (4..0).Enumerate().ToArray();
             CollectionAssert.AreEquivalent(enm, new int[] { 4, 3, 2, 1 });
 
+            enm = (4..4).Enumerate().ToArray();
+            Assert.AreEqual(0, enm.Length);
         }
     }
 }

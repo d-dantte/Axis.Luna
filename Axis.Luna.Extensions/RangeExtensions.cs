@@ -28,7 +28,7 @@ namespace Axis.Luna.Extensions
             if (range.Start.IsFromEnd || range.End.IsFromEnd)
                 throw new InvalidOperationException("Invalid range: relative indexes are forbidden");
 
-            if (range.Start.Value.Equals(range.End))
+            if (range.Start.Value.Equals(range.End.Value))
                 yield break;
 
             var increment = range.End.Value < range.Start.Value ? -1 : 1;
