@@ -1,8 +1,8 @@
-﻿using Axis.Luna.Common.StringEscape;
-using Axis.Luna.Extensions;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Linq;
+using Axis.Luna.Extensions;
+using Axis.Luna.Common.StringEscape;
 
 namespace Axis.Luna.Common.Test.StringEscape
 {

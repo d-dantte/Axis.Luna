@@ -3,6 +3,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection.PortableExecutable;
 
 namespace Axis.Luna.Common
 {
@@ -90,9 +91,9 @@ namespace Axis.Luna.Common
         #endregion
 
         #region Implicits
-        public static implicit operator CharSequence(
-            string @ref)
-            => new(@ref);
+        public static implicit operator CharSequence(string @ref) => new(@ref);
+
+        public static implicit operator string(CharSequence chars) => chars.ToString();
         #endregion
 
         #region DefaultValueProvider
@@ -200,6 +201,32 @@ namespace Axis.Luna.Common
         public CharSequence Concat(string @string) => this.Concat(Of(@string));
 
         public CharSequence Concat(char @char) => this.Concat(Of(@char));
+
+        public static CharSequence operator +(CharSequence chars, int charCount)
+        {
+            if (charCount < 0)
+                return chars - Math.Abs(charCount);
+
+            else if ((charCount + chars.Segment.Offset + chars.Segment.Count) <= chars.Ref.Length)
+                return Of(chars.Ref, chars.Segment.Offset, chars.Segment.Count + charCount);
+
+            else throw new ArgumentOutOfRangeException(
+                nameof(charCount),
+                "Expanding beyond the limit of the sequence is forbidden");
+        }
+
+        public static CharSequence operator -(CharSequence chars, int charCount)
+        {
+            if (charCount < 0)
+                return chars + Math.Abs(charCount);
+
+            else if (charCount < chars.Segment.Count)
+                return Of(chars.Ref, chars.Segment.Offset, chars.Segment.Count - charCount);
+
+            else throw new ArgumentOutOfRangeException(
+                nameof(charCount),
+                "Subtracting beyond the limit of this sequence is forbidden");
+        }
 
         #endregion
 
