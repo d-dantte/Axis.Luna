@@ -62,6 +62,12 @@ jobs:
     - name: Push
       run: dotnet nuget push Axis.Luna.Common.${VERSION}.nupkg --source https://api.nuget.org/v3/index.json --api-key ${{ secrets.NUGET_API_TOKEN }}
 
+    # Axis.Luna.Factory.Contracts
+    - name: Pack
+      run: dotnet pack ./Axis.Luna.Factory.Contracts/Axis.Luna.Factory.Contracts.csproj --configuration Release /p:Version=${VERSION} --output .
+    - name: Push
+      run: dotnet nuget push Axis.Luna.Factory.Contracts.${VERSION}.nupkg --source https://api.nuget.org/v3/index.json --api-key ${{ secrets.NUGET_API_TOKEN }}
+
     # Axis.Luna.Extensions
     - name: Pack
       run: dotnet pack ./Axis.Luna.Extensions/Axis.Luna.Extensions.csproj --configuration Release /p:Version=${VERSION} --output .

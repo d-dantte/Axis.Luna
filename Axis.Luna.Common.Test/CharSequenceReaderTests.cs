@@ -112,7 +112,7 @@ namespace Axis.Luna.Common.Test
             var reader = new CharSequenceReader("test string");
             var success = reader.TryReadExactly(4, out var chars);
             Assert.IsTrue(success);
-            Assert.AreEqual("test", chars);
+            Assert.AreEqual<string>("test", chars);
             Assert.AreEqual(4, reader.CurrentIndex);
         }
 
@@ -132,7 +132,7 @@ namespace Axis.Luna.Common.Test
             var reader = new CharSequenceReader("test string");
             var success = reader.TryRead(4, out var chars);
             Assert.IsTrue(success);
-            Assert.AreEqual("test", chars);
+            Assert.AreEqual<string>("test", chars);
             Assert.AreEqual(4, reader.CurrentIndex);
         }
 
@@ -151,7 +151,7 @@ namespace Axis.Luna.Common.Test
             var reader = new CharSequenceReader("test string");
             var success = reader.TryReadExactly(4, cs => cs == "test", out var chars);
             Assert.IsTrue(success);
-            Assert.AreEqual("test", chars);
+            Assert.AreEqual<string>("test", chars);
             Assert.AreEqual(4, reader.CurrentIndex);
         }
 
@@ -161,7 +161,7 @@ namespace Axis.Luna.Common.Test
             var reader = new CharSequenceReader("test string");
             var success = reader.TryReadExactly(4, cs => cs == "fail", out var chars);
             Assert.IsFalse(success);
-            Assert.AreEqual("test", chars);
+            Assert.AreEqual<string>("test", chars);
             Assert.AreEqual(0, reader.CurrentIndex); // Index should not change
         }
 
@@ -171,7 +171,7 @@ namespace Axis.Luna.Common.Test
             var reader = new CharSequenceReader("test string");
             var success = reader.TryRead(4, cs => cs == "test", out var chars);
             Assert.IsTrue(success);
-            Assert.AreEqual("test", chars);
+            Assert.AreEqual<string>("test", chars);
             Assert.AreEqual(4, reader.CurrentIndex);
         }
 
@@ -181,7 +181,7 @@ namespace Axis.Luna.Common.Test
             var reader = new CharSequenceReader("test string");
             var success = reader.TryPeekExactly(4, out var chars);
             Assert.IsTrue(success);
-            Assert.AreEqual("test", chars);
+            Assert.AreEqual<string>("test", chars);
             Assert.AreEqual(0, reader.CurrentIndex); // Index should not change
         }
 
@@ -201,7 +201,7 @@ namespace Axis.Luna.Common.Test
             var reader = new CharSequenceReader("test string");
             var success = reader.TryPeek(4, out var chars);
             Assert.IsTrue(success);
-            Assert.AreEqual("test", chars);
+            Assert.AreEqual<string>("test", chars);
             Assert.AreEqual(0, reader.CurrentIndex); // Index should not change
         }
 
@@ -211,7 +211,7 @@ namespace Axis.Luna.Common.Test
             var reader = new CharSequenceReader("test string");
             var success = reader.TryPeekExactly(4, cs => cs == "test", out var chars);
             Assert.IsTrue(success);
-            Assert.AreEqual("test", chars);
+            Assert.AreEqual<string>("test", chars);
             Assert.AreEqual(0, reader.CurrentIndex); // Index should not change
         }
 
@@ -221,7 +221,7 @@ namespace Axis.Luna.Common.Test
             var reader = new CharSequenceReader("test string");
             var success = reader.TryPeekExactly(4, cs => cs == "fail", out var chars);
             Assert.IsFalse(success);
-            Assert.AreEqual("test", chars);
+            Assert.AreEqual<string>("test", chars);
             Assert.AreEqual(0, reader.CurrentIndex); // Index should not change
         }
 
@@ -231,7 +231,7 @@ namespace Axis.Luna.Common.Test
             var reader = new CharSequenceReader("test string");
             var success = reader.TryPeek(4, cs => cs == "test", out var chars);
             Assert.IsTrue(success);
-            Assert.AreEqual("test", chars);
+            Assert.AreEqual<string>("test", chars);
             Assert.AreEqual(0, reader.CurrentIndex); // Index should not change
         }
     }

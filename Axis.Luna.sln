@@ -68,6 +68,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Axis.LunaNumerics.Benchmark
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Axis.Luna.BitSequence", "Axis.Luna.BitSequence\Axis.Luna.BitSequence.csproj", "{6D06A658-FF57-4831-8BA1-FEF7239D3067}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Axis.Luna.Factory.Contracts", "Axis.Luna.Factory.Contracts\Axis.Luna.Factory.Contracts.csproj", "{EBABAE31-EC0E-4D34-BC8A-3B4035F87EFD}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -154,6 +156,10 @@ Global
 		{6D06A658-FF57-4831-8BA1-FEF7239D3067}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6D06A658-FF57-4831-8BA1-FEF7239D3067}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{6D06A658-FF57-4831-8BA1-FEF7239D3067}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EBABAE31-EC0E-4D34-BC8A-3B4035F87EFD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EBABAE31-EC0E-4D34-BC8A-3B4035F87EFD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EBABAE31-EC0E-4D34-BC8A-3B4035F87EFD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EBABAE31-EC0E-4D34-BC8A-3B4035F87EFD}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -181,6 +187,7 @@ Global
 		{5DBC8569-8136-40F6-991E-B6FB9E014ED0} = {E9B3F89A-EDD8-441C-B24E-E7BA2032F8AF}
 		{6CA516F8-A828-4D7B-A8A8-2E83221C2D1D} = {16383A5B-67CD-45B3-97AB-B1EAB96F68B5}
 		{6D06A658-FF57-4831-8BA1-FEF7239D3067} = {4C81D645-888C-4620-9602-C16DA5238838}
+		{EBABAE31-EC0E-4D34-BC8A-3B4035F87EFD} = {4C81D645-888C-4620-9602-C16DA5238838}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {DF4B66D0-8EA6-4CAD-ADA3-213378445B36}

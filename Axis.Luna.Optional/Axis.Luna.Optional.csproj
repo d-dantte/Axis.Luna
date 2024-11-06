@@ -1,13 +1,28 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net7.0</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <LangVersion>latest</LangVersion>
+    <Authors>Dantte</Authors>
+    <Company>Axiis</Company>
+    <PackageTags>Optional</PackageTags>
+    <Description>Similar to Nullable&lt;&gt;, but for reference types</Description>
+    <PackageReleaseNotes></PackageReleaseNotes>
+    <PackageProjectUrl>https://github.com/d-dantte/Axis.Luna</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/d-dantte/Axis.Luna</RepositoryUrl>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
   </PropertyGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Axis.Luna.Result\Axis.Luna.Result.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Properties\" />
   </ItemGroup>
 
 </Project>

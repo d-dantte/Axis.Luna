@@ -1,9 +1,20 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net7.0</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <LangVersion>latest</LangVersion>
+    <Authors>Dantte</Authors>
+    <Company>Axiis</Company>
+    <PackageTags>BigDecimal</PackageTags>
+    <Description>Numeric types and algorithms, most notable is the BigDecimal</Description>
+    <PackageReleaseNotes></PackageReleaseNotes>
+    <PackageProjectUrl>https://github.com/d-dantte/Axis.Luna</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/d-dantte/Axis.Luna</RepositoryUrl>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
   </PropertyGroup>
 
   <ItemGroup>

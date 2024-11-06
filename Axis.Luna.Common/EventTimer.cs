@@ -3,7 +3,7 @@ using System.Diagnostics;
 
 namespace Axis.Luna.Common
 {
-    public class EventTimer
+    public static class EventTimer
     {
         public static void Measure(Action @event, out TimeSpan timeSpan)
         {

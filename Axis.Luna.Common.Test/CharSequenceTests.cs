@@ -17,7 +17,7 @@ namespace Axis.Luna.Common.Test
             Assert.ThrowsException<ArgumentOutOfRangeException>(() => new CharSequence("", 0, 3));
 
             var seq = new CharSequence("abcd", 0, -1);
-            Assert.AreEqual("abcd", seq.Ref);
+            Assert.AreEqual<string>("abcd", seq.Ref);
             Assert.AreEqual(0, seq.Segment.Offset);
             Assert.AreEqual(4, seq.Length);
             Assert.AreEqual(4, seq.Segment.Count);
@@ -35,7 +35,7 @@ namespace Axis.Luna.Common.Test
             Assert.AreEqual(seq, seq2);
 
             seq2 = new CharSequence('a');
-            Assert.AreEqual("a", seq2.Ref);
+            Assert.AreEqual<string>("a", seq2.Ref);
             Assert.AreEqual(0, seq2.Segment.Offset);
             Assert.AreEqual(1, seq2.Length);
 
@@ -66,7 +66,7 @@ namespace Axis.Luna.Common.Test
             Assert.AreEqual(seq, seq2);
 
             seq2 = CharSequence.Of('a');
-            Assert.AreEqual("a", seq2.Ref);
+            Assert.AreEqual<string>("a", seq2.Ref);
             Assert.AreEqual(0, seq2.Segment.Offset);
             Assert.AreEqual(1, seq2.Length);
         }
@@ -122,7 +122,7 @@ namespace Axis.Luna.Common.Test
             var seq2 = seq[2..4];
             Assert.AreEqual(2, seq2.Length);
             Assert.AreEqual(2, seq2.Segment.Offset);
-            Assert.AreEqual("cd", seq2);
+            Assert.AreEqual<string>("cd", seq2);
             Assert.ThrowsException<InvalidOperationException>(() => CharSequence.Default[..]);
         }
 
@@ -187,7 +187,7 @@ namespace Axis.Luna.Common.Test
         public void ToString_Test()
         {
             Assert.IsNull(CharSequence.Default.ToString());
-            Assert.AreEqual("abc", CharSequence.Of("abc").ToString());
+            Assert.AreEqual<string>("abc", CharSequence.Of("abc").ToString());
         }
 
         [TestMethod]
@@ -263,14 +263,14 @@ namespace Axis.Luna.Common.Test
 
             merged = seq2 + seq1;
             Assert.AreNotEqual(@ref, merged.Ref);
-            Assert.AreEqual("uickthe q", merged.ToString());
+            Assert.AreEqual<string>("uickthe q", merged.ToString());
 
             merged = seq1 + seq3;
             Assert.AreNotEqual(@ref, merged.Ref);
-            Assert.AreEqual("the qro", merged.ToString());
+            Assert.AreEqual<string>("the qro", merged.ToString());
 
             merged = seq1 + seq4;
-            Assert.AreEqual("the qnothing goes for nothing", merged.ToString());
+            Assert.AreEqual<string>("the qnothing goes for nothing", merged.ToString());
 
             merged = CharSequence.Default + CharSequence.Default;
             Assert.AreEqual(CharSequence.Default, merged);
@@ -292,10 +292,10 @@ namespace Axis.Luna.Common.Test
 
 
             merged = seq1 + " stuff";
-            Assert.AreEqual("the q stuff", merged.ToString());
+            Assert.AreEqual<string>("the q stuff", merged.ToString());
 
             merged = seq1 + ' ';
-            Assert.AreEqual("the q ", merged.ToString());
+            Assert.AreEqual<string>("the q ", merged.ToString());
         }
     }
 }
