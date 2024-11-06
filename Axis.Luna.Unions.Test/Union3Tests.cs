@@ -49,6 +49,10 @@
                 i => i.ToString(),
                 m => m.ToString(),
                 null!));
+            Assert.ThrowsException<InvalidOperationException>(() => new MyRefUnion(Guid.NewGuid()).Match(
+                i => i.ToString(),
+                m => m.ToString(),
+                x => x.ToString()));
 
             var iunion = new MyRefUnion(5);
             var result = iunion.Match(
@@ -78,6 +82,13 @@
                 s => s.Equals("bleh"),
                 () => true);
             Assert.IsTrue(result);
+
+            iunion = new MyRefUnion(null);
+            result = iunion.Match(
+                i => i > 8,
+                m => m > 8,
+                s => s.Equals("bleh"));
+            Assert.IsFalse(result);
         }
 
         [TestMethod]

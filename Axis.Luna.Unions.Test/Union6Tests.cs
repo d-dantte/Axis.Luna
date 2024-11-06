@@ -4,205 +4,192 @@
     public class Union6Tests
     {
         [TestMethod]
-        public void Construction_Tests()
-        {
-            var runion = new MyRefUnion(4); //no exceptions thrown
-            runion = new MyRefUnion(4m); //no exceptions thrown
-            runion = new MyRefUnion(4f); //no exceptions thrown
-            runion = new MyRefUnion(4d); //no exceptions thrown
-            runion = new MyRefUnion(4L); //no exceptions thrown
-            runion = new MyRefUnion("some string"); //no exceptions thrown
-
-            Assert.ThrowsException<TypeInitializationException>(() => new DuplicateTypeUnion(4));
-        }
-
-        [TestMethod]
         public void Is_Tests()
         {
-            var union = new MyRefUnion(5);
-            Assert.IsTrue(union.Is(out int iv));
-            Assert.AreEqual(5, iv);
-            Assert.IsFalse(union.Is(out decimal _));
-            Assert.IsFalse(union.Is(out float _));
-            Assert.IsFalse(union.Is(out double _));
-            Assert.IsFalse(union.Is(out long _));
-            Assert.IsFalse(union.Is(out string _));
+            var union = new MyRefUnion((sbyte)5);
+            Assert.IsTrue(union.Is(out sbyte v));
+            Assert.AreEqual(5, v);
+            Assert.IsFalse(union.Is(out byte _));
+            Assert.IsFalse(union.Is(out short _));
+            Assert.IsFalse(union.Is(out ushort _));
+            Assert.IsFalse(union.Is(out int _));
+            Assert.IsFalse(union.Is(out uint _));
             Assert.IsFalse(union.IsNull());
 
-            union = new MyRefUnion(5m);
+            union = new MyRefUnion((byte)5);
+            Assert.IsFalse(union.Is(out sbyte _));
+            Assert.IsTrue(union.Is(out byte b));
+            Assert.AreEqual(5, b);
+            Assert.IsFalse(union.Is(out short _));
+            Assert.IsFalse(union.Is(out ushort _));
             Assert.IsFalse(union.Is(out int _));
-            Assert.IsTrue(union.Is(out decimal dv));
-            Assert.AreEqual(5m, dv);
-            Assert.IsFalse(union.Is(out float _));
-            Assert.IsFalse(union.Is(out double _));
-            Assert.IsFalse(union.Is(out long _));
-            Assert.IsFalse(union.Is(out string _));
+            Assert.IsFalse(union.Is(out uint _));
             Assert.IsFalse(union.IsNull());
 
-            union = new MyRefUnion(5f);
+            union = new MyRefUnion((short)5);
+            Assert.IsFalse(union.Is(out sbyte _));
+            Assert.IsFalse(union.Is(out byte _));
+            Assert.IsTrue(union.Is(out short s));
+            Assert.AreEqual(5, s);
+            Assert.IsFalse(union.Is(out ushort _));
             Assert.IsFalse(union.Is(out int _));
-            Assert.IsFalse(union.Is(out decimal _));
-            Assert.IsTrue(union.Is(out float fv));
-            Assert.AreEqual(5f, fv);
-            Assert.IsFalse(union.Is(out double _));
-            Assert.IsFalse(union.Is(out long _));
-            Assert.IsFalse(union.Is(out string _));
+            Assert.IsFalse(union.Is(out uint _));
             Assert.IsFalse(union.IsNull());
 
-            union = new MyRefUnion(5d);
+            union = new MyRefUnion((ushort)5);
+            Assert.IsFalse(union.Is(out sbyte _));
+            Assert.IsFalse(union.Is(out byte _));
+            Assert.IsFalse(union.Is(out short _));
+            Assert.IsTrue(union.Is(out ushort us));
+            Assert.AreEqual(5, us);
             Assert.IsFalse(union.Is(out int _));
-            Assert.IsFalse(union.Is(out decimal _));
-            Assert.IsFalse(union.Is(out float _));
-            Assert.IsTrue(union.Is(out double ddv));
-            Assert.AreEqual(5d, ddv);
-            Assert.IsFalse(union.Is(out long _));
-            Assert.IsFalse(union.Is(out string _));
+            Assert.IsFalse(union.Is(out uint _));
             Assert.IsFalse(union.IsNull());
 
-            union = new MyRefUnion(5L);
-            Assert.IsFalse(union.Is(out int _));
-            Assert.IsFalse(union.Is(out decimal _));
-            Assert.IsFalse(union.Is(out float _));
-            Assert.IsFalse(union.Is(out double _));
-            Assert.IsTrue(union.Is(out long lv));
-            Assert.AreEqual(5L, lv);
-            Assert.IsFalse(union.Is(out string _));
+            union = new MyRefUnion(5);
+            Assert.IsFalse(union.Is(out sbyte _));
+            Assert.IsFalse(union.Is(out byte _));
+            Assert.IsFalse(union.Is(out short _));
+            Assert.IsFalse(union.Is(out ushort _));
+            Assert.IsTrue(union.Is(out int i));
+            Assert.AreEqual(5, i);
+            Assert.IsFalse(union.Is(out uint _));
             Assert.IsFalse(union.IsNull());
 
-            union = new MyRefUnion("5");
+            union = new MyRefUnion(5u);
+            Assert.IsFalse(union.Is(out sbyte _));
+            Assert.IsFalse(union.Is(out byte _));
+            Assert.IsFalse(union.Is(out short _));
+            Assert.IsFalse(union.Is(out ushort _));
             Assert.IsFalse(union.Is(out int _));
-            Assert.IsFalse(union.Is(out decimal _));
-            Assert.IsFalse(union.Is(out float _));
-            Assert.IsFalse(union.Is(out double _));
-            Assert.IsFalse(union.Is(out long _));
-            Assert.IsTrue(union.Is(out string sv));
-            Assert.AreEqual("5", sv);
+            Assert.IsTrue(union.Is(out uint ui));
+            Assert.AreEqual(5u, ui);
             Assert.IsFalse(union.IsNull());
 
             union = new MyRefUnion(null);
+            Assert.IsFalse(union.Is(out sbyte _));
+            Assert.IsFalse(union.Is(out byte _));
+            Assert.IsFalse(union.Is(out short _));
+            Assert.IsFalse(union.Is(out ushort _));
             Assert.IsFalse(union.Is(out int _));
-            Assert.IsFalse(union.Is(out decimal _));
-            Assert.IsFalse(union.Is(out float _));
-            Assert.IsFalse(union.Is(out double _));
-            Assert.IsFalse(union.Is(out long _));
-            Assert.IsFalse(union.Is(out string _));
+            Assert.IsFalse(union.Is(out uint _));
             Assert.IsTrue(union.IsNull());
         }
 
         [TestMethod]
-        public void MapMatch_Tests()
+        public void Match_Tests()
         {
-            Assert.ThrowsException<ArgumentNullException>(() => new MyRefUnion(5).MapMatch(
-                null,
+            Assert.ThrowsException<ArgumentNullException>(() => new MyRefUnion(5).Match(
+                null!,
                 m => m.ToString(),
-                f => f.ToString(),
-                d => d.ToString(),
-                l => l.ToString(),
-                s => s));
-            Assert.ThrowsException<ArgumentNullException>(() => new MyRefUnion(5).MapMatch(
-                i => i.ToString(),
-                null,
-                f => f.ToString(),
-                d => d.ToString(),
-                l => l.ToString(),
-                s => s));
-            Assert.ThrowsException<ArgumentNullException>(() => new MyRefUnion(5).MapMatch(
-                i => i.ToString(),
                 m => m.ToString(),
-                null,
-                d => d.ToString(),
-                l => l.ToString(),
-                s => s));
-            Assert.ThrowsException<ArgumentNullException>(() => new MyRefUnion(5).MapMatch(
-                i => i.ToString(),
                 m => m.ToString(),
-                f => f.ToString(),
-                null,
-                l => l.ToString(),
-                s => s));
-            Assert.ThrowsException<ArgumentNullException>(() => new MyRefUnion(5).MapMatch(
-                i => i.ToString(),
                 m => m.ToString(),
-                f => f.ToString(),
-                d => d.ToString(),
-                null,
-                s => s));
-            Assert.ThrowsException<ArgumentNullException>(() => new MyRefUnion(5).MapMatch(
+                m => m.ToString()));
+            Assert.ThrowsException<ArgumentNullException>(() => new MyRefUnion(5).Match(
                 i => i.ToString(),
+                null!,
                 m => m.ToString(),
-                f => f.ToString(),
-                d => d.ToString(),
-                l => l.ToString(),
-                null));
+                m => m.ToString(),
+                m => m.ToString(),
+                m => m.ToString()));
+            Assert.ThrowsException<ArgumentNullException>(() => new MyRefUnion(5).Match(
+                m => m.ToString(),
+                m => m.ToString(),
+                null!,
+                m => m.ToString(),
+                m => m.ToString(),
+                m => m.ToString()));
+            Assert.ThrowsException<ArgumentNullException>(() => new MyRefUnion(5).Match(
+                m => m.ToString(),
+                m => m.ToString(),
+                m => m.ToString(),
+                null!,
+                m => m.ToString(),
+                m => m.ToString()));
+            Assert.ThrowsException<ArgumentNullException>(() => new MyRefUnion(5).Match(
+                m => m.ToString(),
+                m => m.ToString(),
+                m => m.ToString(),
+                m => m.ToString(),
+                null!,
+                m => m.ToString()));
+            Assert.ThrowsException<ArgumentNullException>(() => new MyRefUnion(5).Match(
+                m => m.ToString(),
+                m => m.ToString(),
+                m => m.ToString(),
+                m => m.ToString(),
+                m => m.ToString(),
+                null!));
 
-            var iunion = new MyRefUnion(5);
-            var result = iunion.MapMatch(
-                i => i == 5,
-                m => false,
-                f => false,
-                d => false,
-                l => false,
-                s => false);
+            var iunion = new MyRefUnion((sbyte)5);
+            var result = iunion.Match(
+                v => v == 5,
+                v => v != 5,
+                v => v != 5,
+                v => v != 5,
+                v => v != 5,
+                v => v != 5);
             Assert.IsTrue(result);
 
-            iunion = new MyRefUnion(5m);
-            result = iunion.MapMatch(
-                i => false,
-                m => m == 5m,
-                f => false,
-                d => false,
-                l => false,
-                s => false);
+            iunion = new MyRefUnion((byte)5);
+            result = iunion.Match(
+                v => v != 5,
+                v => v == 5,
+                v => v != 5,
+                v => v != 5,
+                v => v != 5,
+                v => v != 5);
             Assert.IsTrue(result);
 
-            iunion = new MyRefUnion(5f);
-            result = iunion.MapMatch(
-                i => false,
-                m => false,
-                f => f == 5f,
-                d => false,
-                l => false,
-                s => false);
+            iunion = new MyRefUnion((short)5);
+            result = iunion.Match(
+                v => v != 5,
+                v => v != 5,
+                v => v == 5,
+                v => v != 5,
+                v => v != 5,
+                v => v != 5);
             Assert.IsTrue(result);
 
-            iunion = new MyRefUnion(5d);
-            result = iunion.MapMatch(
-                i => false,
-                m => false,
-                f => false,
-                d => d == 5d,
-                l => false,
-                s => false);
+            iunion = new MyRefUnion((ushort)5);
+            result = iunion.Match(
+                v => v != 5,
+                v => v != 5,
+                v => v != 5,
+                v => v == 5,
+                v => v != 5,
+                v => v != 5);
             Assert.IsTrue(result);
 
-            iunion = new MyRefUnion(5L);
-            result = iunion.MapMatch(
-                i => false,
-                m => false,
-                f => false,
-                d => false,
-                l => l == 5L,
-                s => false);
+            iunion = new MyRefUnion((int)5);
+            result = iunion.Match(
+                v => v != 5,
+                v => v != 5,
+                v => v != 5,
+                v => v != 5,
+                v => v == 5,
+                v => v != 5);
             Assert.IsTrue(result);
 
-            iunion = new MyRefUnion("5");
-            result = iunion.MapMatch(
-                i => false,
-                m => false,
-                f => false,
-                d => false,
-                l => false,
-                s => s is not null);
+            iunion = new MyRefUnion(5u);
+            result = iunion.Match(
+                v => v != 5,
+                v => v != 5,
+                v => v != 5,
+                v => v != 5,
+                v => v != 5,
+                v => v == 5);
             Assert.IsTrue(result);
 
             iunion = new MyRefUnion(null);
-            result = iunion.MapMatch(
-                i => false,
-                m => false,
-                f => false,
-                d => false,
-                l => false,
-                s => false,
+            result = iunion.Match(
+                v => v == 5,
+                v => v == 5,
+                v => v == 5,
+                v => v == 5,
+                v => v == 5,
+                v => v == 5,
                 () => true);
             Assert.IsTrue(result);
         }
@@ -210,118 +197,118 @@
         [TestMethod]
         public void Consume_Tests()
         {
-            Assert.ThrowsException<ArgumentNullException>(() => new MyRefUnion(5).ConsumeMatch(
-                null,
-                Console.WriteLine,
-                Console.WriteLine,
-                Console.WriteLine,
-                Console.WriteLine,
-                Console.WriteLine));
-            Assert.ThrowsException<ArgumentNullException>(() => new MyRefUnion(5).ConsumeMatch(
-                Console.WriteLine,
-                null,
-                Console.WriteLine,
-                Console.WriteLine,
-                Console.WriteLine,
-                Console.WriteLine));
-            Assert.ThrowsException<ArgumentNullException>(() => new MyRefUnion(5).ConsumeMatch(
-                Console.WriteLine,
-                Console.WriteLine,
-                null,
-                Console.WriteLine,
-                Console.WriteLine,
-                Console.WriteLine));
-            Assert.ThrowsException<ArgumentNullException>(() => new MyRefUnion(5).ConsumeMatch(
-                Console.WriteLine,
-                Console.WriteLine,
-                Console.WriteLine,
-                null,
-                Console.WriteLine,
-                Console.WriteLine));
-            Assert.ThrowsException<ArgumentNullException>(() => new MyRefUnion(5).ConsumeMatch(
-                Console.WriteLine,
-                Console.WriteLine,
-                Console.WriteLine,
-                Console.WriteLine,
-                null,
-                Console.WriteLine));
-            Assert.ThrowsException<ArgumentNullException>(() => new MyRefUnion(5).ConsumeMatch(
-                Console.WriteLine,
-                Console.WriteLine,
-                Console.WriteLine,
-                Console.WriteLine,
-                Console.WriteLine,
-                null));
+            Assert.ThrowsException<ArgumentNullException>(() => new MyRefUnion(5).Consume(
+                null!,
+                ConsoleWrite,
+                ConsoleWrite,
+                ConsoleWrite,
+                ConsoleWrite,
+                ConsoleWrite));
+            Assert.ThrowsException<ArgumentNullException>(() => new MyRefUnion(5).Consume(
+                ConsoleWrite,
+                null!,
+                ConsoleWrite,
+                ConsoleWrite,
+                ConsoleWrite,
+                ConsoleWrite));
+            Assert.ThrowsException<ArgumentNullException>(() => new MyRefUnion(5).Consume(
+                ConsoleWrite,
+                ConsoleWrite,
+                null!,
+                ConsoleWrite,
+                ConsoleWrite,
+                ConsoleWrite));
+            Assert.ThrowsException<ArgumentNullException>(() => new MyRefUnion(5).Consume(
+                ConsoleWrite,
+                ConsoleWrite,
+                ConsoleWrite,
+                null!,
+                ConsoleWrite,
+                ConsoleWrite));
+            Assert.ThrowsException<ArgumentNullException>(() => new MyRefUnion(5).Consume(
+                ConsoleWrite,
+                ConsoleWrite,
+                ConsoleWrite,
+                ConsoleWrite,
+                null!,
+                ConsoleWrite));
+            Assert.ThrowsException<ArgumentNullException>(() => new MyRefUnion(5).Consume(
+                ConsoleWrite,
+                ConsoleWrite,
+                ConsoleWrite,
+                ConsoleWrite,
+                ConsoleWrite,
+                null!));
 
-            var iunion = new MyRefUnion(5);
+            var iunion = new MyRefUnion((sbyte)5);
             var result = false;
-            iunion.ConsumeMatch(
-                i => result = i == 5,
-                m => result = false,
-                f => result = false,
-                d => result = false,
-                l => result = false,
-                s => result = false);
+            iunion.Consume(
+                v => result = v == 5,
+                v => result = v != 5,
+                v => result = v != 5,
+                v => result = v != 5,
+                v => result = v != 5,
+                v => result = v != 5);
             Assert.IsTrue(result);
 
-            iunion = new MyRefUnion(5m);
-            iunion.ConsumeMatch(
-                i => result = false,
-                m => result = m == 5m,
-                f => result = false,
-                d => result = false,
-                l => result = false,
-                s => result = false);
+            iunion = new MyRefUnion((byte)5);
+            iunion.Consume(
+                v => result = v != 5,
+                v => result = v == 5,
+                v => result = v != 5,
+                v => result = v != 5,
+                v => result = v != 5,
+                v => result = v != 5);
             Assert.IsTrue(result);
 
-            iunion = new MyRefUnion(5f);
-            iunion.ConsumeMatch(
-                i => result = false,
-                m => result = false,
-                f => result = f == 5f,
-                d => result = false,
-                l => result = false,
-                s => result = false);
+            iunion = new MyRefUnion((short)5);
+            iunion.Consume(
+                v => result = v != 5,
+                v => result = v != 5,
+                v => result = v == 5,
+                v => result = v != 5,
+                v => result = v != 5,
+                v => result = v != 5);
             Assert.IsTrue(result);
 
-            iunion = new MyRefUnion(5d);
-            iunion.ConsumeMatch(
-                i => result = false,
-                m => result = false,
-                f => result = false,
-                d => result = d == 5d,
-                l => result = false,
-                s => result = false);
+            iunion = new MyRefUnion((ushort)5);
+            iunion.Consume(
+                v => result = v != 5,
+                v => result = v != 5,
+                v => result = v != 5,
+                v => result = v == 5,
+                v => result = v != 5,
+                v => result = v != 5);
             Assert.IsTrue(result);
 
-            iunion = new MyRefUnion(5L);
-            iunion.ConsumeMatch(
-                i => result = false,
-                m => result = false,
-                f => result = false,
-                d => result = false,
-                l => result = l == 5L,
-                s => result = false);
+            iunion = new MyRefUnion((int)5);
+            iunion.Consume(
+                v => result = v != 5,
+                v => result = v != 5,
+                v => result = v != 5,
+                v => result = v != 5,
+                v => result = v == 5,
+                v => result = v != 5);
             Assert.IsTrue(result);
 
-            iunion = new MyRefUnion("5");
-            iunion.ConsumeMatch(
-                i => result = false,
-                m => result = false,
-                f => result = false,
-                d => result = false,
-                l => result = false,
-                s => result = s == "5");
+            iunion = new MyRefUnion(5u);
+            iunion.Consume(
+                v => result = v != 5,
+                v => result = v != 5,
+                v => result = v != 5,
+                v => result = v != 5,
+                v => result = v != 5,
+                v => result = v == 5);
             Assert.IsTrue(result);
 
             iunion = new MyRefUnion(null);
-            iunion.ConsumeMatch(
-                i => result = false,
-                m => result = false,
-                m => result = false,
-                d => result = false,
-                l => result = false,
-                s => result = false,
+            iunion.Consume(
+                v => result = v == 5,
+                v => result = v == 5,
+                v => result = v == 5,
+                v => result = v == 5,
+                v => result = v == 5,
+                v => result = v == 5,
                 () => result = true);
             Assert.IsTrue(result);
         }
@@ -329,292 +316,133 @@
         [TestMethod]
         public void With_Tests()
         {
-            Assert.ThrowsException<ArgumentNullException>(() => new MyRefUnion(5).WithMatch(
-                null,
-                Console.WriteLine,
-                Console.WriteLine,
-                Console.WriteLine,
-                Console.WriteLine,
-                Console.WriteLine));
-            Assert.ThrowsException<ArgumentNullException>(() => new MyRefUnion(5).WithMatch(
-                Console.WriteLine,
-                null,
-                Console.WriteLine,
-                Console.WriteLine,
-                Console.WriteLine,
-                Console.WriteLine));
-            Assert.ThrowsException<ArgumentNullException>(() => new MyRefUnion(5).WithMatch(
-                Console.WriteLine,
-                Console.WriteLine,
-                null,
-                Console.WriteLine,
-                Console.WriteLine,
-                Console.WriteLine));
-            Assert.ThrowsException<ArgumentNullException>(() => new MyRefUnion(5).WithMatch(
-                Console.WriteLine,
-                Console.WriteLine,
-                Console.WriteLine,
-                null,
-                Console.WriteLine,
-                Console.WriteLine));
-            Assert.ThrowsException<ArgumentNullException>(() => new MyRefUnion(5).WithMatch(
-                Console.WriteLine,
-                Console.WriteLine,
-                Console.WriteLine,
-                Console.WriteLine,
-                null,
-                Console.WriteLine));
-            Assert.ThrowsException<ArgumentNullException>(() => new MyRefUnion(5).WithMatch(
-                Console.WriteLine,
-                Console.WriteLine,
-                Console.WriteLine,
-                Console.WriteLine,
-                Console.WriteLine,
-                null));
+            Assert.ThrowsException<ArgumentNullException>(() => new MyRefUnion(5).With(
+                null!,
+                ConsoleWrite,
+                ConsoleWrite,
+                ConsoleWrite,
+                ConsoleWrite,
+                ConsoleWrite));
+            Assert.ThrowsException<ArgumentNullException>(() => new MyRefUnion(5).With(
+                ConsoleWrite,
+                null!,
+                ConsoleWrite,
+                ConsoleWrite,
+                ConsoleWrite,
+                ConsoleWrite));
+            Assert.ThrowsException<ArgumentNullException>(() => new MyRefUnion(5).With(
+                ConsoleWrite,
+                ConsoleWrite,
+                null!,
+                ConsoleWrite,
+                ConsoleWrite,
+                ConsoleWrite));
+            Assert.ThrowsException<ArgumentNullException>(() => new MyRefUnion(5).With(
+                ConsoleWrite,
+                ConsoleWrite,
+                ConsoleWrite,
+                null!,
+                ConsoleWrite,
+                ConsoleWrite));
+            Assert.ThrowsException<ArgumentNullException>(() => new MyRefUnion(5).With(
+                ConsoleWrite,
+                ConsoleWrite,
+                ConsoleWrite,
+                ConsoleWrite,
+                null!,
+                ConsoleWrite));
+            Assert.ThrowsException<ArgumentNullException>(() => new MyRefUnion(5).With(
+                ConsoleWrite,
+                ConsoleWrite,
+                ConsoleWrite,
+                ConsoleWrite,
+                ConsoleWrite,
+                null!));
 
-            var iunion = new MyRefUnion(5);
+            var iunion = new MyRefUnion((sbyte)5);
             var result = false;
-            iunion.WithMatch(
-                i => result = i == 5,
-                m => result = false,
-                f => result = false,
-                d => result = false,
-                l => result = false,
-                s => result = false);
+            iunion.With(
+                v => result = v == 5,
+                v => result = v != 5,
+                v => result = v != 5,
+                v => result = v != 5,
+                v => result = v != 5,
+                v => result = v != 5);
             Assert.IsTrue(result);
 
-            iunion = new MyRefUnion(5m);
-            iunion.WithMatch(
-                i => result = false,
-                m => result = m == 5m,
-                f => result = false,
-                d => result = false,
-                l => result = false,
-                s => result = false);
+            iunion = new MyRefUnion((byte)5);
+            iunion.With(
+                v => result = v != 5,
+                v => result = v == 5,
+                v => result = v != 5,
+                v => result = v != 5,
+                v => result = v != 5,
+                v => result = v != 5);
             Assert.IsTrue(result);
 
-            iunion = new MyRefUnion(5f);
-            iunion.WithMatch(
-                i => result = false,
-                m => result = false,
-                f => result = f == 5f,
-                d => result = false,
-                l => result = false,
-                s => result = false);
+            iunion = new MyRefUnion((short)5);
+            iunion.With(
+                v => result = v != 5,
+                v => result = v != 5,
+                v => result = v == 5,
+                v => result = v != 5,
+                v => result = v != 5,
+                v => result = v != 5);
             Assert.IsTrue(result);
 
-            iunion = new MyRefUnion(5d);
-            iunion.WithMatch(
-                i => result = false,
-                m => result = false,
-                f => result = false,
-                d => result = d == 5d,
-                l => result = false,
-                s => result = false);
+            iunion = new MyRefUnion((ushort)5);
+            iunion.With(
+                v => result = v != 5,
+                v => result = v != 5,
+                v => result = v != 5,
+                v => result = v == 5,
+                v => result = v != 5,
+                v => result = v != 5);
             Assert.IsTrue(result);
 
-            iunion = new MyRefUnion(5L);
-            iunion.WithMatch(
-                i => result = false,
-                m => result = false,
-                f => result = false,
-                d => result = false,
-                l => result = l == 5L,
-                s => result = false);
+            iunion = new MyRefUnion((int)5);
+            iunion.With(
+                v => result = v != 5,
+                v => result = v != 5,
+                v => result = v != 5,
+                v => result = v != 5,
+                v => result = v == 5,
+                v => result = v != 5);
             Assert.IsTrue(result);
 
-            iunion = new MyRefUnion("5");
-            iunion.WithMatch(
-                i => result = false,
-                m => result = false,
-                f => result = false,
-                d => result = false,
-                l => result = false,
-                s => result = s == "5");
+            iunion = new MyRefUnion(5u);
+            iunion.With(
+                v => result = v != 5,
+                v => result = v != 5,
+                v => result = v != 5,
+                v => result = v != 5,
+                v => result = v != 5,
+                v => result = v == 5);
             Assert.IsTrue(result);
 
             iunion = new MyRefUnion(null);
-            iunion.WithMatch(
-                i => result = false,
-                m => result = false,
-                m => result = false,
-                d => result = false,
-                l => result = false,
-                s => result = false,
+            iunion.With(
+                v => result = v == 5,
+                v => result = v == 5,
+                v => result = v == 5,
+                v => result = v == 5,
+                v => result = v == 5,
+                v => result = v == 5,
                 () => result = true);
             Assert.IsTrue(result);
         }
 
-        [TestMethod]
-        public void ImplicitsAndOf_Tests()
+        private static void ConsoleWrite<T>(T obj)
         {
-            // implicits
-            All all = 5;
-            Assert.IsTrue(all.Is(out int _));
-            Assert.IsFalse(all.Is(out decimal _));
-            Assert.IsFalse(all.Is(out float _));
-            Assert.IsFalse(all.Is(out double _));
-            Assert.IsFalse(all.Is(out long _));
-            Assert.IsFalse(all.Is(out string _));
-            Assert.IsFalse(all.IsNull());
-
-            all = 5m;
-            Assert.IsFalse(all.Is(out int _));
-            Assert.IsTrue(all.Is(out decimal _));
-            Assert.IsFalse(all.Is(out float _));
-            Assert.IsFalse(all.Is(out double _));
-            Assert.IsFalse(all.Is(out long _));
-            Assert.IsFalse(all.Is(out string _));
-            Assert.IsFalse(all.IsNull());
-
-            all = 5f;
-            Assert.IsFalse(all.Is(out int _));
-            Assert.IsFalse(all.Is(out decimal _));
-            Assert.IsTrue(all.Is(out float _));
-            Assert.IsFalse(all.Is(out double _));
-            Assert.IsFalse(all.Is(out long _));
-            Assert.IsFalse(all.Is(out string _));
-            Assert.IsFalse(all.IsNull());
-
-            all = 5d;
-            Assert.IsFalse(all.Is(out int _));
-            Assert.IsFalse(all.Is(out decimal _));
-            Assert.IsFalse(all.Is(out float _));
-            Assert.IsTrue(all.Is(out double _));
-            Assert.IsFalse(all.Is(out long _));
-            Assert.IsFalse(all.Is(out string _));
-            Assert.IsFalse(all.IsNull());
-
-            all = 5L;
-            Assert.IsFalse(all.Is(out int _));
-            Assert.IsFalse(all.Is(out decimal _));
-            Assert.IsFalse(all.Is(out float _));
-            Assert.IsFalse(all.Is(out double _));
-            Assert.IsTrue(all.Is(out long _));
-            Assert.IsFalse(all.Is(out string _));
-            Assert.IsFalse(all.IsNull());
-
-            all = "5";
-            Assert.IsFalse(all.Is(out int _));
-            Assert.IsFalse(all.Is(out decimal _));
-            Assert.IsFalse(all.Is(out float _));
-            Assert.IsFalse(all.Is(out double _));
-            Assert.IsFalse(all.Is(out long _));
-            Assert.IsTrue(all.Is(out string _));
-            Assert.IsFalse(all.IsNull());
-
-            // of
-            all = All.Of(5);
-            Assert.IsTrue(all.Is(out int _));
-            Assert.IsFalse(all.Is(out decimal _));
-            Assert.IsFalse(all.Is(out float _));
-            Assert.IsFalse(all.Is(out double _));
-            Assert.IsFalse(all.Is(out long _));
-            Assert.IsFalse(all.Is(out string _));
-            Assert.IsFalse(all.IsNull());
-
-            all = All.Of(5m);
-            Assert.IsFalse(all.Is(out int _));
-            Assert.IsTrue(all.Is(out decimal _));
-            Assert.IsFalse(all.Is(out float _));
-            Assert.IsFalse(all.Is(out double _));
-            Assert.IsFalse(all.Is(out long _));
-            Assert.IsFalse(all.Is(out string _));
-            Assert.IsFalse(all.IsNull());
-
-            all = All.Of(5f);
-            Assert.IsFalse(all.Is(out int _));
-            Assert.IsFalse(all.Is(out decimal _));
-            Assert.IsTrue(all.Is(out float _));
-            Assert.IsFalse(all.Is(out double _));
-            Assert.IsFalse(all.Is(out long _));
-            Assert.IsFalse(all.Is(out string _));
-            Assert.IsFalse(all.IsNull());
-
-            all = All.Of(5d);
-            Assert.IsFalse(all.Is(out int _));
-            Assert.IsFalse(all.Is(out decimal _));
-            Assert.IsFalse(all.Is(out float _));
-            Assert.IsTrue(all.Is(out double _));
-            Assert.IsFalse(all.Is(out long _));
-            Assert.IsFalse(all.Is(out string _));
-            Assert.IsFalse(all.IsNull());
-
-            all = All.Of(5L);
-            Assert.IsFalse(all.Is(out int _));
-            Assert.IsFalse(all.Is(out decimal _));
-            Assert.IsFalse(all.Is(out float _));
-            Assert.IsFalse(all.Is(out double _));
-            Assert.IsTrue(all.Is(out long _));
-            Assert.IsFalse(all.Is(out string _));
-            Assert.IsFalse(all.IsNull());
-
-            all = All.Of("5");
-            Assert.IsFalse(all.Is(out int _));
-            Assert.IsFalse(all.Is(out decimal _));
-            Assert.IsFalse(all.Is(out float _));
-            Assert.IsFalse(all.Is(out double _));
-            Assert.IsTrue(all.Is(out string _));
-            Assert.IsFalse(all.IsNull());
+            Console.WriteLine(obj);
         }
 
-        internal class MyRefUnion
-        : RefUnion<int, decimal, float, double, long, string, MyRefUnion>
+        internal class MyRefUnion : IUnion<sbyte, byte, short, ushort, int, uint, MyRefUnion>
         {
-            public MyRefUnion(object value) : base(value)
-            {
-            }
+            private readonly object? _value;
+            object? IUnion<sbyte, byte, short, ushort, int, uint, MyRefUnion>.Value => _value;
+
+            public MyRefUnion(object? value) { _value = value; }
         }
-
-        internal class All :
-            RefUnion<int, decimal, float, double, long, string, All>,
-            IUnionImplicits<int, decimal, float, double, long, string, All>,
-            IUnionOf<int, decimal, float, double, long, string, All>
-        {
-            public All(object value) : base(value)
-            {
-            }
-
-            public static All Of(int value) => new(value);
-
-            public static All Of(decimal value) => new(value);
-
-            public static All Of(float value) => new(value);
-
-            public static All Of(double value) => new(value);
-
-            public static All Of(long value) => new(value);
-
-            public static All Of(string value) => new(value);
-
-            public static implicit operator All(int value) => new(value);
-
-            public static implicit operator All(decimal value) => new(value);
-
-            public static implicit operator All(float value) => new(value);
-
-            public static implicit operator All(double value) => new(value);
-
-            public static implicit operator All(long value) => new(value);
-
-            public static implicit operator All(string value) => new(value);
-        }
-
-        internal class DuplicateTypeUnion :
-            RefUnion<int, int, int, int, int, int, DuplicateTypeUnion>,
-#pragma warning disable CS1956 // Member implements interface member with multiple matches at run-time
-            IUnionImplicits<int, int, int, int, int, int, DuplicateTypeUnion>
-#pragma warning restore CS1956 // Member implements interface member with multiple matches at run-time
-        {
-            public DuplicateTypeUnion(object value) : base(value)
-            {
-            }
-
-            public static implicit operator DuplicateTypeUnion(int value)
-            {
-                throw new NotImplementedException();
-            }
-        }
-
     }
 }

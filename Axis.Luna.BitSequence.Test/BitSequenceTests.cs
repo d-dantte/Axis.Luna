@@ -316,6 +316,10 @@ namespace Axis.Luna.BitSequence.Test
             bs = default;
             text = bs.ToString();
             Assert.AreEqual("[]", text);
+
+            bs = BitSequence.Of(BigInteger.Parse("123456789012345678901234567890"));
+            text = bs.ToString();
+            Assert.AreEqual("[0000 0001, 1000 1110, 1110 1001, 0000 1111, 1111 0110, 1100 0011, 0111 0011, 1110 0000, 1110 1110, 0100 1110, 0011 1111, 0000 1010, 1101 0010]", text);
         }
 
         [TestMethod]
@@ -774,7 +778,7 @@ namespace Axis.Luna.BitSequence.Test
         }
 
         [TestMethod]
-        public void toSTringTests()
+        public void toStringTests()
         {
             var bint = BigInteger.Parse("1234567890987654321234567890");
             var bs = BitSequence.Of(bint.ToByteArray());
