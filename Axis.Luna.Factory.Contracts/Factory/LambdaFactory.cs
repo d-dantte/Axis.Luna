@@ -1,4 +1,4 @@
-﻿
+
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Axis.Luna.Factory.Contracts.Factory
