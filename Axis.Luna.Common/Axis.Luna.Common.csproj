@@ -31,4 +31,8 @@
     </None>
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\Axis.Luna.Extensions\Axis.Luna.Extensions.csproj" />
+  </ItemGroup>
+
 </Project>

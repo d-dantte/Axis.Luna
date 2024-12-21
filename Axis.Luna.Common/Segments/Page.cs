@@ -65,15 +65,21 @@ namespace Axis.Luna.Common.Segments
         /// </summary>
         public long PageNumber => IsDefault ? 0 : _pageIndex + 1;
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="pageIndex"></param>
+        /// <param name="maxPageLength"></param>
+        /// <param name="sequenceLength"></param>
+        /// <param name="data"></param>
+        /// <exception cref="ArgumentOutOfRangeException"></exception>
         public Page(long pageIndex, int maxPageLength, long? sequenceLength, params TData[] data)
         {
             ArgumentNullException.ThrowIfNull(data);
 
-            if (pageIndex < 0)
-                throw new ArgumentOutOfRangeException(nameof(pageIndex));
+            ArgumentOutOfRangeException.ThrowIfNegative(pageIndex);
 
-            if (maxPageLength < 0)
-                throw new ArgumentOutOfRangeException(nameof(maxPageLength));
+            ArgumentOutOfRangeException.ThrowIfNegative(maxPageLength);
 
             if (sequenceLength < 0)
                 throw new ArgumentOutOfRangeException(nameof(sequenceLength));
@@ -81,7 +87,7 @@ namespace Axis.Luna.Common.Segments
             _pageIndex = pageIndex;
             _pageMaxLength = maxPageLength;
             _sequenceLength = sequenceLength;
-            _data = data.ToImmutableArray();
+            _data = [.. data];
             _dataHash = new Lazy<int>(() => data.Aggregate(0, HashCode.Combine));
         }
 
