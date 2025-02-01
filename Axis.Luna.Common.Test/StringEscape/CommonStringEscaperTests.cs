@@ -98,6 +98,18 @@ namespace Axis.Luna.Common.Test.StringEscape
         }
 
         [TestMethod]
+        public void Escape_WithPredicate_andEscaper_Tests()
+        {
+            var escaper = new CommonStringEscaper();
+
+            Assert.ThrowsException<ArgumentException>(() => escaper.Escape(default, t => true, c => ""));
+            Assert.ThrowsException<ArgumentNullException>(() => escaper.Escape("abcd", null!, c => ""));
+            Assert.ThrowsException<ArgumentNullException>(() => escaper.Escape("abcd", t => true, null));
+
+            Assert.AreEqual<string>("abc\\x64", escaper.Escape("abcd", c => c == 'd', CommonStringEscaper.EscapeChar));
+        }
+
+        [TestMethod]
         public void Unescape_Sequence_Tests()
         {
             var escaper = new CommonStringEscaper();

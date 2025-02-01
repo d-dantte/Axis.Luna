@@ -65,6 +65,8 @@ namespace Axis.Luna.Common.Segments
         /// </summary>
         public long PageNumber => IsDefault ? 0 : _pageIndex + 1;
 
+        public ImmutableArray<TData > Data => _data;
+
         /// <summary>
         /// 
         /// </summary>
@@ -101,16 +103,14 @@ namespace Axis.Luna.Common.Segments
 
             if (_pageIndex != other._pageIndex
                 || _pageMaxLength != other._pageMaxLength
-                || _sequenceLength != other._sequenceLength)
-                return false;
-
-            if (_dataHash.Value != other._dataHash.Value)
+                || _sequenceLength != other._sequenceLength
+                || _data.Length != other._data.Length)
                 return false;
 
             if (_data.Equals(other._data))
                 return true;
 
-            if (_data.Length != other._data.Length)
+            if (_dataHash.Value != other._dataHash.Value)
                 return false;
 
             var comparer = EqualityComparer<TData>.Default;

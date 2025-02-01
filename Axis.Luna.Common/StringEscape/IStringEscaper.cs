@@ -20,25 +20,39 @@ namespace Axis.Luna.Common.StringEscape
         bool IsValidEscapeSequence(CharSequence escapeSequence);
 
         /// <summary>
-        /// Converts the entire unescaped sequence into an escape sequence. If the unescaped sequence cannot be escaped, return it as-is.
+        /// Converts the entire unescaped sequence into an escaped sequence. If the unescaped sequence cannot be escaped, return it as-is.
         /// </summary>
         /// <param name="chars">The unescaped sequence</param>
         /// <returns>The escaped sequence</returns>
         CharSequence Escape(CharSequence unescapedSequence);
 
         /// <summary>
-        /// Escapes only characters in the unescaped sequence that match the predicate; otherwise returning other characters aso-is.
+        /// Escapes only characters in the unescaped sequence that match the predicate; otherwise returning other characters as-is.
         /// </summary>
-        /// <param name="chars">The unescaped sequence</param>
+        /// <param name="unescapedSequence">The unescaped sequence</param>
+        /// <param name="predicate">A predicate that decides if a character is to be escaped</param>
         /// <returns>The escaped sequence</returns>
         CharSequence Escape(
             CharSequence unescapedSequence,
             Func<char, bool> predicate);
 
         /// <summary>
-        /// Converts the escaped sequence into an unescaped sequence. If the escaped sequence is invalid, return it as-is.
+        /// Escapes only characters in the unescaped sequence that match the predicate; otherwise returning other characters as-is.
         /// </summary>
-        /// <param name="sequence">The escaped sequence</param>
+        /// <param name="unescapedSequence">The unescaped sequence</param>
+        /// <param name="predicate">A predicate that decides if a character is to be escaped</param>
+        /// <param name="charEscaper">A function that converts the given character to an escape sequence</param>
+        /// <returns>The escaped sequence</returns>
+        CharSequence Escape(
+            CharSequence unescapedSequence,
+            Func<char, bool> predicate,
+            Func<char, CharSequence> charEscaper);
+
+        /// <summary>
+        /// Converts the escaped sequence into an unescaped sequence. If the escaped sequence is invalid, return it as-is.
+        /// <para/>
+        /// </summary>
+        /// <param name="sequence">The escaped sequence, representing a sequence of characters that can be unescaped into a single character</param>
         /// <returns>The unescaped sequence</returns>
         CharSequence Unescape(CharSequence escapedSequence);
 

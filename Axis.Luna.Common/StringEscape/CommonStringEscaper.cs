@@ -65,8 +65,15 @@ namespace Axis.Luna.Common.StringEscape
         public CharSequence Escape(
             CharSequence unescapedSequence,
             Func<char, bool> predicate)
+            => Escape(unescapedSequence, predicate, EscapeChar);
+
+        public CharSequence Escape(
+            CharSequence unescapedSequence,
+            Func<char, bool> predicate,
+            Func<char, CharSequence> escaper)
         {
             ArgumentNullException.ThrowIfNull(predicate);
+            ArgumentNullException.ThrowIfNull(escaper);
 
             if (unescapedSequence.IsDefault)
                 throw new ArgumentException($"Invalid {nameof(unescapedSequence)}: default");
@@ -76,7 +83,7 @@ namespace Axis.Luna.Common.StringEscape
                 (seq, @char) =>
                 {
                     if (predicate.Invoke(@char))
-                        return seq + EscapeChar(@char);
+                        return seq + escaper.Invoke(@char);
                     else return seq + @char;
                 });
         }
@@ -178,7 +185,7 @@ namespace Axis.Luna.Common.StringEscape
             else return stringBuilder.ToString();
         }
 
-        private static CharSequence EscapeChar(char @char)
+        public static CharSequence EscapeChar(char @char)
         {
             return @char switch
             {

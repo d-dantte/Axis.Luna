@@ -7,72 +7,72 @@
         public void Is_Tests()
         {
             var union = new MyRefUnion((sbyte)5);
-            Assert.IsTrue(union.Is(out sbyte v));
+            Assert.IsTrue(union.IsOf(out sbyte v));
             Assert.AreEqual(5, v);
-            Assert.IsFalse(union.Is(out byte _));
-            Assert.IsFalse(union.Is(out short _));
-            Assert.IsFalse(union.Is(out ushort _));
-            Assert.IsFalse(union.Is(out int _));
-            Assert.IsFalse(union.Is(out uint _));
+            Assert.IsFalse(union.IsOf(out byte _));
+            Assert.IsFalse(union.IsOf(out short _));
+            Assert.IsFalse(union.IsOf(out ushort _));
+            Assert.IsFalse(union.IsOf(out int _));
+            Assert.IsFalse(union.IsOf(out uint _));
             Assert.IsFalse(union.IsNull());
 
             union = new MyRefUnion((byte)5);
-            Assert.IsFalse(union.Is(out sbyte _));
-            Assert.IsTrue(union.Is(out byte b));
+            Assert.IsFalse(union.IsOf(out sbyte _));
+            Assert.IsTrue(union.IsOf(out byte b));
             Assert.AreEqual(5, b);
-            Assert.IsFalse(union.Is(out short _));
-            Assert.IsFalse(union.Is(out ushort _));
-            Assert.IsFalse(union.Is(out int _));
-            Assert.IsFalse(union.Is(out uint _));
+            Assert.IsFalse(union.IsOf(out short _));
+            Assert.IsFalse(union.IsOf(out ushort _));
+            Assert.IsFalse(union.IsOf(out int _));
+            Assert.IsFalse(union.IsOf(out uint _));
             Assert.IsFalse(union.IsNull());
 
             union = new MyRefUnion((short)5);
-            Assert.IsFalse(union.Is(out sbyte _));
-            Assert.IsFalse(union.Is(out byte _));
-            Assert.IsTrue(union.Is(out short s));
+            Assert.IsFalse(union.IsOf(out sbyte _));
+            Assert.IsFalse(union.IsOf(out byte _));
+            Assert.IsTrue(union.IsOf(out short s));
             Assert.AreEqual(5, s);
-            Assert.IsFalse(union.Is(out ushort _));
-            Assert.IsFalse(union.Is(out int _));
-            Assert.IsFalse(union.Is(out uint _));
+            Assert.IsFalse(union.IsOf(out ushort _));
+            Assert.IsFalse(union.IsOf(out int _));
+            Assert.IsFalse(union.IsOf(out uint _));
             Assert.IsFalse(union.IsNull());
 
             union = new MyRefUnion((ushort)5);
-            Assert.IsFalse(union.Is(out sbyte _));
-            Assert.IsFalse(union.Is(out byte _));
-            Assert.IsFalse(union.Is(out short _));
-            Assert.IsTrue(union.Is(out ushort us));
+            Assert.IsFalse(union.IsOf(out sbyte _));
+            Assert.IsFalse(union.IsOf(out byte _));
+            Assert.IsFalse(union.IsOf(out short _));
+            Assert.IsTrue(union.IsOf(out ushort us));
             Assert.AreEqual(5, us);
-            Assert.IsFalse(union.Is(out int _));
-            Assert.IsFalse(union.Is(out uint _));
+            Assert.IsFalse(union.IsOf(out int _));
+            Assert.IsFalse(union.IsOf(out uint _));
             Assert.IsFalse(union.IsNull());
 
             union = new MyRefUnion(5);
-            Assert.IsFalse(union.Is(out sbyte _));
-            Assert.IsFalse(union.Is(out byte _));
-            Assert.IsFalse(union.Is(out short _));
-            Assert.IsFalse(union.Is(out ushort _));
-            Assert.IsTrue(union.Is(out int i));
+            Assert.IsFalse(union.IsOf(out sbyte _));
+            Assert.IsFalse(union.IsOf(out byte _));
+            Assert.IsFalse(union.IsOf(out short _));
+            Assert.IsFalse(union.IsOf(out ushort _));
+            Assert.IsTrue(union.IsOf(out int i));
             Assert.AreEqual(5, i);
-            Assert.IsFalse(union.Is(out uint _));
+            Assert.IsFalse(union.IsOf(out uint _));
             Assert.IsFalse(union.IsNull());
 
             union = new MyRefUnion(5u);
-            Assert.IsFalse(union.Is(out sbyte _));
-            Assert.IsFalse(union.Is(out byte _));
-            Assert.IsFalse(union.Is(out short _));
-            Assert.IsFalse(union.Is(out ushort _));
-            Assert.IsFalse(union.Is(out int _));
-            Assert.IsTrue(union.Is(out uint ui));
+            Assert.IsFalse(union.IsOf(out sbyte _));
+            Assert.IsFalse(union.IsOf(out byte _));
+            Assert.IsFalse(union.IsOf(out short _));
+            Assert.IsFalse(union.IsOf(out ushort _));
+            Assert.IsFalse(union.IsOf(out int _));
+            Assert.IsTrue(union.IsOf(out uint ui));
             Assert.AreEqual(5u, ui);
             Assert.IsFalse(union.IsNull());
 
             union = new MyRefUnion(null);
-            Assert.IsFalse(union.Is(out sbyte _));
-            Assert.IsFalse(union.Is(out byte _));
-            Assert.IsFalse(union.Is(out short _));
-            Assert.IsFalse(union.Is(out ushort _));
-            Assert.IsFalse(union.Is(out int _));
-            Assert.IsFalse(union.Is(out uint _));
+            Assert.IsFalse(union.IsOf(out sbyte _));
+            Assert.IsFalse(union.IsOf(out byte _));
+            Assert.IsFalse(union.IsOf(out short _));
+            Assert.IsFalse(union.IsOf(out ushort _));
+            Assert.IsFalse(union.IsOf(out int _));
+            Assert.IsFalse(union.IsOf(out uint _));
             Assert.IsTrue(union.IsNull());
         }
 

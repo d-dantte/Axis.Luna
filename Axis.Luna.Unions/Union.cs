@@ -6,17 +6,17 @@
 
         #region Is
 
-        public static bool Is<T1, T2, TSelf>(
+        public static bool IsOf<T1, T2, TSelf>(
             this IUnion<T1, T2, TSelf> union,
             out T1? value)
             where TSelf : IUnion<T1, T2, TSelf>
-            => union.Value.Is(out value);
+            => union.Value.IsOf(out value);
 
-        public static bool Is<T1, T2, TSelf>(
+        public static bool IsOf<T1, T2, TSelf>(
             this IUnion<T1, T2, TSelf> union,
             out T2? value)
             where TSelf : IUnion<T1, T2, TSelf>
-            => union.Value.Is(out value);
+            => union.Value.IsOf(out value);
 
         public static bool IsNull<T1, T2, TSelf>(
             this IUnion<T1, T2, TSelf> union)
@@ -96,23 +96,23 @@
 
         #region Is
 
-        public static bool Is<T1, T2, T3, TSelf>(
+        public static bool IsOf<T1, T2, T3, TSelf>(
             this IUnion<T1, T2, T3, TSelf> union,
             out T1? value)
             where TSelf : IUnion<T1, T2, T3, TSelf>
-            => union.Value.Is(out value);
+            => union.Value.IsOf(out value);
 
-        public static bool Is<T1, T2, T3, TSelf>(
+        public static bool IsOf<T1, T2, T3, TSelf>(
             this IUnion<T1, T2, T3, TSelf> union,
             out T2? value)
             where TSelf : IUnion<T1, T2, T3, TSelf>
-            => union.Value.Is(out value);
+            => union.Value.IsOf(out value);
 
-        public static bool Is<T1, T2, T3, TSelf>(
+        public static bool IsOf<T1, T2, T3, TSelf>(
             this IUnion<T1, T2, T3, TSelf> union,
             out T3? value)
             where TSelf : IUnion<T1, T2, T3, TSelf>
-            => union.Value.Is(out value);
+            => union.Value.IsOf(out value);
 
         public static bool IsNull<T1, T2, T3, TSelf>(
             this IUnion<T1, T2, T3, TSelf> union)
@@ -201,29 +201,29 @@
 
         #region Is
 
-        public static bool Is<T1, T2, T3, T4, TSelf>(
+        public static bool IsOf<T1, T2, T3, T4, TSelf>(
             this IUnion<T1, T2, T3, T4, TSelf> union,
             out T1? value)
             where TSelf : IUnion<T1, T2, T3, T4, TSelf>
-            => union.Value.Is(out value);
+            => union.Value.IsOf(out value);
 
-        public static bool Is<T1, T2, T3, T4, TSelf>(
+        public static bool IsOf<T1, T2, T3, T4, TSelf>(
             this IUnion<T1, T2, T3, T4, TSelf> union,
             out T2? value)
             where TSelf : IUnion<T1, T2, T3, T4, TSelf>
-            => union.Value.Is(out value);
+            => union.Value.IsOf(out value);
 
-        public static bool Is<T1, T2, T3, T4, TSelf>(
+        public static bool IsOf<T1, T2, T3, T4, TSelf>(
             this IUnion<T1, T2, T3, T4, TSelf> union,
             out T3? value)
             where TSelf : IUnion<T1, T2, T3, T4, TSelf>
-            => union.Value.Is(out value);
+            => union.Value.IsOf(out value);
 
-        public static bool Is<T1, T2, T3, T4, TSelf>(
+        public static bool IsOf<T1, T2, T3, T4, TSelf>(
             this IUnion<T1, T2, T3, T4, TSelf> union,
             out T4? value)
             where TSelf : IUnion<T1, T2, T3, T4, TSelf>
-            => union.Value.Is(out value);
+            => union.Value.IsOf(out value);
 
         public static bool IsNull<T1, T2, T3, T4, TSelf>(
             this IUnion<T1, T2, T3, T4, TSelf> union)
@@ -321,35 +321,35 @@
 
         #region Is
 
-        public static bool Is<T1, T2, T3, T4, T5, TSelf>(
+        public static bool IsOf<T1, T2, T3, T4, T5, TSelf>(
             this IUnion<T1, T2, T3, T4, T5, TSelf> union,
             out T1? value)
             where TSelf : IUnion<T1, T2, T3, T4, T5, TSelf>
-            => union.Value.Is(out value);
+            => union.Value.IsOf(out value);
 
-        public static bool Is<T1, T2, T3, T4, T5, TSelf>(
+        public static bool IsOf<T1, T2, T3, T4, T5, TSelf>(
             this IUnion<T1, T2, T3, T4, T5, TSelf> union,
             out T2? value)
             where TSelf : IUnion<T1, T2, T3, T4, T5, TSelf>
-            => union.Value.Is(out value);
+            => union.Value.IsOf(out value);
 
-        public static bool Is<T1, T2, T3, T4, T5, TSelf>(
+        public static bool IsOf<T1, T2, T3, T4, T5, TSelf>(
             this IUnion<T1, T2, T3, T4, T5, TSelf> union,
             out T3? value)
             where TSelf : IUnion<T1, T2, T3, T4, T5, TSelf>
-            => union.Value.Is(out value);
+            => union.Value.IsOf(out value);
 
-        public static bool Is<T1, T2, T3, T4, T5, TSelf>(
+        public static bool IsOf<T1, T2, T3, T4, T5, TSelf>(
             this IUnion<T1, T2, T3, T4, T5, TSelf> union,
             out T4? value)
             where TSelf : IUnion<T1, T2, T3, T4, T5, TSelf>
-            => union.Value.Is(out value);
+            => union.Value.IsOf(out value);
 
-        public static bool Is<T1, T2, T3, T4, T5, TSelf>(
+        public static bool IsOf<T1, T2, T3, T4, T5, TSelf>(
             this IUnion<T1, T2, T3, T4, T5, TSelf> union,
             out T5? value)
             where TSelf : IUnion<T1, T2, T3, T4, T5, TSelf>
-            => union.Value.Is(out value);
+            => union.Value.IsOf(out value);
 
         public static bool IsNull<T1, T2, T3, T4, T5, TSelf>(
             this IUnion<T1, T2, T3, T4, T5, TSelf> union)
@@ -458,41 +458,41 @@
 
         #region Is
 
-        public static bool Is<T1, T2, T3, T4, T5, T6, TSelf>(
+        public static bool IsOf<T1, T2, T3, T4, T5, T6, TSelf>(
             this IUnion<T1, T2, T3, T4, T5, T6, TSelf> union,
             out T1? value)
             where TSelf : IUnion<T1, T2, T3, T4, T5, T6, TSelf>
-            => union.Value.Is(out value);
+            => union.Value.IsOf(out value);
 
-        public static bool Is<T1, T2, T3, T4, T5, T6, TSelf>(
+        public static bool IsOf<T1, T2, T3, T4, T5, T6, TSelf>(
             this IUnion<T1, T2, T3, T4, T5, T6, TSelf> union,
             out T2? value)
             where TSelf : IUnion<T1, T2, T3, T4, T5, T6, TSelf>
-            => union.Value.Is(out value);
+            => union.Value.IsOf(out value);
 
-        public static bool Is<T1, T2, T3, T4, T5, T6, TSelf>(
+        public static bool IsOf<T1, T2, T3, T4, T5, T6, TSelf>(
             this IUnion<T1, T2, T3, T4, T5, T6, TSelf> union,
             out T3? value)
             where TSelf : IUnion<T1, T2, T3, T4, T5, T6, TSelf>
-            => union.Value.Is(out value);
+            => union.Value.IsOf(out value);
 
-        public static bool Is<T1, T2, T3, T4, T5, T6, TSelf>(
+        public static bool IsOf<T1, T2, T3, T4, T5, T6, TSelf>(
             this IUnion<T1, T2, T3, T4, T5, T6, TSelf> union,
             out T4? value)
             where TSelf : IUnion<T1, T2, T3, T4, T5, T6, TSelf>
-            => union.Value.Is(out value);
+            => union.Value.IsOf(out value);
 
-        public static bool Is<T1, T2, T3, T4, T5, T6, TSelf>(
+        public static bool IsOf<T1, T2, T3, T4, T5, T6, TSelf>(
             this IUnion<T1, T2, T3, T4, T5, T6, TSelf> union,
             out T5? value)
             where TSelf : IUnion<T1, T2, T3, T4, T5, T6, TSelf>
-            => union.Value.Is(out value);
+            => union.Value.IsOf(out value);
 
-        public static bool Is<T1, T2, T3, T4, T5, T6, TSelf>(
+        public static bool IsOf<T1, T2, T3, T4, T5, T6, TSelf>(
             this IUnion<T1, T2, T3, T4, T5, T6, TSelf> union,
             out T6? value)
             where TSelf : IUnion<T1, T2, T3, T4, T5, T6, TSelf>
-            => union.Value.Is(out value);
+            => union.Value.IsOf(out value);
 
         public static bool IsNull<T1, T2, T3, T4, T5, T6, TSelf>(
             this IUnion<T1, T2, T3, T4, T5, T6, TSelf> union)
@@ -611,47 +611,47 @@
 
         #region Is
 
-        public static bool Is<T1, T2, T3, T4, T5, T6, T7, TSelf>(
+        public static bool IsOf<T1, T2, T3, T4, T5, T6, T7, TSelf>(
             this IUnion<T1, T2, T3, T4, T5, T6, T7, TSelf> union,
             out T1? value)
             where TSelf : IUnion<T1, T2, T3, T4, T5, T6, T7, TSelf>
-            => union.Value.Is(out value);
+            => union.Value.IsOf(out value);
 
-        public static bool Is<T1, T2, T3, T4, T5, T6, T7, TSelf>(
+        public static bool IsOf<T1, T2, T3, T4, T5, T6, T7, TSelf>(
             this IUnion<T1, T2, T3, T4, T5, T6, T7, TSelf> union,
             out T2? value)
             where TSelf : IUnion<T1, T2, T3, T4, T5, T6, T7, TSelf>
-            => union.Value.Is(out value);
+            => union.Value.IsOf(out value);
 
-        public static bool Is<T1, T2, T3, T4, T5, T6, T7, TSelf>(
+        public static bool IsOf<T1, T2, T3, T4, T5, T6, T7, TSelf>(
             this IUnion<T1, T2, T3, T4, T5, T6, T7, TSelf> union,
             out T3? value)
             where TSelf : IUnion<T1, T2, T3, T4, T5, T6, T7, TSelf>
-            => union.Value.Is(out value);
+            => union.Value.IsOf(out value);
 
-        public static bool Is<T1, T2, T3, T4, T5, T6, T7, TSelf>(
+        public static bool IsOf<T1, T2, T3, T4, T5, T6, T7, TSelf>(
             this IUnion<T1, T2, T3, T4, T5, T6, T7, TSelf> union,
             out T4? value)
             where TSelf : IUnion<T1, T2, T3, T4, T5, T6, T7, TSelf>
-            => union.Value.Is(out value);
+            => union.Value.IsOf(out value);
 
-        public static bool Is<T1, T2, T3, T4, T5, T6, T7, TSelf>(
+        public static bool IsOf<T1, T2, T3, T4, T5, T6, T7, TSelf>(
             this IUnion<T1, T2, T3, T4, T5, T6, T7, TSelf> union,
             out T5? value)
             where TSelf : IUnion<T1, T2, T3, T4, T5, T6, T7, TSelf>
-            => union.Value.Is(out value);
+            => union.Value.IsOf(out value);
 
-        public static bool Is<T1, T2, T3, T4, T5, T6, T7, TSelf>(
+        public static bool IsOf<T1, T2, T3, T4, T5, T6, T7, TSelf>(
             this IUnion<T1, T2, T3, T4, T5, T6, T7, TSelf> union,
             out T6? value)
             where TSelf : IUnion<T1, T2, T3, T4, T5, T6, T7, TSelf>
-            => union.Value.Is(out value);
+            => union.Value.IsOf(out value);
 
-        public static bool Is<T1, T2, T3, T4, T5, T6, T7, TSelf>(
+        public static bool IsOf<T1, T2, T3, T4, T5, T6, T7, TSelf>(
             this IUnion<T1, T2, T3, T4, T5, T6, T7, TSelf> union,
             out T7? value)
             where TSelf : IUnion<T1, T2, T3, T4, T5, T6, T7, TSelf>
-            => union.Value.Is(out value);
+            => union.Value.IsOf(out value);
 
         public static bool IsNull<T1, T2, T3, T4, T5, T6, T7, TSelf>(
             this IUnion<T1, T2, T3, T4, T5, T6, T7, TSelf> union)
@@ -777,7 +777,7 @@
 
         #region Common
 
-        private static bool Is<T>(this object? unionValue, out T? value)
+        private static bool IsOf<T>(this object? unionValue, out T? value)
         {
             if (unionValue is T t1)
             {

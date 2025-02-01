@@ -7,18 +7,18 @@
         public void Is_Tests()
         {
             var union = new ValueUnion<int, string>(4);
-            Assert.IsFalse(union.Is(out string? _));
-            Assert.IsTrue(union.Is(out int iv));
+            Assert.IsFalse(union.IsOf(out string? _));
+            Assert.IsTrue(union.IsOf(out int iv));
             Assert.AreEqual(4, iv);
 
             union = new ValueUnion<int, string>("5");
-            Assert.IsFalse(union.Is(out int _));
-            Assert.IsTrue(union.Is(out string? sv));
+            Assert.IsFalse(union.IsOf(out int _));
+            Assert.IsTrue(union.IsOf(out string? sv));
             Assert.AreEqual("5", sv);
 
             union = new ValueUnion<int, string>(null);
-            Assert.IsFalse(union.Is(out string? _));
-            Assert.IsFalse(union.Is(out int _));
+            Assert.IsFalse(union.IsOf(out string? _));
+            Assert.IsFalse(union.IsOf(out int _));
             Assert.IsTrue(union.IsNull());
         }
 

@@ -7,30 +7,30 @@
         public void Is_Tests()
         {
             var union = new MyRefUnion(5);
-            Assert.IsTrue(union.Is(out int iv));
+            Assert.IsTrue(union.IsOf(out int iv));
             Assert.AreEqual(5, iv);
-            Assert.IsFalse(union.Is(out decimal _));
-            Assert.IsFalse(union.Is(out string? _));
+            Assert.IsFalse(union.IsOf(out decimal _));
+            Assert.IsFalse(union.IsOf(out string? _));
             Assert.IsFalse(union.IsNull());
 
             union = new MyRefUnion(5m);
-            Assert.IsFalse(union.Is(out int _));
-            Assert.IsTrue(union.Is(out decimal dv));
+            Assert.IsFalse(union.IsOf(out int _));
+            Assert.IsTrue(union.IsOf(out decimal dv));
             Assert.AreEqual(5m, dv);
-            Assert.IsFalse(union.Is(out string? _));
+            Assert.IsFalse(union.IsOf(out string? _));
             Assert.IsFalse(union.IsNull());
 
             union = new MyRefUnion("5");
-            Assert.IsFalse(union.Is(out int _));
-            Assert.IsFalse(union.Is(out decimal _));
-            Assert.IsTrue(union.Is(out string? sv));
+            Assert.IsFalse(union.IsOf(out int _));
+            Assert.IsFalse(union.IsOf(out decimal _));
+            Assert.IsTrue(union.IsOf(out string? sv));
             Assert.AreEqual("5", sv);
             Assert.IsFalse(union.IsNull());
 
             union = new MyRefUnion(null);
-            Assert.IsFalse(union.Is(out int _));
-            Assert.IsFalse(union.Is(out decimal _));
-            Assert.IsFalse(union.Is(out string? _));
+            Assert.IsFalse(union.IsOf(out int _));
+            Assert.IsFalse(union.IsOf(out decimal _));
+            Assert.IsFalse(union.IsOf(out string? _));
             Assert.IsTrue(union.IsNull());
         }
 
