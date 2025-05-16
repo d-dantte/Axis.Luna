@@ -261,7 +261,7 @@ namespace Axis.Luna.Common.Test
             bool result = reader.TryPeek(c => c[0] == 'a', out var chars);
             Assert.IsTrue(result);
             Assert.AreEqual("a", chars.ToString());
-            Assert.AreEqual(1, reader.CurrentIndex);
+            Assert.AreEqual(0, reader.CurrentIndex);
         }
 
         [TestMethod]
@@ -271,7 +271,7 @@ namespace Axis.Luna.Common.Test
             bool result = reader.TryPeek(c => 'a' == c[^1] || 'b' == c[^1] || 'c' == c[^1], out var chars);
             Assert.IsTrue(result);
             Assert.AreEqual("abc", chars.ToString());
-            Assert.AreEqual(3, reader.CurrentIndex);
+            Assert.AreEqual(0, reader.CurrentIndex);
         }
 
         [TestMethod]
@@ -290,7 +290,7 @@ namespace Axis.Luna.Common.Test
             bool result = reader.TryPeek(c => char.IsLetter(c[^1]), out var chars);
             Assert.IsTrue(result);
             Assert.AreEqual("ab", chars.ToString());
-            Assert.AreEqual(2, reader.CurrentIndex);
+            Assert.AreEqual(0, reader.CurrentIndex);
         }
 
         [TestMethod]
@@ -300,7 +300,7 @@ namespace Axis.Luna.Common.Test
             bool result = reader.TryPeek(c => c.Length > 0, out var chars);
             Assert.IsTrue(result);
             Assert.AreEqual("abcdef", chars.ToString());
-            Assert.AreEqual(6, reader.CurrentIndex);
+            Assert.AreEqual(0, reader.CurrentIndex);
         }
 
         [TestMethod]
@@ -311,7 +311,25 @@ namespace Axis.Luna.Common.Test
             bool result = reader.TryPeek(c => c.ToString().All(ch => ch == 'a'), out var chars);
             Assert.IsTrue(result);
             Assert.AreEqual(new string('a', 1000), chars.ToString());
-            Assert.AreEqual(1000, reader.CurrentIndex);
+            Assert.AreEqual(0, reader.CurrentIndex);
+        }
+
+        [TestMethod]
+        public void TryRead_Tests()
+        {
+            CharSequenceReader reader = "";
+            Assert.ThrowsException<ArgumentNullException>(
+                () => reader.TryRead(null, out var t));
+
+            reader = "abcd1234";
+            var result = reader.TryRead(c => char.IsLetter(c[^1]), out var chars);
+            Assert.IsTrue(result);
+            Assert.AreEqual(4, reader.CurrentIndex);
+
+            reader.Reset();
+            result = reader.TryRead(c => char.IsNumber(c[^1]), out chars);
+            Assert.IsFalse(result);
+            Assert.AreEqual(0, reader.CurrentIndex);
         }
     }
 
