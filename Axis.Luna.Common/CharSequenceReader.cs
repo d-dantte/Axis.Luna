@@ -11,6 +11,8 @@ namespace Axis.Luna.Common
 
         public bool CanRead => index < text.Length;
 
+        public CharSequence CharSequence => text;
+
         public CharSequenceReader(string text)
         {
             ArgumentNullException.ThrowIfNull(text);
@@ -130,6 +132,28 @@ namespace Axis.Luna.Common
 
             return false;
         }
+
+        /// <summary>
+        /// Read until the predicate is false
+        /// </summary>
+        /// <param name="reader">The reader</param>
+        /// <param name="predicate">The predicate</param>
+        /// <param name="chars">The characters to read</param>
+        /// <returns>True if characters were read, false otherwise</returns>
+        public bool TryRead(
+            Func<CharSequence, bool> predicate,
+            out CharSequence chars)
+        {
+            ArgumentNullException.ThrowIfNull(predicate);
+
+            if (TryPeek(predicate, out chars))
+            {
+                Advance(chars.Length);
+                return true;
+            }
+
+            return false;
+        }
         #endregion
 
         #region Peek
@@ -231,10 +255,7 @@ namespace Axis.Luna.Common
             }
 
             if (chars.Length > 0)
-            {
-                this.Advance(chars.Length);
                 return true;
-            }
 
             return false;
         }
