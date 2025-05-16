@@ -16,6 +16,7 @@
     <Authors>Dantte</Authors>
     <PackageReadmeFile>axis.luna.common.readme.md</PackageReadmeFile>
     <Nullable>enable</Nullable>
+	  <PackAndPush>true</PackAndPush>
   </PropertyGroup>
 
   <ItemGroup>

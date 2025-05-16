@@ -11,6 +11,7 @@
     <PackageTags>automata</PackageTags>
     <Description>simple automata implementation</Description>
     <PackageReleaseNotes></PackageReleaseNotes>
+	<PackAndPush>true</PackAndPush>
     <PackageProjectUrl>https://github.com/d-dantte/Axis.Luna</PackageProjectUrl>
     <RepositoryUrl>https://github.com/d-dantte/Axis.Luna</RepositoryUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>

@@ -12,6 +12,7 @@
     <PackageProjectUrl>https://github.com/d-dantte/Axis.Luna</PackageProjectUrl>
     <RepositoryUrl>https://github.com/d-dantte/Axis.Luna</RepositoryUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
+	  <PackAndPush>true</PackAndPush>
   </PropertyGroup>
 
   <ItemGroup>
