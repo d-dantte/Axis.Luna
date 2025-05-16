@@ -17,6 +17,15 @@ namespace Axis.Luna.Common
             this.text = text;
         }
 
+        public CharSequenceReader(CharSequence seq)
+        {
+            text = seq;
+        }
+
+        public static implicit operator CharSequenceReader(string text) => new(text);
+
+        public static implicit operator CharSequenceReader(CharSequence text) => new(text);
+
         public CharSequenceReader Reset(int index = 0)
         {
             ArgumentOutOfRangeException.ThrowIfLessThan(index, 0);
@@ -194,6 +203,40 @@ namespace Axis.Luna.Common
             ArgumentNullException.ThrowIfNull(predicate);
 
             return TryPeek(maxReadCount, out chars) && predicate.Invoke(chars);
+        }
+
+        /// <summary>
+        /// Peeks until the predicate returns false
+        /// </summary>
+        /// <param name="predicate">The predicate to filter characters with</param>
+        /// <param name="chars">the characters that will be peeked</param>
+        /// <returns></returns>
+        public bool TryPeek(
+            Func<CharSequence, bool> predicate,
+            out CharSequence chars)
+        {
+            ArgumentNullException.ThrowIfNull(predicate);
+
+            chars = default;
+            int count = 0;
+            while (this.TryPeekExactly(++count, out var chr))
+            {
+                chars = chars.IsDefault ? chr : chars + 1;
+
+                if (!predicate.Invoke(chars))
+                {
+                    chars -= 1;
+                    break;
+                }
+            }
+
+            if (chars.Length > 0)
+            {
+                this.Advance(chars.Length);
+                return true;
+            }
+
+            return false;
         }
         #endregion
     }

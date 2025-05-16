@@ -297,5 +297,49 @@ namespace Axis.Luna.Common.Test
             merged = seq1 + ' ';
             Assert.AreEqual<string>("the q ", merged.ToString());
         }
+
+        [TestMethod]
+        public void Shrink_Tests()
+        {
+            var chars = CharSequence.Of("123456789");
+
+            var seq = chars - 1;
+            Assert.AreEqual(8, seq.Length);
+            Assert.AreEqual("12345678", seq.ToString());
+
+            seq = seq - 1;
+            Assert.AreEqual(7, seq.Length);
+            Assert.AreEqual("1234567", seq.ToString());
+
+            seq = seq - 1;
+            Assert.AreEqual(6, seq.Length);
+            Assert.AreEqual("123456", seq.ToString());
+
+            seq = seq - 1;
+            Assert.AreEqual(5, seq.Length);
+            Assert.AreEqual("12345", seq.ToString());
+
+            seq = seq - 1;
+            Assert.AreEqual(4, seq.Length);
+            Assert.AreEqual("1234", seq.ToString());
+
+            seq = seq - 1;
+            Assert.AreEqual(3, seq.Length);
+            Assert.AreEqual("123", seq.ToString());
+
+            seq = seq - 1;
+            Assert.AreEqual(2, seq.Length);
+            Assert.AreEqual("12", seq.ToString());
+
+            seq = seq - 1;
+            Assert.AreEqual(1, seq.Length);
+            Assert.AreEqual("1", seq.ToString());
+
+            seq = seq - 1;
+            Assert.AreEqual(0, seq.Length);
+            Assert.AreEqual("", seq.ToString());
+
+            Assert.ThrowsException<ArgumentOutOfRangeException>(() => seq -= 1);
+        }
     }
 }

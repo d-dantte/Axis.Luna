@@ -111,7 +111,6 @@ namespace Axis.Luna.Common
         #endregion
 
         #region API
-
         public bool IsEmpty => _segment.IsEmpty();
 
         public static CharSequence Empty { get; } = new CharSequence(string.Empty, 0, 0);
@@ -220,7 +219,7 @@ namespace Axis.Luna.Common
             if (charCount < 0)
                 return chars + Math.Abs(charCount);
 
-            else if (charCount < chars.Segment.Count)
+            else if (charCount <= chars.Segment.Count)
                 return Of(chars.Ref, chars.Segment.Offset, chars.Segment.Count - charCount);
 
             else throw new ArgumentOutOfRangeException(
@@ -230,6 +229,7 @@ namespace Axis.Luna.Common
 
         #endregion
 
+        #region Overrides
         public bool Equals(CharSequence other)
         {
             if (IsDefault && other.IsDefault)
@@ -289,7 +289,7 @@ namespace Axis.Luna.Common
         public static CharSequence operator +(CharSequence lhs, string rhs) => lhs.Concat(rhs);
 
         public static CharSequence operator +(CharSequence lhs, char rhs) => lhs.Concat(rhs);
-
+        #endregion
 
         internal class Enumerator: IEnumerator<char>
         {

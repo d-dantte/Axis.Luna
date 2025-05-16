@@ -1,5 +1,6 @@
 ﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
+using System.Linq;
 
 namespace Axis.Luna.Common.Test
 {
@@ -18,7 +19,7 @@ namespace Axis.Luna.Common.Test
         [ExpectedException(typeof(ArgumentNullException))]
         public void CharSequenceReader_Constructor_ShouldThrowOnNull()
         {
-            var reader = new CharSequenceReader(null);
+            var reader = new CharSequenceReader((string) null);
         }
 
         [TestMethod]
@@ -233,6 +234,84 @@ namespace Axis.Luna.Common.Test
             Assert.IsTrue(success);
             Assert.AreEqual<string>("test", chars);
             Assert.AreEqual(0, reader.CurrentIndex); // Index should not change
+        }
+
+
+        [TestMethod]
+        public void TryPeek_NullPredicate_ThrowsArgumentNullException()
+        {
+            var reader = new CharSequenceReader("abc");
+            Assert.ThrowsException<ArgumentNullException>(() => reader.TryPeek(null!, out _));
+        }
+
+        [TestMethod]
+        public void TryPeek_EmptyReader_ReturnsFalse()
+        {
+            var reader = new CharSequenceReader("");
+            bool result = reader.TryPeek(c => true, out var chars);
+            Assert.IsFalse(result);
+            Assert.AreEqual(default, chars);
+            Assert.AreEqual(0, reader.CurrentIndex);
+        }
+
+        [TestMethod]
+        public void TryPeek_SingleCharacterMatch_ReturnsTrueAndCharacter()
+        {
+            var reader = new CharSequenceReader("a");
+            bool result = reader.TryPeek(c => c[0] == 'a', out var chars);
+            Assert.IsTrue(result);
+            Assert.AreEqual("a", chars.ToString());
+            Assert.AreEqual(1, reader.CurrentIndex);
+        }
+
+        [TestMethod]
+        public void TryPeek_MultipleCharacterMatch_ReturnsTrueAndString()
+        {
+            var reader = new CharSequenceReader("abcde");
+            bool result = reader.TryPeek(c => 'a' == c[^1] || 'b' == c[^1] || 'c' == c[^1], out var chars);
+            Assert.IsTrue(result);
+            Assert.AreEqual("abc", chars.ToString());
+            Assert.AreEqual(3, reader.CurrentIndex);
+        }
+
+        [TestMethod]
+        public void TryPeek_NoCharacterMatch_ReturnsFalseAndEmptyString()
+        {
+            var reader = new CharSequenceReader("abcde");
+            bool result = reader.TryPeek(c => c.ToString().Contains('x'), out var chars);
+            Assert.IsFalse(result);
+            Assert.AreEqual(0, reader.CurrentIndex);
+        }
+
+        [TestMethod]
+        public void TryPeek_PartialMatchThenNoMatch_ReturnsTrueAndPartialString()
+        {
+            var reader = new CharSequenceReader("ab12cd");
+            bool result = reader.TryPeek(c => char.IsLetter(c[^1]), out var chars);
+            Assert.IsTrue(result);
+            Assert.AreEqual("ab", chars.ToString());
+            Assert.AreEqual(2, reader.CurrentIndex);
+        }
+
+        [TestMethod]
+        public void TryPeek_AllMatch_ReturnsTrueAndFullString()
+        {
+            var reader = new CharSequenceReader("abcdef");
+            bool result = reader.TryPeek(c => c.Length > 0, out var chars);
+            Assert.IsTrue(result);
+            Assert.AreEqual("abcdef", chars.ToString());
+            Assert.AreEqual(6, reader.CurrentIndex);
+        }
+
+        [TestMethod]
+        public void TryPeek_LongStringPartialMatch_ReturnsTrue()
+        {
+            string longString = new string('a', 1000) + "b" + new string('c', 1000);
+            var reader = new CharSequenceReader(longString);
+            bool result = reader.TryPeek(c => c.ToString().All(ch => ch == 'a'), out var chars);
+            Assert.IsTrue(result);
+            Assert.AreEqual(new string('a', 1000), chars.ToString());
+            Assert.AreEqual(1000, reader.CurrentIndex);
         }
     }
 
