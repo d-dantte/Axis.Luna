@@ -1,4 +1,9 @@
-﻿namespace Axis.Luna.Result.Tests
+﻿using Newtonsoft.Json;
+using System.Collections.Immutable;
+using System.Net.NetworkInformation;
+using System.Text.RegularExpressions;
+
+namespace Axis.Luna.Result.Tests
 {
 
     [TestClass]
@@ -465,4 +470,615 @@
         #endregion
     }
 
+    public readonly struct Optional<TValue> where TValue : class
+    {
+        private readonly TValue? _value;
+    }
+
+    // add another integer (4bytes) to the random fields, bringing it to a total of 22 bytes
+    // 8 (timestamp), 2 (prefix), 8 (random), 4 (random)
+    public readonly struct Suid
+    {
+        public static Suid Create() => new();
+
+        public static Suid Parse(string text)
+        {
+            throw new NotImplementedException();
+        }
+    }
+
+    public interface IEntity<TId>
+    {
+        TId Id { get; }
+
+        DateTimeOffset CreatedOn { get; init; }
+
+        DateTimeOffset? ModifiedOn { get; set; }
+    }
+
+    /// <summary>
+    /// Represents an indexed chunk of continguous data from a stream of data
+    /// </summary>
+    /// <typeparam name="TData">The type of data</typeparam>
+    public readonly struct Page<TData>
+    {
+        public int Count { get; }
+        public int Offset { get; }
+        public int SequenceLength { get; }
+        public int MaxPageLength { get; }
+        public int PageIndex { get; }
+
+        public ImmutableArray<TData> Data{ get; }
+    }
+
+    public readonly struct PageRequest { }
+
+    public interface IRepository<TId, TEntity>
+    {
+        Task<TEntity> GetEntity(TId id);
+
+        Task<TEntity> CreateEntity(TEntity entity);
+
+        Task<TEntity> UpdateEntity(TEntity entity);
+
+        Task DeleteEntity(TEntity entity);
+    }
+
+    #region Async Operations Audit Service (for commands and streams)
+
+    public enum AsyncOperationType
+    {
+        Command,
+        Stream
+    }
+
+    public readonly struct AsyncOperationIdentifier
+    {
+        public const string NID = "asyncop";
+
+        public static readonly Regex Pattern = new(
+            @"^urn:asyncop:(?<operation>cmd|seq):(?<domain>\*|([a-zA-Z_]+[a-zA-Z_\.-]*)):(?<guid>[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})$",
+            RegexOptions.Compiled);
+
+        public string Domain { get; }
+
+        public Suid UUId { get; }
+
+        public AsyncOperationType OperationType { get; }
+
+        public AsyncOperationIdentifier(AsyncOperationType type, string domain, Suid uuid)
+        {
+            var nullDomain = "*".Equals(domain);
+            Domain = nullDomain ? null! : domain;
+            UUId = uuid;
+            OperationType = type; // throw if not defined
+
+            if ((nullDomain && !Guid.Empty.Equals(UUId))
+                || !Pattern.IsMatch(ToString()))
+                throw new ArgumentOutOfRangeException(
+                    nameof(domain), $"Invalid operation-identifier format: {ToString()}");
+        }
+
+        public AsyncOperationIdentifier(
+            AsyncOperationType type,
+            string domain)
+            : this(type, domain, Suid.Create()) // default to the sequential GUid
+        {
+        }
+
+        public static AsyncOperationIdentifier Of(AsyncOperationType type,  string domain, Suid uuid) => new(type, domain, uuid);
+
+        public static AsyncOperationIdentifier Of(string id) => Parse(id);
+
+        public static implicit operator AsyncOperationIdentifier((AsyncOperationType type, string domain, Suid id) info) => new(info.type, info.domain, info.id);
+
+        public static implicit operator AsyncOperationIdentifier(string id) => Parse(id);
+
+        #region Parse
+        public static AsyncOperationIdentifier Parse(string identifier)
+        {
+            _ = !TryParse(identifier, out var result);
+            return result.Resolve();
+        }
+
+        public static bool TryParse(string identifierText, out IResult<AsyncOperationIdentifier> identifierResult)
+        {
+            var match = Pattern.Match(identifierText);
+
+            identifierResult = match.Success switch
+            {
+                false => Result.Of<AsyncOperationIdentifier>(new FormatException($"Invalid command-identifier format: [{identifierText}]")),
+                true => Result.Of(
+                    new AsyncOperationIdentifier(
+                        ParseOperationType(match.Groups["operation"].Value),
+                        match.Groups["domain"].Value,
+                        Suid.Parse(match.Groups["guid"].Value)))
+            };
+
+            return identifierResult.IsDataResult();
+        }
+
+        private static string ToText(AsyncOperationType type)
+        {
+            return type switch
+            {
+                AsyncOperationType.Command => "cmd",
+                AsyncOperationType.Stream => "seq",
+                _ => throw new ArgumentException($"Invalid type: {type}")
+            };
+        }
+
+        private static AsyncOperationType ParseOperationType(string type)
+        {
+            return type switch
+            {
+                "cmd" or "Command" => AsyncOperationType.Command,
+                "seq" or "Stream" => AsyncOperationType.Stream,
+                _ => throw new ArgumentException($"Invalid type: {type}")
+            };
+        }
+        #endregion
+
+        #region Overrides
+        public override string ToString()
+        {
+            return $"urn:{NID}:{ToText(OperationType)}:{Domain ?? "*"}:{UUId}";
+        }
+        #endregion
+    }
+
+    public enum CommandStatus
+    {
+        Pending = 0,
+        Faulted,
+        Completed,
+        Unknown
+    }
+
+    public enum StreamStatus
+    {
+        Live = 0,
+        Faulted,
+        Completed,
+        Unknown
+    }
+
+    public record AsyncOperationAuditRecord<TOperationId, TStatus>
+        where TStatus : struct, Enum
+    {
+        public required AsyncOperationIdentifier Identifier { get; init; }
+
+        public required TOperationId OperationId { get; init; }
+
+        public required TStatus Status { get; set; }
+
+        public required DateTimeOffset CreatedOn { get; init; }
+
+        public DateTimeOffset? ModifiedOn { get; set; }
+    }
+
+    public interface IAsyncOperationsAuditor<TId, TStatus>
+        where TStatus : struct, Enum
+    {
+        Task<AsyncOperationIdentifier> CreateAuditRecord(TId streamId, string domainNamespace);
+        Task UpdateStatus(AsyncOperationIdentifier auditRecordIdentifier, TStatus newStatus);
+        Task<TStatus> GetStatus(AsyncOperationIdentifier auditRecordIdentifier);
+    }
+
+    public class AsyncStreamAuditor<TStreamId> : IAsyncOperationsAuditor<TStreamId, StreamStatus>
+    {
+        private readonly IRepository<AsyncOperationIdentifier, AsyncOperationAuditRecord<TStreamId, StreamStatus>> _repository;
+
+        public AsyncStreamAuditor(IRepository<AsyncOperationIdentifier, AsyncOperationAuditRecord<TStreamId, StreamStatus>> repository)
+        {
+            ArgumentNullException.ThrowIfNull(repository);
+
+            _repository = repository;
+        }
+
+        public async Task<AsyncOperationIdentifier> CreateAuditRecord(TStreamId streamId, string domainNamespace)
+        {
+            var record = new AsyncOperationAuditRecord<TStreamId, StreamStatus>
+            {
+                CreatedOn = DateTimeOffset.Now,
+                OperationId = streamId,
+                Status = StreamStatus.Live,
+                Identifier = new AsyncOperationIdentifier(AsyncOperationType.Stream, domainNamespace),
+            };
+
+            record = await _repository.CreateEntity(record);
+            return record.Identifier;
+        }
+
+        public async Task<StreamStatus> GetStatus(AsyncOperationIdentifier auditRecordIdentifier)
+        {
+            var record = await _repository.GetEntity(auditRecordIdentifier);
+            return record.Status;
+        }
+
+        public async Task UpdateStatus(AsyncOperationIdentifier auditRecordIdentifier, StreamStatus newStatus)
+        {
+            if (!Enum.IsDefined<StreamStatus>(newStatus))
+                throw new ArgumentOutOfRangeException(nameof(newStatus), $"Invalid status: {newStatus}");
+
+            var record = await _repository.GetEntity(auditRecordIdentifier);
+            record.Status = newStatus;
+            record.ModifiedOn = DateTimeOffset.Now;
+
+            _ = await _repository.UpdateEntity(record);
+        }
+    }
+
+    public class AsyncCommandAuditor<TCommandId> : IAsyncOperationsAuditor<TCommandId, CommandStatus>
+    {
+        private readonly IRepository<AsyncOperationIdentifier, AsyncOperationAuditRecord<TCommandId, CommandStatus>> _repository;
+
+        public AsyncCommandAuditor(IRepository<AsyncOperationIdentifier, AsyncOperationAuditRecord<TCommandId, CommandStatus>> repository)
+        {
+            ArgumentNullException.ThrowIfNull(repository);
+
+            _repository = repository;
+        }
+
+        public async Task<AsyncOperationIdentifier> CreateAuditRecord(TCommandId streamId, string domainNamespace)
+        {
+            var record = new AsyncOperationAuditRecord<TCommandId, CommandStatus>
+            {
+                CreatedOn = DateTimeOffset.Now,
+                OperationId = streamId,
+                Status = CommandStatus.Pending,
+                Identifier = new AsyncOperationIdentifier(AsyncOperationType.Command, domainNamespace),
+            };
+
+            record = await _repository.CreateEntity(record);
+            return record.Identifier;
+        }
+
+        public async Task<CommandStatus> GetStatus(AsyncOperationIdentifier auditRecordIdentifier)
+        {
+            var record = await _repository.GetEntity(auditRecordIdentifier);
+            return record.Status;
+        }
+
+        public async Task UpdateStatus(AsyncOperationIdentifier auditRecordIdentifier, CommandStatus newStatus)
+        {
+            if (!Enum.IsDefined<CommandStatus>(newStatus))
+                throw new ArgumentOutOfRangeException(nameof(newStatus), $"Invalid status: {newStatus}");
+
+            var record = await _repository.GetEntity(auditRecordIdentifier);
+            record.Status = newStatus;
+            record.ModifiedOn = DateTimeOffset.Now;
+
+            _ = await _repository.UpdateEntity(record);
+        }
+    }
+    #endregion
+
+    #region Identity
+
+    public enum MonikerType
+    {
+        Unknown,
+        User,
+        System
+    }
+
+    public readonly struct Moniker
+    {
+        internal static readonly Regex Pattern = new(
+            @"^(\@|\$)[a-zA-Z0-9]([\.-]?[a-zA-Z0-9])*$",
+            RegexOptions.Compiled);
+
+        private readonly string _name;
+
+        public bool IsDefault => _name is null;
+
+        public static Moniker Default => default;
+
+        public MonikerType Type => _name switch
+        {
+            null => MonikerType.Unknown,
+            string moniker => moniker[0] switch
+            {
+                '@' => MonikerType.User,
+                '$' => MonikerType.System,
+                _ => MonikerType.Unknown
+            }
+        };
+
+        public Moniker(string moniker)
+        {
+            ArgumentNullException.ThrowIfNullOrWhiteSpace(moniker);
+
+            if (!Pattern.IsMatch(moniker))
+                throw new FormatException($"Invalid moniker format: {moniker}");
+
+            _name = moniker;
+        }
+
+        public override string ToString() => IsDefault ? "*" : _name;
+
+        public static Moniker Of(string moniker) => new(moniker);
+
+        public static implicit operator Moniker(string moniker) => new(moniker);
+    }
+
+    public enum PrincipalStatus
+    {
+        Active,
+        Deleted
+    }
+
+    public record Principal
+    {
+        public required Suid Id { get; init; }
+
+        public required Moniker Moniker { get; init; }
+
+        public required PrincipalStatus Status { get; init; }
+
+        public required DateTimeOffset CreatedOn { get; init; }
+
+        public DateTimeOffset? ModifiedOn { get; set; }
+    }
+
+    #endregion
+
+    #region Wallet
+    public enum WalletStatus
+    {
+        Active,
+        Disabled
+    }
+
+    public enum WalletType
+    {
+        Funded,
+        Replay
+    }
+
+    public enum TransactionStatus
+    {
+        /// <summary>
+        /// Transaction has been lodged. Value exchange is still pending
+        /// <para/>
+        /// <c>*-> Pending -> Declined ||</c>
+        /// </summary>
+        Pending,
+
+        /// <summary>
+        /// Value was not transferred. Transaction is declined.
+        /// <para/>
+        /// <c>*-> Pending -> Declined ||</c>
+        /// </summary>
+        Declined,
+
+        /// <summary>
+        /// Value exchange is verified: credit/debit done.
+        /// <para/>
+        /// <c>*-> Pending -> Committed |</c>
+        /// </summary>
+        Committed,
+
+        /// <summary>
+        /// Value was reset, and verified. This can only be done if the transaction was previously <see cref="Committed"/>
+        /// <para/>
+        /// <c>*-> Pending -> Committed |-> Reversed</c>
+        /// </summary>
+        Reversed
+    }
+
+    public enum TransactionType
+    {
+        /// <summary>
+        /// In the context of the wallet, this is a deduction-type transaction
+        /// </summary>
+        Debit,
+
+        /// <summary>
+        /// In the context of the wallet, this is an addition-type transaction
+        /// </summary>
+        Credit
+    }
+
+
+    /// <summary>
+    /// There are two wallets: FundedWallet, and ReplayWallet
+    /// </summary>
+    public abstract record UserWallet<TWalletTransaction, TOrderItem> :
+        IEntity<Suid>
+        where TOrderItem : IOrderItem
+        where TWalletTransaction : WalletTransaction<TOrderItem>
+    {
+        #region Entity
+        public required Suid Id { get; init; }
+
+        public required DateTimeOffset CreatedOn { get; init; }
+
+        public DateTimeOffset? ModifiedOn { get; set; }
+        #endregion
+
+        public required Suid UserId { get; init; }
+
+        /// <summary>
+        /// Can this be made into an integer type?
+        /// </summary>
+        public decimal Balance { get; init; }
+
+        public WalletStatus Status { get; set; }
+
+        public abstract WalletType Type { get; }
+
+        /// <summary>
+        /// Joined from the WalletTransaction collection when needed
+        /// </summary>
+        public abstract ImmutableArray<TWalletTransaction> RecentTransactions { get; init; }
+    }
+
+    public record FundedWallet : UserWallet<WalletTransaction<IOrderItem>, IOrderItem>
+    {
+        public override WalletType Type => WalletType.Funded;
+
+        public override ImmutableArray<WalletTransaction<IOrderItem>> RecentTransactions { get; init; } = [];
+    }
+
+    public record ReplayWallet: UserWallet<WalletTransaction<IReplayItem>, IReplayItem>
+    {
+        public override WalletType Type => WalletType.Replay;
+
+        public override ImmutableArray<WalletTransaction<IReplayItem>> RecentTransactions { get; init; } = [];
+    }
+
+    /// <summary>
+    /// Base interface for all OrderItems - elements that can be paid for, that may or may not be tied to a product/sku
+    /// </summary>
+    public interface IOrderItem : IEntity<Suid>
+    {
+    }
+
+    /// <summary>
+    /// Base interface for replay items
+    /// </summary>
+    public interface IReplayItem : IOrderItem
+    {
+    }
+
+    public record WalletTransaction<TOrderItem> : IEntity<Suid>
+    {
+        public required Suid Id { get; init; }
+
+        public required DateTimeOffset CreatedOn { get; init; }
+
+        public required DateTimeOffset? ModifiedOn { get; set; }
+
+
+        public required TransactionStatus Status { get; set; }
+
+        public required TransactionType Type { get; init; }
+
+        public required Suid WalletId { get; init; }
+
+        /// <summary>
+        /// A snapshot of the balance when the transaction was issued
+        /// </summary>
+        public required decimal BalanceSnapshot { get; init; }
+
+        /// <summary>
+        /// The amount for this transaction
+        /// </summary>
+        public required decimal TransactionAmount { get; init; }
+
+        /// <summary>
+        /// The item for which this transaction was issued
+        /// </summary>
+        public required IOrderItem OrderItem { get; init; }
+    }
+
+
+    #region Services
+    public interface IWalletManager
+    {
+        Task<Optional<WalletTuple>> GetWallets(Suid userId);
+
+        /// <summary>
+        /// For now, this should be called only once per user. So a check must be made for already created wallets
+        /// </summary>
+        /// <param name="userId"></param>
+        /// <returns></returns>
+        Task<WalletTuple> CreateWallets(Suid userId);
+
+        Task<Page<FundedWallet>> GetFundedWallets(PageRequest request);
+
+        Task<Page<ReplayWallet>> GetReplayWallets(PageRequest request);
+
+        Task DisableWallet(Suid walletId);
+
+        Task ActivateWallet(Suid wallet);
+
+        #region Request/Response
+        public record WalletTuple
+        {
+            public required FundedWallet FundedWallet { get; init; }
+
+            public required ReplayWallet ReplayWallet { get; init; }
+        }
+        #endregion
+    }
+
+    public interface IWalletTransactionAuthority
+    {
+        Task<WalletTransaction<TItem>> LodgeTransaction<TItem>(TransactionLodgeInfo<TItem> request) where TItem : IOrderItem;
+
+        Task UpdateTransactionStatus(TransactionStatusUpdate updateRequest);
+
+
+        Task<Page<WalletTransaction<IOrderItem>>> GetFundedTransactions(TransactionListRequest request);
+
+        Task<Page<WalletTransaction<IReplayItem>>> GetReplayTransactions(TransactionListRequest request);
+
+
+        Task<Page<WalletTransaction<IOrderItem>>> GetAllFundedTransactions(PageRequest request);
+
+        Task<Page<WalletTransaction<IReplayItem>>> GetAllReplayTransactions(PageRequest request);
+
+
+        #region Request/Response
+        public record TransactionLodgeInfo<TItem> where TItem : IOrderItem
+        {
+            public required TransactionType Type { get; init; }
+
+            public required decimal Amount { get; init; }
+
+            public required TItem OrderItem { get; init; }
+
+            public required Suid WalletId { get; init; }
+        }
+
+        public record TransactionStatusUpdate
+        {
+            public required Suid TransactionId { get; init; }
+
+            public required TransactionStatus NewStatus { get; init; }
+        }
+
+        public record TransactionListRequest
+        {
+            public required Suid UserId { get; init; }
+
+            public required PageRequest PageRequest { get; init; }
+        }
+        #endregion
+    }
+    #endregion
+
+
+    #region SNL Order Items
+    public record SNLTile : IOrderItem
+    {
+        #region Entity
+        public required Suid Id { get; init; }
+
+        public required DateTimeOffset CreatedOn { get; init; }
+
+        public DateTimeOffset? ModifiedOn { get; set; }
+        #endregion
+
+        /// <summary>
+        /// The user that is making the purchase
+        /// </summary>
+        public required Suid UserId { get; init; }
+
+        public required Suid GamePresetId { get; init; }
+
+        public required Suid GridId { get; init; }
+
+        public required ushort TileIndex { get; init; }
+    }
+
+    public record SNLReplayTile : SNLTile, IReplayItem
+    {
+    }
+    #endregion
+
+    #endregion
 }
