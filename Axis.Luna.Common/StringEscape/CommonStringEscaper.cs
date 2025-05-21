@@ -35,7 +35,7 @@ namespace Axis.Luna.Common.StringEscape
             .ApplyTo(value => string.Join("", value));
         #endregion
 
-        public bool IsValidEscapeSequence(CharSequence escapeSequence)
+        public virtual bool IsValidEscapeSequence(CharSequence escapeSequence)
         {
             if (escapeSequence.IsDefault)
                 return false;
@@ -52,7 +52,7 @@ namespace Axis.Luna.Common.StringEscape
             };
         }
 
-        public CharSequence Escape(CharSequence unescapedSequence)
+        public virtual CharSequence Escape(CharSequence unescapedSequence)
         {
             if (unescapedSequence.IsDefault)
                 throw new ArgumentException($"Invalid {nameof(unescapedSequence)}: default");
@@ -62,12 +62,12 @@ namespace Axis.Luna.Common.StringEscape
                 (seq, @char) => seq + EscapeChar(@char));
         }
 
-        public CharSequence Escape(
+        public virtual CharSequence Escape(
             CharSequence unescapedSequence,
             Func<char, bool> predicate)
             => Escape(unescapedSequence, predicate, EscapeChar);
 
-        public CharSequence Escape(
+        public virtual CharSequence Escape(
             CharSequence unescapedSequence,
             Func<char, bool> predicate,
             Func<char, CharSequence> escaper)
@@ -88,7 +88,7 @@ namespace Axis.Luna.Common.StringEscape
                 });
         }
 
-        public CharSequence Unescape(CharSequence escapedSequence)
+        public virtual CharSequence Unescape(CharSequence escapedSequence)
         {
             if (escapedSequence.IsDefault)
                 throw new ArgumentException($"Invalid {nameof(escapedSequence)}: default");
@@ -120,7 +120,7 @@ namespace Axis.Luna.Common.StringEscape
             };
         }
 
-        public string UnescapeString(string @string)
+        public virtual string UnescapeString(string @string)
         {
             if (@string is null)
                 return @string!;

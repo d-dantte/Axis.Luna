@@ -20,7 +20,7 @@ namespace Axis.Luna.Common.StringEscape
         bool IsValidEscapeSequence(CharSequence escapeSequence);
 
         /// <summary>
-        /// Converts the entire unescaped sequence into an escaped sequence. If the unescaped sequence cannot be escaped, return it as-is.
+        /// Converts each character in the entire unescaped sequence into an escaped sequence. If the unescaped sequence cannot be escaped, return it as-is.
         /// </summary>
         /// <param name="chars">The unescaped sequence</param>
         /// <returns>The escaped sequence</returns>
