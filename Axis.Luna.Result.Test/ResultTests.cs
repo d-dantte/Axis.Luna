@@ -1,4 +1,5 @@
-﻿using System.Collections.Immutable;
+using Newtonsoft.Json;
+using System.Collections.Immutable;
 using System.Net.NetworkInformation;
 using System.Text.RegularExpressions;
 
@@ -469,6 +470,13 @@ namespace Axis.Luna.Result.Tests
         #endregion
     }
 
+    public readonly struct Optional<TValue> where TValue : class
+    {
+        private readonly TValue? _value;
+    }
+
+    // add another integer (4bytes) to the random fields, bringing it to a total of 22 bytes
+    // 8 (timestamp), 2 (prefix), 8 (random), 4 (random)
     public readonly struct Suid
     {
         public static Suid Create() => new();
@@ -477,6 +485,15 @@ namespace Axis.Luna.Result.Tests
         {
             throw new NotImplementedException();
         }
+    }
+
+    public interface IEntity<TId>
+    {
+        TId Id { get; }
+
+        DateTimeOffset CreatedOn { get; init; }
+
+        DateTimeOffset? ModifiedOn { get; set; }
     }
 
     /// <summary>
@@ -493,6 +510,8 @@ namespace Axis.Luna.Result.Tests
 
         public ImmutableArray<TData> Data{ get; }
     }
+
+    public readonly struct PageRequest { }
 
     public interface IRepository<TId, TEntity>
     {
@@ -802,6 +821,264 @@ namespace Axis.Luna.Result.Tests
 
         public DateTimeOffset? ModifiedOn { get; set; }
     }
+
+    #endregion
+
+    #region Wallet
+    public enum WalletStatus
+    {
+        Active,
+        Disabled
+    }
+
+    public enum WalletType
+    {
+        Funded,
+        Replay
+    }
+
+    public enum TransactionStatus
+    {
+        /// <summary>
+        /// Transaction has been lodged. Value exchange is still pending
+        /// <para/>
+        /// <c>*-> Pending -> Declined ||</c>
+        /// </summary>
+        Pending,
+
+        /// <summary>
+        /// Value was not transferred. Transaction is declined.
+        /// <para/>
+        /// <c>*-> Pending -> Declined ||</c>
+        /// </summary>
+        Declined,
+
+        /// <summary>
+        /// Value exchange is verified: credit/debit done.
+        /// <para/>
+        /// <c>*-> Pending -> Committed |</c>
+        /// </summary>
+        Committed,
+
+        /// <summary>
+        /// Value was reset, and verified. This can only be done if the transaction was previously <see cref="Committed"/>
+        /// <para/>
+        /// <c>*-> Pending -> Committed |-> Reversed</c>
+        /// </summary>
+        Reversed
+    }
+
+    public enum TransactionType
+    {
+        /// <summary>
+        /// In the context of the wallet, this is a deduction-type transaction
+        /// </summary>
+        Debit,
+
+        /// <summary>
+        /// In the context of the wallet, this is an addition-type transaction
+        /// </summary>
+        Credit
+    }
+
+
+    /// <summary>
+    /// There are two wallets: FundedWallet, and ReplayWallet
+    /// </summary>
+    public abstract record UserWallet<TWalletTransaction, TOrderItem> :
+        IEntity<Suid>
+        where TOrderItem : IOrderItem
+        where TWalletTransaction : WalletTransaction<TOrderItem>
+    {
+        #region Entity
+        public required Suid Id { get; init; }
+
+        public required DateTimeOffset CreatedOn { get; init; }
+
+        public DateTimeOffset? ModifiedOn { get; set; }
+        #endregion
+
+        public required Suid UserId { get; init; }
+
+        /// <summary>
+        /// Can this be made into an integer type?
+        /// </summary>
+        public decimal Balance { get; init; }
+
+        public WalletStatus Status { get; set; }
+
+        public abstract WalletType Type { get; }
+
+        /// <summary>
+        /// Joined from the WalletTransaction collection when needed
+        /// </summary>
+        public abstract ImmutableArray<TWalletTransaction> RecentTransactions { get; init; }
+    }
+
+    public record FundedWallet : UserWallet<WalletTransaction<IOrderItem>, IOrderItem>
+    {
+        public override WalletType Type => WalletType.Funded;
+
+        public override ImmutableArray<WalletTransaction<IOrderItem>> RecentTransactions { get; init; } = [];
+    }
+
+    public record ReplayWallet: UserWallet<WalletTransaction<IReplayItem>, IReplayItem>
+    {
+        public override WalletType Type => WalletType.Replay;
+
+        public override ImmutableArray<WalletTransaction<IReplayItem>> RecentTransactions { get; init; } = [];
+    }
+
+    /// <summary>
+    /// Base interface for all OrderItems - elements that can be paid for, that may or may not be tied to a product/sku
+    /// </summary>
+    public interface IOrderItem : IEntity<Suid>
+    {
+    }
+
+    /// <summary>
+    /// Base interface for replay items
+    /// </summary>
+    public interface IReplayItem : IOrderItem
+    {
+    }
+
+    public record WalletTransaction<TOrderItem> : IEntity<Suid>
+    {
+        public required Suid Id { get; init; }
+
+        public required DateTimeOffset CreatedOn { get; init; }
+
+        public required DateTimeOffset? ModifiedOn { get; set; }
+
+
+        public required TransactionStatus Status { get; set; }
+
+        public required TransactionType Type { get; init; }
+
+        public required Suid WalletId { get; init; }
+
+        /// <summary>
+        /// A snapshot of the balance when the transaction was issued
+        /// </summary>
+        public required decimal BalanceSnapshot { get; init; }
+
+        /// <summary>
+        /// The amount for this transaction
+        /// </summary>
+        public required decimal TransactionAmount { get; init; }
+
+        /// <summary>
+        /// The item for which this transaction was issued
+        /// </summary>
+        public required IOrderItem OrderItem { get; init; }
+    }
+
+
+    #region Services
+    public interface IWalletManager
+    {
+        Task<Optional<WalletTuple>> GetWallets(Suid userId);
+
+        /// <summary>
+        /// For now, this should be called only once per user. So a check must be made for already created wallets
+        /// </summary>
+        /// <param name="userId"></param>
+        /// <returns></returns>
+        Task<WalletTuple> CreateWallets(Suid userId);
+
+        Task<Page<FundedWallet>> GetFundedWallets(PageRequest request);
+
+        Task<Page<ReplayWallet>> GetReplayWallets(PageRequest request);
+
+        Task DisableWallet(Suid walletId);
+
+        Task ActivateWallet(Suid wallet);
+
+        #region Request/Response
+        public record WalletTuple
+        {
+            public required FundedWallet FundedWallet { get; init; }
+
+            public required ReplayWallet ReplayWallet { get; init; }
+        }
+        #endregion
+    }
+
+    public interface IWalletTransactionAuthority
+    {
+        Task<WalletTransaction<TItem>> LodgeTransaction<TItem>(TransactionLodgeInfo<TItem> request) where TItem : IOrderItem;
+
+        Task UpdateTransactionStatus(TransactionStatusUpdate updateRequest);
+
+
+        Task<Page<WalletTransaction<IOrderItem>>> GetFundedTransactions(TransactionListRequest request);
+
+        Task<Page<WalletTransaction<IReplayItem>>> GetReplayTransactions(TransactionListRequest request);
+
+
+        Task<Page<WalletTransaction<IOrderItem>>> GetAllFundedTransactions(PageRequest request);
+
+        Task<Page<WalletTransaction<IReplayItem>>> GetAllReplayTransactions(PageRequest request);
+
+
+        #region Request/Response
+        public record TransactionLodgeInfo<TItem> where TItem : IOrderItem
+        {
+            public required TransactionType Type { get; init; }
+
+            public required decimal Amount { get; init; }
+
+            public required TItem OrderItem { get; init; }
+
+            public required Suid WalletId { get; init; }
+        }
+
+        public record TransactionStatusUpdate
+        {
+            public required Suid TransactionId { get; init; }
+
+            public required TransactionStatus NewStatus { get; init; }
+        }
+
+        public record TransactionListRequest
+        {
+            public required Suid UserId { get; init; }
+
+            public required PageRequest PageRequest { get; init; }
+        }
+        #endregion
+    }
+    #endregion
+
+
+    #region SNL Order Items
+    public record SNLTile : IOrderItem
+    {
+        #region Entity
+        public required Suid Id { get; init; }
+
+        public required DateTimeOffset CreatedOn { get; init; }
+
+        public DateTimeOffset? ModifiedOn { get; set; }
+        #endregion
+
+        /// <summary>
+        /// The user that is making the purchase
+        /// </summary>
+        public required Suid UserId { get; init; }
+
+        public required Suid GamePresetId { get; init; }
+
+        public required Suid GridId { get; init; }
+
+        public required ushort TileIndex { get; init; }
+    }
+
+    public record SNLReplayTile : SNLTile, IReplayItem
+    {
+    }
+    #endregion
 
     #endregion
 }
