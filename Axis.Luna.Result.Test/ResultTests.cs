@@ -1,7 +1,13 @@
-﻿using Newtonsoft.Json;
+﻿using ImmuDB;
+using Newtonsoft.Json;
+using NLog;
+using Org.BouncyCastle.Utilities;
+using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Net.NetworkInformation;
+using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 
 namespace Axis.Luna.Result.Tests
 {
@@ -2491,5 +2497,339 @@ namespace Axis.Luna.Result.Tests
         }
     }
     #endregion
+    #endregion
+
+    #region ImmuDb stuff
+
+    public sealed class BlockingConcurrentQueue<TValue>
+    {
+        private readonly ConcurrentQueue<TValue> _queue = new ConcurrentQueue<TValue>();
+        private readonly SemaphoreSlim _dequeueLock = new SemaphoreSlim(0);
+
+        public int Count => _queue.Count;
+
+        public Task<TValue> DequeueAsync() => DequeueAsync(CancellationToken.None);
+
+        public Task<TValue> DequeueAsync(CancellationToken token) => DequeueAsync(TimeSpan.FromMilliseconds(-1), token);
+
+        public async Task<TValue> DequeueAsync(
+            TimeSpan timeout,
+            CancellationToken token = default)
+        {
+            await StrictWaitAsync(_dequeueLock, timeout, token);
+
+            if (_queue.TryDequeue(out var value))
+                return value;
+
+            else throw new InvalidOperationException($"No element was removed from the queue");
+        }
+
+        public void Enqueue(TValue value)
+        {
+            _queue.Enqueue(value);
+            _dequeueLock.Release();
+        }
+
+
+        /// <summary>
+        /// asynchronously waits for:
+        /// <list type="number">
+        ///   <item>the semaphore to be released; here the task completes successfully</item>
+        ///   <item>the cancellation token to be signalled; here the task encapsulates a <see cref="TaskCanceledException"/>.</item>
+        ///   <item>the timeout to expire; here the task encapsulates a <see cref="TimeoutException"/>.</item>
+        /// </list>
+        /// </summary>
+        /// <param name="semaphore">The semaphore</param>
+        /// <param name="timeout">The timeout. Any negative value indicates waiting indefinitely</param>
+        /// <param name="token"></param>
+        /// <returns>A taks that completes when the semaphonre is released, or the token is cancelled, or the timeout expires</returns>
+        private static Task StrictWaitAsync(
+            SemaphoreSlim semaphore,
+            TimeSpan timeout,
+            CancellationToken token = default)
+        {
+            ArgumentNullException.ThrowIfNull(semaphore);
+
+            if (TimeSpan.Zero > timeout)
+                return semaphore.WaitAsync(token);
+
+            // By default, semaphores will run-to-completion when the timeout expires. Here, we want to throw an exception
+            else return Task
+                .WhenAny(semaphore.WaitAsync(token), TimeoutAsync(timeout, true))
+                .Unwrap();
+        }
+
+
+        /// <summary>
+        /// Waits the given amount of time, and either returns or throws a <see cref="TimeoutException"/>.
+        /// </summary>
+        /// <param name="timespan">The delay. Values less than 0 are out of range</param>
+        /// <param name="throwTimeoutException">True to throw an exception after the timeout expires; false to return.</param>
+        /// <exception cref="ArgumentOutOfRangeException">If <paramref name="timespan"/> is negative</exception>
+        /// <exception cref="TimeoutException">If <paramref name="throwTimeoutException"/> is true</exception>
+        public static Task TimeoutAsync(
+            TimeSpan timespan,
+            bool throwTimeoutException = false)
+        {
+            if (timespan < TimeSpan.Zero)
+                throw new ArgumentOutOfRangeException(nameof(timespan), "Delay must be > 0");
+
+            return Task
+                .Delay(timespan)
+                .ContinueWith(t =>
+                {
+                    if (throwTimeoutException)
+                        throw new TimeoutException($"Timeout expired: {timespan}");
+                });
+        }
+    }
+
+
+    public class ImmuTxSession : IAsyncDisposable
+    {
+        private readonly IImmuClientPool _pool;
+
+        public long SessionID { get; }
+
+        public ImmuTxSession(IImmuClientPool pool, long sessionId)
+        {
+            _pool = pool;
+            SessionID = sessionId;
+        }
+
+        public Task CommitAsync() => Task.CompletedTask;
+
+        public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+
+        #region ImmuDb Api proxy
+        public Task<TValue> GetValue<TValue>(string id)
+        {
+            var tcs = new TaskCompletionSource<TValue>();
+            async Task operation(ImmuClient client)
+            {
+                var entry = await client.Get(id);
+                tcs.TrySetResult(_pool.DeserializeValue<TValue>(entry.Value));
+            }
+
+            _pool.DispatchOperation(this, client => _ = operation(client));
+
+            return tcs.Task;
+        }
+
+        public Task SetValue<TValue>(string id, TValue value)
+        {
+            var tcs = new TaskCompletionSource();
+            async Task operation(ImmuClient client)
+            {
+                var bytes = _pool.SerializeValue(value);
+                var entry = await client.Set(id, bytes);
+                tcs.TrySetResult();
+            }
+
+            _pool.DispatchOperation(this, client => _ = operation(client));
+
+            return tcs.Task;
+        }
+
+
+        public Task<TValue> VerifiedGetValue<TValue>(string id)
+        {
+            var tcs = new TaskCompletionSource<TValue>();
+            async Task operation(ImmuClient client)
+            {
+                var entry = await client.VerifiedGet(id);
+                tcs.TrySetResult(_pool.DeserializeValue<TValue>(entry.Value));
+            }
+
+            _pool.DispatchOperation(this, client => _ = operation(client));
+
+            return tcs.Task;
+        }
+
+        public Task VerifiedSetValue<TValue>(string id, TValue value)
+        {
+            var tcs = new TaskCompletionSource();
+            async Task operation(ImmuClient client)
+            {
+                var bytes = _pool.SerializeValue(value);
+                var entry = await client.VerifiedSet(id, bytes);
+                tcs.TrySetResult();
+            }
+
+            _pool.DispatchOperation(this, client => _ = operation(client));
+
+            return tcs.Task;
+        }
+        #endregion
+    }
+
+
+    public interface IImmuClientPool: IAsyncDisposable
+    {
+        Task Start();
+
+        void DispatchOperation(ImmuTxSession session, Action<ImmuClient> operation);
+
+        byte[] SerializeValue<TValue>(TValue value);
+
+        TValue DeserializeValue<TValue>(byte[] valueBytes);
+    }
+
+    public class ImmuClientPool : IImmuClientPool
+    {
+        private readonly ILogger _logger;
+        private readonly PoolSettings _poolSettings;
+
+        private readonly ConcurrentDictionary<int, ImmuClient> _clientMap = new();
+        private readonly ConcurrentDictionary<int, BlockingConcurrentQueue<Action<ImmuClient>>> _operationSinkMap = new();
+        private readonly CancellationTokenSource _shutdownSource = new();
+        private readonly SemaphoreSlim _startLock = new(1);
+        private readonly SemaphoreSlim _disposeLock = new(1);
+
+        private TaskCompletionSource _poolCompletionSource = null!;
+        private bool _isDisposed = false;
+
+        public ImmuClientPool(PoolSettings poolSettings, ILogger logger)
+        {
+            ArgumentNullException.ThrowIfNull(poolSettings);
+            ArgumentNullException.ThrowIfNull(logger);
+
+            _logger = logger;
+            _poolSettings = poolSettings;
+        }
+
+
+        public async Task Start()
+        {
+            AssertNotDisposed();
+
+            await _startLock.WaitAsync();
+
+            try
+            {
+                if (_poolCompletionSource is null)
+                {
+                    Enumerable.Range(0, _poolSettings.PoolSize).ToList().ForEach(id =>
+                    {
+                        var client = CreateClient(_poolSettings);
+                        _clientMap[id] = client;
+                        _operationSinkMap[id] = new();
+
+                        _ = StartOperationPolling(client, id);
+                    });
+
+                    _poolCompletionSource = new();
+                }
+
+                await _poolCompletionSource.Task;
+            }
+            finally
+            {
+                _startLock.Release();
+            }
+        }
+
+        public void DispatchOperation(
+            ImmuTxSession session,
+            Action<ImmuClient> operation)
+        {
+            AssertNotDisposed();
+
+            ArgumentNullException.ThrowIfNull(session);
+            ArgumentNullException.ThrowIfNull(operation);
+
+            var sessionHash = EvaluateSessionIdHash(session.SessionID);
+            _operationSinkMap[sessionHash].Enqueue(operation);
+        }
+
+
+        public byte[] SerializeValue<TValue>(TValue value)
+        {
+            if (value is null)
+                return [];
+
+            var json = JsonConvert.SerializeObject(value, _poolSettings.JsonSerializerSettings);
+            var valueBytes = _poolSettings.StringSerializationEncoding.GetBytes(json);
+            return valueBytes;
+        }
+
+        public TValue DeserializeValue<TValue>(byte[] valueBytes)
+        {
+            ArgumentNullException.ThrowIfNull(valueBytes);
+
+            if (valueBytes.Length == 0)
+                return default!;
+
+            var json = _poolSettings.StringSerializationEncoding.GetString(valueBytes);
+            var value = JsonConvert.DeserializeObject<TValue>(json, _poolSettings.JsonSerializerSettings);
+            return value!;
+        }
+
+
+        internal async Task StartOperationPolling(ImmuClient client, int clientId)
+        {
+            if (!_operationSinkMap.TryGetValue(clientId, out var queue))
+                throw new InvalidOperationException($"Invalid clientId: {clientId}");
+
+            while (!_shutdownSource.IsCancellationRequested)
+            {
+                var operation = await queue.DequeueAsync(_shutdownSource.Token);
+
+                try
+                {
+                    operation.Invoke(client);
+                }
+                catch (Exception error)
+                {
+                    _logger.Error(error, $"Error while executing Tx Operation [client-id: {clientId}]");
+                }
+            }
+
+            _logger.Info($"Cancellation requested, exiting client polling [client-id: {clientId}]");
+
+            _ = _clientMap.TryRemove(clientId, out _);
+
+            // Do something about any operations left in the queue...
+
+            if (_clientMap.IsEmpty)
+                _poolCompletionSource.TrySetResult();
+        }
+
+        internal int EvaluateSessionIdHash(long sessionId) => (int) sessionId % _poolSettings.PoolSize;
+
+        internal static ImmuClient CreateClient(PoolSettings settings) => settings.ClientBuilder.Build();
+
+        public async ValueTask DisposeAsync()
+        {
+            await _disposeLock.WaitAsync();
+
+            if (_isDisposed)
+                return;
+
+            _shutdownSource.Cancel();
+            await _poolCompletionSource.Task;
+
+            _isDisposed = true;
+            _disposeLock.Release();
+        }
+
+        private void AssertNotDisposed()
+        {
+            ObjectDisposedException.ThrowIf(_isDisposed, this);
+        }
+
+        #region Nested types
+        public record PoolSettings
+        {
+            public required ImmuClientBuilder ClientBuilder { get; init; }
+
+            public required ushort PoolSize { get; init; }
+
+            public required JsonSerializerSettings JsonSerializerSettings { get; init; }
+
+            public required Encoding StringSerializationEncoding { get; init; }
+        }
+        #endregion
+    }
     #endregion
 }
