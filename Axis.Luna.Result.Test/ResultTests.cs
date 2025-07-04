@@ -1,9 +1,12 @@
-﻿using ImmuDB;
+﻿using Axis.Luna.Extensions;
+using ImmuDB;
 using Newtonsoft.Json;
 using NLog;
 using Org.BouncyCastle.Utilities;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using System.Net.NetworkInformation;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -839,8 +842,8 @@ namespace Axis.Luna.Result.Tests
 
     public enum WalletType
     {
-        Funded,
-        Replay
+        HardToken,
+        SoftToken
     }
 
     public enum TransactionStatus
@@ -887,14 +890,10 @@ namespace Axis.Luna.Result.Tests
         Credit
     }
 
-
     /// <summary>
-    /// There are two wallets: FundedWallet, and ReplayWallet
+    /// There are two wallets: HardTokenWallet, and SoftTokenWallet
     /// </summary>
-    public abstract record UserWallet<TWalletTransaction, TOrderItem> :
-        IEntity<Suid>
-        where TOrderItem : IOrderItem
-        where TWalletTransaction : WalletTransaction<TOrderItem>
+    public abstract record UserWallet : IEntity<Suid>
     {
         #region Entity
         public required Suid Id { get; init; }
@@ -918,38 +917,24 @@ namespace Axis.Luna.Result.Tests
         /// <summary>
         /// Joined from the WalletTransaction collection when needed
         /// </summary>
-        public abstract ImmutableArray<TWalletTransaction> RecentTransactions { get; init; }
+        public abstract ImmutableArray<WalletTransaction> RecentTransactions { get; init; }
     }
 
-    public record FundedWallet : UserWallet<WalletTransaction<IOrderItem>, IOrderItem>
+    public record HardTokenWallet : UserWallet
     {
-        public override WalletType Type => WalletType.Funded;
+        public override WalletType Type => WalletType.HardToken;
 
-        public override ImmutableArray<WalletTransaction<IOrderItem>> RecentTransactions { get; init; } = [];
+        public override ImmutableArray<WalletTransaction> RecentTransactions { get; init; } = [];
     }
 
-    public record ReplayWallet: UserWallet<WalletTransaction<IReplayItem>, IReplayItem>
+    public record SoftTokenWallet: UserWallet
     {
-        public override WalletType Type => WalletType.Replay;
+        public override WalletType Type => WalletType.SoftToken;
 
-        public override ImmutableArray<WalletTransaction<IReplayItem>> RecentTransactions { get; init; } = [];
+        public override ImmutableArray<WalletTransaction> RecentTransactions { get; init; } = [];
     }
 
-    /// <summary>
-    /// Base interface for all OrderItems - elements that can be paid for, that may or may not be tied to a product/sku
-    /// </summary>
-    public interface IOrderItem : IEntity<Suid>
-    {
-    }
-
-    /// <summary>
-    /// Base interface for replay items
-    /// </summary>
-    public interface IReplayItem : IOrderItem
-    {
-    }
-
-    public record WalletTransaction<TOrderItem> : IEntity<Suid>
+    public record WalletTransaction : IEntity<Suid>
     {
         public required Suid Id { get; init; }
 
@@ -993,9 +978,9 @@ namespace Axis.Luna.Result.Tests
         /// <returns></returns>
         Task<WalletTuple> CreateWallets(Suid userId);
 
-        Task<Page<FundedWallet>> GetFundedWallets(PageRequest request);
+        Task<Page<HardTokenWallet>> GetHardTokenWallets(PageRequest request);
 
-        Task<Page<ReplayWallet>> GetReplayWallets(PageRequest request);
+        Task<Page<SoftTokenWallet>> GetSoftTokenWallets(PageRequest request);
 
         Task DisableWallet(Suid walletId);
 
@@ -1004,28 +989,28 @@ namespace Axis.Luna.Result.Tests
         #region Request/Response
         public record WalletTuple
         {
-            public required FundedWallet FundedWallet { get; init; }
+            public required HardTokenWallet HardTokenWallet { get; init; }
 
-            public required ReplayWallet ReplayWallet { get; init; }
+            public required SoftTokenWallet SoftTokenWallet { get; init; }
         }
         #endregion
     }
 
     public interface IWalletTransactionAuthority
     {
-        Task<WalletTransaction<TItem>> LodgeTransaction<TItem>(TransactionLodgeInfo<TItem> request) where TItem : IOrderItem;
+        Task<WalletTransaction> LodgeTransaction<TItem>(TransactionLodgeInfo<TItem> request) where TItem : IOrderItem;
 
         Task UpdateTransactionStatus(TransactionStatusUpdate updateRequest);
 
 
-        Task<Page<WalletTransaction<IOrderItem>>> GetFundedTransactions(TransactionListRequest request);
+        Task<Page<WalletTransaction>> GetHardTokenTransactions(TransactionListRequest request);
 
-        Task<Page<WalletTransaction<IReplayItem>>> GetReplayTransactions(TransactionListRequest request);
+        Task<Page<WalletTransaction<ISoftTokenItem>>> GetSoftTokenTransactions(TransactionListRequest request);
 
 
-        Task<Page<WalletTransaction<IOrderItem>>> GetAllFundedTransactions(PageRequest request);
+        Task<Page<WalletTransaction<IOrderItem>>> GetAllHardTokenTransactions(PageRequest request);
 
-        Task<Page<WalletTransaction<IReplayItem>>> GetAllReplayTransactions(PageRequest request);
+        Task<Page<WalletTransaction<ISoftTokenItem>>> GetAllSoftTokenTransactions(PageRequest request);
 
 
         #region Request/Response
@@ -1058,8 +1043,245 @@ namespace Axis.Luna.Result.Tests
     #endregion
 
 
-    #region SNL Order Items
-    public record SNLTile : IOrderItem
+    #endregion
+
+    #region Inventory
+
+    public enum Currency
+    {
+        Token,
+        Fiat
+    }
+
+    public enum TokenType
+    {
+        Hard,
+        Soft
+    }
+
+    public record Price
+    {
+        public required Currency Currency { get; init; }
+        public required decimal Value { get; init; }
+    }
+
+    public readonly struct ProductAttribute : IDefaultValueProvider<ProductAttribute>
+    {
+        // Regular identifier pattern with '.', '-' and/or '_' appearing between letters.
+        public static readonly Regex NamePattern = new("");
+
+        // Accepts letters, digits, and symbols except for ':', and '/'
+        public static readonly Regex ValuePattern = new("");
+
+        public readonly string Name { get; }
+
+        public readonly string? Value { get; }
+
+        public static ProductAttribute Default => default;
+
+        public bool IsDefault => Name is null && Value is null;
+
+        public ProductAttribute(string name, string? value = null)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(name);
+
+            Name = name.ThrowIfNot(
+                NamePattern.IsMatch,
+                _ => new ArgumentException($""));
+
+            Value = value switch
+            {
+                null => null,
+                string => value.ThrowIfNot(
+                    ValuePattern.IsMatch,
+                    _ => new ArgumentException($""))
+            };
+        }
+
+        public static implicit operator ProductAttribute(
+            (string Name, string? Value) attribute)
+            => new(attribute.Name, attribute.Value);
+
+        public static implicit operator ProductAttribute(string text) => Parse(text);
+
+        public override string ToString()
+        {
+            var value = Value switch
+            {
+                null => null,
+                string => $": {Value}"
+            };
+
+            return $"{Name}{value}";
+        }
+
+        public static bool TryParse(string text, out IResult<ProductAttribute> result)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+                result = Result.Of<ProductAttribute>(new FormatException(
+                    $"Invalid format: null/empty/whitespace"));
+
+            else
+            {
+                var parts = text.Split(':');
+
+                if (parts.Length > 2 || parts.Length < 1)
+                    result = Result.Of<ProductAttribute>(
+                        new FormatException($"Invalid format: {text}"));
+
+                if (!NamePattern.IsMatch(parts[0]))
+                    result = Result.Of<ProductAttribute>(
+                        new FormatException($"Invalid name format: null/empty/whitespace"));
+
+                else if (parts[1] is not null && !ValuePattern.IsMatch(parts[1]))
+                    result = Result.Of<ProductAttribute>(
+                        new FormatException($"Invalid value format: {parts[1]}"));
+
+                else result = Result.Of(new ProductAttribute(parts[0], parts[1]));
+            }
+
+            return result.IsDataResult();
+        }
+
+        public static IResult<ProductAttribute> ParseResult(string text)
+        {
+            _ = TryParse(text, out var result);
+            return result;
+        }
+
+        public static ProductAttribute Parse(string text) => ParseResult(text).Resolve();
+    }
+
+    public readonly struct SKU : IDefaultValueProvider<SKU>
+    {
+        private readonly ImmutableArray<ProductAttribute> _attributes;
+
+        public ImmutableArray<ProductAttribute> Attributes => _attributes;
+
+        public bool IsDefault => _attributes.IsDefault;
+
+        public static SKU Default => default;
+
+        public SKU(params ProductAttribute[] attributes)
+        {
+            _attributes = attributes
+                .ThrowIfNull(() => new ArgumentNullException(nameof(attributes)))
+                .ThrowIf(
+                    atts => atts.IsEmpty(),
+                    _ => new ArgumentException($"Invalid attribute list: empty"))
+                .ThrowIfAny(
+                    att => att.IsDefault,
+                    _ => new ArgumentException($"Invalid attribute: default"))
+                .ToImmutableArray();
+        }
+
+        public static implicit operator SKU(ProductAttribute[] attributes) => new(attributes);
+
+        public static implicit operator SKU(string text) => Parse(text);
+
+        public override string ToString()
+        {
+            return IsDefault switch
+            {
+                true => "*",
+                false => _attributes
+                    .Select(att => att.ToString())
+                    .JoinUsing("/")
+            };
+        }
+
+
+        public static bool TryParse(string text, out IResult<SKU> result)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+                result = Result.Of<SKU>(new FormatException($"Invalid format: null/empty/whitespace"));
+
+            else
+            {
+                var parts = text.Split('/');
+                result = parts
+                    .Select(ProductAttribute.ParseResult)
+                    .FoldInto(atts => new SKU([.. atts]));
+            }
+
+            return result.IsDataResult();
+        }
+
+        public static IResult<SKU> ParseResult(string text)
+        {
+            _ = TryParse(text, out var result);
+            return result;
+        }
+
+        public static SKU Parse(string text) => ParseResult(text).Resolve();
+    }
+
+    public readonly struct SKUI : IDefaultValueProvider<SKUI>
+    {
+        private readonly SKU _sku;
+        private readonly ulong _serialNumber;
+
+        public SKU SKU => _sku;
+
+        public ulong SerialNumber => _serialNumber;
+
+        public bool IsDefault => _sku.IsDefault && _serialNumber == 0;
+
+        public static SKUI Default => default;
+
+        public SKUI(SKU sku, ulong serialNumber)
+        {
+            _sku = sku;
+            _serialNumber = serialNumber;
+        }
+
+        public static implicit operator SKUI(
+            (SKU Sku, ulong SerialNumber) tuple)
+            => new(tuple.Sku, tuple.SerialNumber);
+
+        public static implicit operator SKUI(string text) => Parse(text);
+
+        public override string ToString()
+        {
+            var serial = _serialNumber;
+            return IsDefault switch
+            {
+                true => "*/0",
+                false => $"{_sku}/{_serialNumber}"
+            };
+        }
+
+
+        public static bool TryParse(string text, out IResult<SKUI> result)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+                result = Result.Of<SKUI>(new FormatException($"Invalid format: null/empty/whitespace"));
+
+            else
+            {
+                var parts = text.Split('/');
+                var skuParts = parts[0..^1];
+                result = SKU
+                    .ParseResult(skuParts.JoinUsing("/"))
+                    .Map(sku => (
+                        SKU: sku,
+                        Serial: ulong.Parse(parts[^1])))
+                    .Map(tuple => new SKUI(tuple.SKU, tuple.Serial));
+            }
+
+            return result.IsDataResult();
+        }
+
+        public static IResult<SKUI> ParseResult(string text)
+        {
+            _ = TryParse(text, out var result);
+            return result;
+        }
+
+        public static SKUI Parse(string text) => ParseResult(text).Resolve();
+    }
+
+    public record Product : IEntity<Suid>
     {
         #region Entity
         public required Suid Id { get; init; }
@@ -1069,22 +1291,27 @@ namespace Axis.Luna.Result.Tests
         public DateTimeOffset? ModifiedOn { get; set; }
         #endregion
 
-        /// <summary>
-        /// The user that is making the purchase
-        /// </summary>
-        public required Suid UserId { get; init; }
+        public string Name { get; set; } = null!;
 
-        public required Suid GamePresetId { get; init; }
+        public string Description { get; set; } = null!;
 
-        public required Suid GridId { get; init; }
+        public Price Price { get; set; } = null!;
 
-        public required ushort TileIndex { get; init; }
+        public ImmutableArray<ProductAttribute> Attributes { get; set; }
     }
 
-    public record SNLReplayTile : SNLTile, IReplayItem
+    /// <summary>
+    /// Base interface for all OrderItems - elements that can be paid for, that may or may not be tied to a product/sku
+    /// </summary>
+    public interface IOrderUnit : IEntity<Suid>
     {
+
     }
-    #endregion
+
+    public interface IProductUnit : IEntity<Suid>
+    {
+        Suid ProductId { get; }
+    }
 
     #endregion
 
@@ -2499,6 +2726,53 @@ namespace Axis.Luna.Result.Tests
     #endregion
     #endregion
 
+    #region Games
+    public enum GridQueueEntryStatus
+    {
+        /// <summary>
+        /// Entry is waiting in the queue to be played
+        /// </summary>
+        Enqueued,
+
+        /// <summary>
+        /// Entry has been "removed" from the queue, and will hopefully played
+        /// </summary>
+        Dequeued,
+
+        /// <summary>
+        /// Entry has been played; this also means the entry now has a GridId assigned to it.
+        /// </summary>
+        Assigned
+    }
+
+    public record GridQueueEntry : IEntity<Suid>
+    {
+        public required Suid Id { get; init; }
+
+        public required DateTimeOffset CreatedOn { get; init; }
+
+        public required DateTimeOffset? ModifiedOn { get; set; }
+
+
+        public required Suid PresetId { get; init; }
+
+        public required Suid PlayerId { get; init; }
+
+
+        /// <summary>
+        /// The Id of the grid that this entry was played in. If this gets assigned, then the entry status is not set to <see cref="GridQueueEntryStatus.Assigned"/>
+        /// </summary>
+        public required Suid? LiveGridId { get; set; }
+
+        public required ushort Tile { get; init; }
+    }
+
+    public interface IGridQueueManager
+    {
+        Task<ImmutableArray<GridQueueEntry>> DequeueEntries(decimal quota)
+    }
+    #endregion
+
     #region ImmuDb stuff
 
     public sealed class BlockingConcurrentQueue<TValue>
@@ -2830,6 +3104,193 @@ namespace Axis.Luna.Result.Tests
             public required Encoding StringSerializationEncoding { get; init; }
         }
         #endregion
+    }
+    #endregion
+
+    #region Common
+    public readonly struct GlobalResourceIdentifier;
+    #endregion
+
+    #region Notification
+    public readonly struct NotificationConsumerTags
+    {
+        public static readonly Regex TagPattern = new(
+            "^[a-zA-Z0-9]+([\\._-][a-zA-Z0-9]+)*$",
+            RegexOptions.Compiled);
+
+        private readonly ImmutableHashSet<string> _tags;
+
+        public NotificationConsumerTags(params string[] tags)
+        {            
+            // Check for null
+            // check that each element matches
+            // assign elements to the array
+        }
+
+        public static implicit operator NotificationConsumerTags(string[] tags) => new(tags);
+
+        public NotificationConsumerTags Concat(
+            NotificationConsumerTags others)
+            => new([.._tags, ..others._tags]);
+
+        public NotificationConsumerTags Concat(string tag) => Concat(new NotificationConsumerTags(tag));
+
+        public static NotificationConsumerTags operator +(
+            NotificationConsumerTags first,
+            string tag)
+            => first.Concat(tag);
+
+        public override string ToString()
+        {
+            return base.ToString();
+        }
+
+        public bool Contains(string tag) => _tags?.Contains(tag) ?? false;
+
+        public bool Contains(NotificationConsumerTags others)
+        {
+            if (others._tags is null) return false;
+
+            else if (_tags is null) return false;
+
+            else
+            {
+                var tgs = _tags;
+                return others._tags.All(tgs.Contains);
+            }
+        }
+    }
+
+    public enum NotificationStatus
+    {
+        Pending,
+        Dispatched
+    }
+
+    public record EventNotification<TPayload> : IEntity<Suid>
+    {
+        public Suid Id { get; init; }
+
+        public DateTimeOffset CreatedOn { get; init; }
+
+        public DateTimeOffset? ModifiedOn { get; set; }
+
+        public DateTimeOffset? ExpiresOn { get; set; }
+
+        public NotificationStatus Status { get; init; }
+
+        /// <summary>
+        /// Identifier used to locate the message text/template/etc by the notification consumer service
+        /// </summary>
+        public GlobalResourceIdentifier EventIdentifier { get; init; }
+
+        public NotificationConsumerTags TargetConsumers { get; init; }
+
+        public TPayload Payload { get; init; } = default!;
+    }
+
+    public interface INotificationProducer
+    {
+        Task<Suid> Notify<TPayload>(NotificationRequest<TPayload> request);
+
+        Task<NotificationStatus> GetNotificationStatus(Suid id);
+
+        /// <summary>
+        /// Sitautions where a specific notification was created but not dispatched, this forces it to be dispatched.
+        /// </summary>
+        /// <param name="notifiationId"></param>
+        /// <returns></returns>
+        Task ForceDispatch(Suid notifiationId);
+
+        /// <summary>
+        /// Effectively calls "force dispatch" on a batch of notification instances that are still pending
+        /// </summary>
+        Task ClearPendingNotifications();
+
+
+        #region Nested types
+        public record NotificationRequest<TPayload>
+        {
+            required public GlobalResourceIdentifier EventIdentifier { get; init; }
+
+            required public NotificationConsumerTags Tags { get; init; }
+
+            required public TPayload Payload { get; init; }
+
+            required public DateTimeOffset? ExpiresOn { get; init; }
+        }
+        #endregion
+    }
+
+    public interface INotificationConsumer
+    {
+        Task Consume<TPayload>(EventNotification<TPayload> notification);
+    }
+    #endregion
+
+    #region utils
+    public readonly struct Percentage :
+        IEquatable<Percentage>
+    {
+        public decimal Value { get; }
+
+        public byte Precision { get; }
+
+        public Percentage(decimal value, byte precision = 2)
+        {
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(value);
+            ArgumentOutOfRangeException.ThrowIfGreaterThan(value, 100m);
+
+            Value = Math.Round(value, precision);
+            Precision = precision;
+        }
+
+        public bool Equals(Percentage other) => Value == other.Value;
+
+        public override bool Equals([NotNullWhen(true)] object? obj)
+        {
+            return obj is Percentage other && Equals(other);
+        }
+
+        public override int GetHashCode() => HashCode.Combine(Value, Precision);
+
+        public override string ToString() => Value.ToString($"F{Precision}");
+
+        public static bool TryParse(string text, out IResult<Percentage> result)
+        {
+            if (text is null)
+            {
+                result = Result.Of<Percentage>(new FormatException($"Invalid decimal format: {text}"));
+                return false;
+            }
+
+            int index = text.IndexOf('.');
+            byte precision = (index < 0 || index == text.Length - 1) switch
+            {
+                true => 0,
+                false => (byte)(text.Length - index - 1)
+            };
+
+            return TryParse(text, precision, out result);
+        }
+
+        public static bool TryParse(string text, byte precision, out IResult<Percentage> result)
+        {
+            if (!decimal.TryParse(text, out var dec))
+                result = Result.Of<Percentage>(new FormatException($"Invalid decimal format: {text}"));
+
+            else result = Result.Of(new Percentage(dec, precision));
+
+            return result.IsDataResult();
+        }
+
+        public static Percentage Parse(string text) => Parse(text, 2);
+
+        public static Percentage Parse(string text, byte precision)
+        {
+            _ = TryParse(text, precision, out var result);
+            return result.Resolve();
+        }
     }
     #endregion
 }
