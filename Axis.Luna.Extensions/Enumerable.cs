@@ -595,16 +595,20 @@ namespace Axis.Luna.Extensions
         /// <param name="sequence"></param>
         /// <param name="choices"></param>
         /// <returns></returns>
-        public static IEnumerable<IEnumerable<T>> Combinations<T>(this IEnumerable<T> sequence, int choices)
-        => choices == 0
-           ? new[] { new T[0] }
-           : sequence.SelectMany((e, i) =>
-           {
-               return sequence
-                   .Skip(i + 1)
-                   .Combinations(choices - 1)
-                   .Select(c => (new[] { e }).Concat(c));
-           });
+        public static IEnumerable<IEnumerable<T>> Combinations<T>(
+            this IEnumerable<T> sequence,
+            int choices)
+            => choices switch
+            {
+                0 => [[]],
+                _ => sequence.SelectMany((e, i) =>
+               {
+                   return sequence
+                       .Skip(i + 1)
+                       .Combinations(choices - 1)
+                       .Select(c => (new[] { e }).Concat(c));
+               })
+            };
 
         /// <summary>
         /// Resolve the permutations of the given enumerable
@@ -617,25 +621,21 @@ namespace Axis.Luna.Extensions
                 || (values is System.Collections.ICollection col && col.Count == 1)
                 || (values is ICollection<T> tcol && tcol.Count == 1)
                 || (values.Count() == 1))
-                return new T[][] { new T[] { values.First() } };
+                return [[values.First()]];
 
             else
             {
-                return values
-                    .SelectMany((value, index) =>
-                    {
-                        var primary = new[] { value };
-                        return EnumerableExtensions
-                            .Permutations(Splice(values, index))
-                            .Select(perm =>
-                            {
-                                return primary.Concat(perm).ToList() as IEnumerable<T>;
-                            });
-                    });
+                return values.SelectMany((value, index) =>
+                {
+                    var primary = new[] { value };
+                    return EnumerableExtensions
+                        .Permutations(Splice(values, index))
+                        .Select(perm => primary.Concat(perm));
+                });
             }
         }
 
-        private static T[] Splice<T>(IEnumerable<T> list, int index)
+        public static T[] Splice<T>(this IEnumerable<T> list, int index)
         {
             return list
                 .Take(index)

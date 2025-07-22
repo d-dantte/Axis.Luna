@@ -80,5 +80,25 @@ namespace Axis.Luna.Extensions.Test
 
             skipped.ForEvery(t => Console.Write(t + " "));
         }
+
+        [TestMethod]
+        public void Slice()
+        {
+            int[] x = [1, 2, 3, 4, 5, 6, 7, 8, 9, 0];
+            var y = x.Splice(2);
+            y.ForEvery(Console.Write);
+        }
+
+        [TestMethod]
+        public void Permutate()
+        {
+            int[] x = [1, 2, 3, 4];
+            var y = x.Permutations();
+            y.ForEvery(g =>
+            {
+                g.ForEvery(Console.Write);
+                Console.WriteLine();
+            });
+        }
     }
 }
