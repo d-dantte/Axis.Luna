@@ -6,4 +6,12 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\Axis.Luna.Common\Axis.Luna.Common.csproj" />
+    <ProjectReference Include="..\Axis.Luna.Extensions\Axis.Luna.Extensions.csproj" />
+    <ProjectReference Include="..\Axis.Luna.Optional\Axis.Luna.Optional.csproj" />
+    <ProjectReference Include="..\Axis.Luna.Result\Axis.Luna.Result.csproj" />
+    <ProjectReference Include="..\Axis.Luna.Unions\Axis.Luna.Unions.csproj" />
+  </ItemGroup>
+
 </Project>
